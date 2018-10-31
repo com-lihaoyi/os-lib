@@ -1,22 +1,7 @@
 package os
 
-import scala.io.Codec
 import scala.util.Try
 
-sealed trait PathConvertible[T]{
-  def apply(t: T): java.nio.file.Path
-}
-object PathConvertible{
-  implicit object StringConvertible extends PathConvertible[String]{
-    def apply(t: String) = java.nio.file.Paths.get(t)
-  }
-  implicit object JavaIoFileConvertible extends PathConvertible[java.io.File]{
-    def apply(t: java.io.File) = java.nio.file.Paths.get(t.getPath)
-  }
-  implicit object NioPathConvertible extends PathConvertible[java.nio.file.Path]{
-    def apply(t: java.nio.file.Path) = t
-  }
-}
 
 /**
   * A path which is either an absolute [[Path]], a relative [[RelPath]],
@@ -118,20 +103,6 @@ object BasePath {
 }
 
 
-/**
-  * Represents a value that is either an absolute [[Path]] or a
-  * relative [[RelPath]], and can be constructed from a
-  * java.nio.file.Path or java.io.File
-  */
-sealed trait FilePath extends BasePath
-object FilePath {
-  def apply[T: PathConvertible](f0: T) = {
-    val f = implicitly[PathConvertible[T]].apply(f0)
-    if (f.isAbsolute) Path(f0)
-    else RelPath(f0)
-  }
-}
-
 trait BasePathImpl extends BasePath{
   def segments: IndexedSeq[String]
 
@@ -150,14 +121,42 @@ trait BasePathImpl extends BasePath{
   def last = segments.last
 }
 
+object PathError{
+  type IAE = IllegalArgumentException
+  private[this] def errorMsg(s: String, msg: String) =
+    s"[$s] is not a valid path segment. $msg"
+
+  case class InvalidSegment(segment: String, msg: String) extends IAE(errorMsg(segment, msg))
+
+  case object AbsolutePathOutsideRoot
+    extends IAE("The path created has enough ..s that it would start outside the root directory")
+
+  case class NoRelativePath(src: RelPath, base: RelPath)
+    extends IAE(s"Can't relativize relative paths $src from $base")
+}
+
 /**
- * An absolute path on the filesystem. Note that the path is
- * normalized and cannot contain any empty or ".". Parent ".."
- * segments can only occur at the left-end of the path, and
- * are collapsed into a single number [[ups]].
- */
+  * Represents a value that is either an absolute [[Path]] or a
+  * relative [[RelPath]], and can be constructed from a
+  * java.nio.file.Path or java.io.File
+  */
+trait FilePath extends BasePath
+object FilePath {
+  def apply[T: PathConvertible](f0: T) = {
+    val f = implicitly[PathConvertible[T]].apply(f0)
+    if (f.isAbsolute) Path(f0)
+    else RelPath(f0)
+  }
+}
+
+/**
+  * A relative path on the filesystem. Note that the path is
+  * normalized and cannot contain any empty or ".". Parent ".."
+  * segments can only occur at the left-end of the path, and
+  * are collapsed into a single number [[ups]].
+  */
 class RelPath private[os](segments0: Array[String], val ups: Int)
-extends FilePath with BasePathImpl{
+  extends FilePath with BasePathImpl{
   val segments: IndexedSeq[String] = segments0
   type ThisType = RelPath
   require(ups >= 0)
@@ -237,20 +236,7 @@ trait RelPathStuff{
 }
 
 
-
 object Path {
-
-  def expandUser[T: PathConvertible](f0: T) = {
-    val f = implicitly[PathConvertible[T]].apply(f0)
-    if (f.subpath(0, 1).toString != "~") Path(f0)
-    else Path(System.getProperty("user.home"))/RelPath(f.subpath(0, 1).relativize(f))
-  }
-  def expandUser[T: PathConvertible](f0: T, base: Path) = {
-    val f = implicitly[PathConvertible[T]].apply(f0)
-    if (f.subpath(0, 1).toString != "~") Path(f0, base)
-    else Path(System.getProperty("user.home"))/RelPath(f.subpath(0, 1).relativize(f))
-  }
-
   def apply(p: FilePath, base: Path) = p match{
     case p: RelPath => base/p
     case p: Path => p
@@ -275,11 +261,11 @@ object Path {
 }
 
 /**
- * An absolute path on the filesystem. Note that the path is
- * normalized and cannot contain any empty `""`, `"."` or `".."` segments
- */
+  * An absolute path on the filesystem. Note that the path is
+  * normalized and cannot contain any empty `""`, `"."` or `".."` segments
+  */
 class Path private[os](val root: java.nio.file.Path, segments0: Array[String])
-extends FilePath with BasePathImpl with Source{
+  extends FilePath with BasePathImpl with Source{
   val segments: IndexedSeq[String] = segments0
   def getInputStream = java.nio.file.Files.newInputStream(toNIO)
   type ThisType = Path
@@ -323,16 +309,19 @@ extends FilePath with BasePathImpl with Source{
 }
 
 
-object PathError{
-  type IAE = IllegalArgumentException
-  private[this] def errorMsg(s: String, msg: String) =
-    s"[$s] is not a valid path segment. $msg"
 
-  case class InvalidSegment(segment: String, msg: String) extends IAE(errorMsg(segment, msg))
 
-  case object AbsolutePathOutsideRoot
-    extends IAE("The path created has enough ..s that it would start outside the root directory")
-
-  case class NoRelativePath(src: RelPath, base: RelPath)
-    extends IAE(s"Can't relativize relative paths $src from $base")
+sealed trait PathConvertible[T]{
+  def apply(t: T): java.nio.file.Path
+}
+object PathConvertible{
+  implicit object StringConvertible extends PathConvertible[String]{
+    def apply(t: String) = java.nio.file.Paths.get(t)
+  }
+  implicit object JavaIoFileConvertible extends PathConvertible[java.io.File]{
+    def apply(t: java.io.File) = java.nio.file.Paths.get(t.getPath)
+  }
+  implicit object NioPathConvertible extends PathConvertible[java.nio.file.Path]{
+    def apply(t: java.nio.file.Path) = t
+  }
 }

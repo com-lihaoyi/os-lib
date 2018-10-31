@@ -60,4 +60,17 @@ package object os extends RelPathStuff{
       else None
     }
   }
+
+  def expandUser[T: PathConvertible](f0: T) = {
+    val f = implicitly[PathConvertible[T]].apply(f0)
+    if (f.subpath(0, 1).toString != "~") Path(f0)
+    else Path(System.getProperty("user.home"))/RelPath(f.subpath(0, 1).relativize(f))
+  }
+
+  def expandUser[T: PathConvertible](f0: T, base: Path) = {
+    val f = implicitly[PathConvertible[T]].apply(f0)
+    if (f.subpath(0, 1).toString != "~") Path(f0, base)
+    else Path(System.getProperty("user.home"))/RelPath(f.subpath(0, 1).relativize(f))
+  }
+
 }
