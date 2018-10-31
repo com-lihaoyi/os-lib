@@ -6,7 +6,7 @@ import java.nio.file.Files
 object Internals{
 
   def transfer(src: InputStream, dest: OutputStream) = {
-    val buffer = new Array[Byte](4096)
+    val buffer = new Array[Byte](8192)
     var r = 0
     while (r != -1) {
       r = src.read(buffer)

@@ -25,7 +25,7 @@ object PathConvertible{
   * Most of the filesystem-independent path-manipulation logic that lets you
   * splice paths together or navigate in and out of paths lives in this interface
   */
-sealed trait BasePath{
+trait BasePath{
   type ThisType <: BasePath
   /**
     * The individual path segments of this path.
@@ -322,58 +322,6 @@ extends FilePath with BasePathImpl with Source{
   def toIO = toNIO.toFile
 }
 
-
-object ResourcePath{
-  def resource(resRoot: ResourceRoot) = {
-    new ResourcePath(resRoot, Array.empty[String])
-  }
-}
-
-/**
-  * Classloaders are tricky: http://stackoverflow.com/questions/12292926
-  */
-class ResourcePath private[os](val resRoot: ResourceRoot, segments0: Array[String])
-  extends BasePathImpl with Source{
-  val segments: IndexedSeq[String] = segments0
-  type ThisType = ResourcePath
-  override def toString = resRoot.errorName + "/" + segments0.mkString("/")
-
-  def getInputStream = {
-    resRoot.getResourceAsStream(segments.mkString("/")) match{
-      case null => throw ResourceNotFoundException(this)
-      case stream => stream
-    }
-  }
-  protected[this] def make(p: Seq[String], ups: Int) = {
-    if (ups > 0){
-      throw PathError.AbsolutePathOutsideRoot
-    }
-    new ResourcePath(resRoot, p.toArray[String])
-  }
-
-  def relativeTo(base: ResourcePath) = {
-    var newUps = 0
-    var s2 = base.segments
-
-    while(!segments0.startsWith(s2)){
-      s2 = s2.dropRight(1)
-      newUps += 1
-    }
-    new RelPath(segments0.drop(s2.length), newUps)
-  }
-
-
-  def startsWith(target: ResourcePath) = {
-    segments0.startsWith(target.segments)
-  }
-
-}
-
-/**
-  * Thrown when you try to read from a resource that doesn't exist.
-  * @param path
-  */
-case class ResourceNotFoundException(path: ResourcePath) extends Exception(path.toString)
 
 object PathError{
   type IAE = IllegalArgumentException
