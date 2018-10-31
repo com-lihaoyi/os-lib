@@ -14,7 +14,7 @@ object ExampleTests extends TestSuite{
 
       // And make sure it's empty
       os.remove.all(wd)
-      os.makedirs(wd)
+      os.makeDirs(wd)
 
       // Reading and writing to files is done through the read! and write!
       // You can write `Strings`, `Traversable[String]`s or `Array[Byte]`s
@@ -62,7 +62,7 @@ object ExampleTests extends TestSuite{
       // You can create folders through `mkdir!`. This behaves the same as
       // `mkdir -p` in Bash, and creates and parents necessary
       val deep = wd/'this/'is/'very/'deep
-      os.makedirs(deep)
+      os.makeDirs(deep)
       // Writing to a file also creates necessary parents
       os.write(deep/'deeeep/"file.txt", "I am cow")
 
@@ -125,7 +125,7 @@ object ExampleTests extends TestSuite{
       os.remove.all(wd)
 
       // Make a folder named "folder"
-      os.makedirs(wd/'folder)
+      os.makeDirs(wd/'folder)
 
       // Copy a file or folder to a particular path
       os.copy(wd/'folder, wd/'folder1)

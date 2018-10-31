@@ -94,7 +94,7 @@ object OpTests extends TestSuite{
     'Mutating{
       val test = os.pwd/'out/'scratch/'test
       os.remove.all(test)
-      os.makedirs(test)
+      os.makeDirs(test)
       'cp{
         val d = test/'copying
         'basic{
@@ -102,7 +102,7 @@ object OpTests extends TestSuite{
             !os.exists(d/'folder),
             !os.exists(d/'file)
           )
-          os.makedirs(d/'folder)
+          os.makeDirs(d/'folder)
           os.write(d/'file, "omg")
           assert(
             os.exists(d/'folder),
@@ -130,7 +130,7 @@ object OpTests extends TestSuite{
       'mv{
         'basic{
           val d = test/'moving
-          os.makedirs(d/'folder)
+          os.makeDirs(d/'folder)
           assert(os.list(d) == Seq(d/'folder))
           os.move(d/'folder, d/'folder2)
           assert(os.list(d) == Seq(d/'folder2))
@@ -179,7 +179,7 @@ object OpTests extends TestSuite{
             def die = os.list.rec(d).map(os.move.all*{case d/"py"/x => d/x })
             intercept[MatchError]{ die }
 
-            os.list.rec(d).filter(os.isfile).map(os.move.all*{
+            os.list.rec(d).filter(os.isFile).map(os.move.all*{
               case d/"py"/x => d/'scala/'py/x
               case d/"scala"/x => d/'py/'scala/x
               case d => println("NOT FOUND " + d); d
@@ -204,14 +204,14 @@ object OpTests extends TestSuite{
       'mkdirRm{
         'singleFolder{
           val single = test/'single
-          os.makedirs(single/'inner)
+          os.makeDirs(single/'inner)
           assert(os.list(single) == Seq(single/'inner))
           os.remove(single/'inner)
           assert(os.list(single) == Seq())
         }
         'nestedFolders{
           val nested = test/'nested
-          os.makedirs(nested/'inner/'innerer/'innerest)
+          os.makeDirs(nested/'inner/'innerer/'innerest)
           assert(
             os.list(nested) == Seq(nested/'inner),
             os.list(nested/'inner) == Seq(nested/'inner/'innerer),
@@ -223,7 +223,7 @@ object OpTests extends TestSuite{
       }
       'readWrite{
         val d = test/'readWrite
-        os.makedirs(d)
+        os.makeDirs(d)
         'simple{
           os.write(d/'file, "i am a cow")
           assert(os.read(d/'file) == "i am a cow")
@@ -257,7 +257,7 @@ object OpTests extends TestSuite{
       }
       'Failures{
         val d = test/'failures
-        os.makedirs(d)
+        os.makeDirs(d)
         'nonexistant{
           * - intercept[nio.NoSuchFileException](os.list(d/'nonexistent))
           * - intercept[nio.NoSuchFileException](os.read(d/'nonexistent))
@@ -266,7 +266,7 @@ object OpTests extends TestSuite{
           * - intercept[nio.NoSuchFileException](os.move(d/'nonexistent, d/'yolo))
         }
         'collisions{
-          os.makedirs(d/'folder)
+          os.makeDirs(d/'folder)
           os.write(d/'file, "lolol")
           * - intercept[nio.FileAlreadyExistsException](os.move(d/'file, d/'folder))
           * - intercept[nio.FileAlreadyExistsException](os.copy(d/'file, d/'folder))

@@ -11,6 +11,7 @@ import java.nio.file._
 import java.nio.file.attribute._
 
 import scala.io.Codec
+import scala.util.Try
 
 
 object Internals{
@@ -27,7 +28,7 @@ object Internals{
     def *(t: PartialFunction[Path, Path])(from: Path) = {
       if (check || t.isDefinedAt(from)) {
         val dest = t(from)
-        makedirs(dest/RelPath.up)
+        makeDirs(dest/RelPath.up)
         new File(from.toString).renameTo(new File(t(from).toString))
       }
     }
@@ -75,7 +76,7 @@ trait StreamableOp1[T1, R, C <: Seq[R]] extends Function1[T1, C]{
  * Makes directories up to the specified path. Equivalent
  * to `mkdir -p` in bash
  */
-object makedirs extends Function1[Path, Unit]{
+object makeDirs extends Function1[Path, Unit]{
   def apply(path: Path) = new File(path.toString).mkdirs()
 }
 
@@ -297,7 +298,7 @@ object write extends Function2[Path, Internals.Writable, Unit]{
 
   }
   def apply(target: Path, data: Internals.Writable) = {
-    makedirs(target/RelPath.up)
+    makeDirs(target/RelPath.up)
     write(target, data, StandardOpenOption.CREATE_NEW)
   }
 
@@ -307,7 +308,7 @@ object write extends Function2[Path, Internals.Writable, Unit]{
    */
   object append extends Function2[Path, Internals.Writable, Unit]{
     def apply(target: Path, data: Internals.Writable) = {
-      makedirs(target/RelPath.up)
+      makeDirs(target/RelPath.up)
       write(target, data, StandardOpenOption.CREATE, StandardOpenOption.APPEND)
     }
   }
@@ -317,7 +318,7 @@ object write extends Function2[Path, Internals.Writable, Unit]{
    */
   object over extends Function2[Path, Internals.Writable, Unit]{
     def apply(target: Path, data: Internals.Writable) = {
-      makedirs(target/RelPath.up)
+      makeDirs(target/RelPath.up)
       write(target, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
     }
   }
@@ -363,62 +364,32 @@ object exists extends Function1[Path, Boolean]{
   }
 }
 
-object chmod {
-  def apply(p: Path, arg2: Set[PosixFilePermission]) = {
+object getPerms {
+  def apply(p: Path): PermSet = apply(p, followLinks = true)
+  def apply(p: Path, followLinks: Boolean = true): PermSet = {
+    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
     import collection.JavaConverters._
-    Files.setPosixFilePermissions(p.toNIO, arg2.asJava)
-  }
-  def apply(p: Path, arg2: String) = {
-    require(
-      arg2.length == 9,
-      "Invalid permissions string: must be length 9, not " + arg2.length
-    )
-    import PosixFilePermission._
-    val perms = new java.util.HashSet[PosixFilePermission]()
-    def add(i: Int, expected: Char, perm: PosixFilePermission) = {
-      if(arg2(i) == expected) perms.add(perm)
-      else if (arg2(i) != '-') {
-        throw new Exception(
-          "Invalid permissions string: unknown character [" + arg2(i) + "] " +
-          "at index " + i + ". Must be [-] or [" + expected + "]."
-        )
-      }
-    }
-    add(0, 'r', OWNER_READ)
-    add(1, 'w', OWNER_WRITE)
-    add(2, 'x', OWNER_EXECUTE)
-    add(3, 'r', GROUP_READ)
-    add(4, 'w', GROUP_WRITE)
-    add(5, 'x', GROUP_EXECUTE)
-    add(6, 'r', OTHERS_READ)
-    add(7, 'w', OTHERS_WRITE)
-    add(8, 'x', OTHERS_EXECUTE)
-    Files.setPosixFilePermissions(p.toNIO, perms)
-  }
-  def apply(p: Path, arg2: Int) = {
-
-    import PosixFilePermission._
-    val perms = new java.util.HashSet[PosixFilePermission]()
-    def add(i: Int, perm: PosixFilePermission) = {
-      if((arg2 & (0x100 >> i)) != 0) perms.add(perm)
-    }
-    add(0, OWNER_READ)
-    add(1, OWNER_WRITE)
-    add(2, OWNER_EXECUTE)
-    add(3, GROUP_READ)
-    add(4, GROUP_WRITE)
-    add(5, GROUP_EXECUTE)
-    add(6, OTHERS_READ)
-    add(7, OTHERS_WRITE)
-    add(8, OTHERS_EXECUTE)
-    Files.setPosixFilePermissions(p.toNIO, perms)
+    new PermSet(Files.getPosixFilePermissions(p.toNIO, opts:_*).asScala.toSet)
   }
 }
 
-object chown {
-  def apply(arg1: Path, arg2: UserPrincipal): Unit = {
-    Files.setOwner(arg1.toNIO, arg2)
+object setPerms {
+  def apply(p: Path, arg2: PermSet) = {
+    import collection.JavaConverters._
+    Files.setPosixFilePermissions(p.toNIO, arg2.value.asJava)
   }
+}
+
+object getOwner {
+  def apply(p: Path): UserPrincipal = apply(p, followLinks = true)
+  def apply(p: Path, followLinks: Boolean = true): UserPrincipal = {
+    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+    Files.getOwner(p.toNIO, opts:_*)
+  }
+}
+
+object setOwner {
+  def apply(arg1: Path, arg2: UserPrincipal): Unit = Files.setOwner(arg1.toNIO, arg2)
   def apply(arg1: Path, arg2: String): Unit = {
     apply(
       arg1,
@@ -426,7 +397,20 @@ object chown {
     )
   }
 }
-object chgrp {
+
+object getGroup {
+  def apply(p: Path): GroupPrincipal = apply(p, followLinks = true)
+  def apply(p: Path, followLinks: Boolean = true): GroupPrincipal = {
+    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+    Files.getFileAttributeView(
+      p.toNIO,
+      classOf[PosixFileAttributeView],
+      LinkOption.NOFOLLOW_LINKS
+    ).readAttributes().group()
+  }
+}
+
+object setGroup {
   def apply(arg1: Path, arg2: GroupPrincipal): Unit = {
     Files.getFileAttributeView(
       arg1.toNIO,
@@ -439,7 +423,6 @@ object chgrp {
       arg1,
       arg1.root.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(arg2)
     )
-
   }
 }
 
@@ -474,14 +457,14 @@ object symlink extends Function2[Path, Path, Unit]{
 /**
   * Checks whether the given path is a symbolic link
   */
-object islink extends Function1[Path, Boolean]{
+object isLink extends Function1[Path, Boolean]{
   def apply(p: Path) = Files.isSymbolicLink(p.toNIO)
 }
 
 /**
   * Checks whether the given path is a regular file
   */
-object isfile extends Function1[Path, Boolean]{
+object isFile extends Function1[Path, Boolean]{
   def apply(p: Path) = Files.isRegularFile(p.toNIO)
   def apply(p: Path, followLinks: Boolean = true) = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
@@ -493,7 +476,7 @@ object isfile extends Function1[Path, Boolean]{
 /**
   * Checks whether the given path is a directory
   */
-object isdir extends Function1[Path, Boolean]{
+object isDir extends Function1[Path, Boolean]{
   def apply(p: Path) = Files.isDirectory(p.toNIO)
   def apply(p: Path, followLinks: Boolean = true) = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
@@ -517,6 +500,118 @@ object mtime extends Function1[Path, Long]{
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
     Files.getLastModifiedTime(p.toNIO, opts:_*).toMillis
   }
+}
+
+
+object stat extends Function1[os.Path, os.stat]{
+  def apply(p: os.Path) = apply(p, followLinks = true)
+  def apply(p: os.Path, followLinks: Boolean = true) = {
+    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+    os.stat.make(
+      // Don't blow up if we stat `root`
+      p.segments.lastOption.getOrElse("/"),
+      Files.readAttributes(
+        Paths.get(p.toString),
+        classOf[BasicFileAttributes],
+        opts:_*
+      ),
+      Try(Files.readAttributes(
+        Paths.get(p.toString),
+        classOf[PosixFileAttributes],
+        opts:_*
+      )).toOption
+    )
+  }
+  def make(name: String, attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
+    import collection.JavaConverters._
+    new stat(
+      name,
+      attrs.size(),
+      attrs.lastModifiedTime(),
+      posixAttrs.map(_.owner).orNull,
+      posixAttrs.map(a => new PermSet(a.permissions.asScala.toSet)).orNull,
+      if (attrs.isRegularFile) FileType.File
+      else if (attrs.isDirectory) FileType.Dir
+      else if (attrs.isSymbolicLink) FileType.SymLink
+      else if (attrs.isOther) FileType.Other
+      else ???
+    )
+  }
+  object full extends Function1[os.Path, os.stat.full] {
+    def apply(p: os.Path) = apply(p, followLinks = true)
+    def apply(p: os.Path, followLinks: Boolean = true) = {
+      val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+      os.stat.full.make(
+        p.segments.lastOption.getOrElse("/"),
+        Files.readAttributes(
+          Paths.get(p.toString),
+          classOf[BasicFileAttributes],
+          opts:_*
+        ),
+        Try(Files.readAttributes(
+          Paths.get(p.toString),
+          classOf[PosixFileAttributes],
+          opts:_*
+        )).toOption
+      )
+    }
+    def make(name: String, attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
+      import collection.JavaConverters._
+      new full(
+        name,
+        attrs.size(),
+        attrs.lastModifiedTime(),
+        attrs.lastAccessTime(),
+        attrs.creationTime(),
+        posixAttrs.map(_.group()).orNull,
+        posixAttrs.map(_.owner()).orNull,
+        posixAttrs.map(a => new PermSet(a.permissions.asScala.toSet)).orNull,
+        if (attrs.isRegularFile) FileType.File
+        else if (attrs.isDirectory) FileType.Dir
+        else if (attrs.isSymbolicLink) FileType.SymLink
+        else if (attrs.isOther) FileType.Other
+        else ???
+      )
+    }
+  }
+
+  /**
+    * A richer, more informative version of the [[stat]] object.
+    *
+    * Created using `stat.full! filePath`
+    */
+  case class full(name: String,
+                  size: Long,
+                  mtime: FileTime,
+                  ctime: FileTime,
+                  atime: FileTime,
+                  group: GroupPrincipal,
+                  owner: UserPrincipal,
+                  permissions: PermSet,
+                  fileType: FileType){
+    override def productPrefix = "stat.full"
+    def isDir = fileType == FileType.Dir
+    def isSymLink = fileType == FileType.SymLink
+    def isFile = fileType == FileType.File
+  }
+}
+
+/**
+  * The result from doing an system `stat` on a particular path.
+  *
+  * Created via `stat! filePath`.
+  *
+  * If you want more information, use `stat.full`
+  */
+case class stat(name: String,
+                size: Long,
+                mtime: FileTime,
+                owner: UserPrincipal,
+                permissions: PermSet,
+                fileType: FileType){
+  def isDir = fileType == FileType.Dir
+  def isSymLink = fileType == FileType.SymLink
+  def isFile = fileType == FileType.File
 }
 
 /*object free{
