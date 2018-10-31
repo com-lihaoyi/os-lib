@@ -42,18 +42,6 @@ package object os extends RelPathStuff{
   lazy val pwd = os.Path(new java.io.File("").getCanonicalPath)
 
   /**
-    * If you want to call subprocesses using [[%]] or [[%%]] and don't care
-    * what working directory they use, import this via
-    *
-    * `import os.ImplicitWd._`
-    *
-    * To make them use the process's working directory for each subprocess
-    */
-  object ImplicitWd{
-    implicit lazy val implicitCwd = os.pwd
-  }
-
-  /**
     * Extractor to let you easily pattern match on [[os.Path]]s. Lets you do
     *
     * {{{
@@ -72,19 +60,4 @@ package object os extends RelPathStuff{
       else None
     }
   }
-
-  /**
-    * Used to spawn a subprocess interactively; any output gets printed to the
-    * console and any input gets requested from the current console. Can be
-    * used to run interactive subprocesses like `%vim`, `%python`,
-    * `%ssh "www.google.com"` or `%sbt`.
-    */
-  val % = Shellout.%
-  /**
-    * Spawns a subprocess non-interactively, waiting for it to complete and
-    * collecting all output into a [[CommandResult]] which exposes it in a
-    * convenient form. Call via `%%('whoami).out.trim` or
-    * `%%('git, 'commit, "-am", "Hello!").exitCode`
-    */
-  val %% = Shellout.%%
 }

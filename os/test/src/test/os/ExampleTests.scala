@@ -322,14 +322,13 @@ object ExampleTests extends TestSuite{
       def longLines(p: Path) =
         (p, read.lines(p).zipWithIndex.filter(_._1.length > 100).map(_._2))
 
-      val filesWithTooLongLines = (
-        %%("git", "ls-files")(os.pwd).out.lines
+      val filesWithTooLongLines =
+        proc("git", "ls-files").call(cwd = os.pwd).out.lines
             .map(Path(_, os.pwd))
             .filter(_.ext == "scala")
             .map(longLines)
             .filter(_._2.length > 0)
             .filter(!_._1.segments.contains("src_managed"))
-      )
 
       assert(filesWithTooLongLines.length == 0)
     }
