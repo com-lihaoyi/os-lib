@@ -8,11 +8,8 @@ import java.nio.file.attribute.BasicFileAttributes
 import geny.Generator
 
 /**
-  * List the files and folders in a directory. Can be called with `.iter`
-  * to return an iterator, or `.rec` to recursively list everything in
-  * subdirectories. `.rec` is a [[Walker]] which means that apart from
-  * straight-forwardly listing everything, you can pass in a `skip` predicate
-  * to cause your recursion to skip certain files or folders.
+  * List the files and folders in a directory. Can be called with [[list.iter]]
+  * to return an iterator. To list files recursively, use [[walk]]
   */
 object list extends Internals.StreamableOp1[Path, Path, IndexedSeq[Path]] {
   def materialize(src: Path, i: geny.Generator[Path]) = i.toArray[Path].sorted
@@ -30,104 +27,179 @@ object list extends Internals.StreamableOp1[Path, Path, IndexedSeq[Path]] {
   }
 }
 
-
-object walk extends Walker(){
-  def apply(skip: Path => Boolean = _ => false,
-            preOrder: Boolean = false,
-            followLinks: Boolean = false,
-            maxDepth: Int = Int.MaxValue) = Walker(skip, preOrder, followLinks, maxDepth)
-}
-
 /**
   * Walks a directory recursively and returns a [[IndexedSeq]] of all its contents.
-  *
-  * @param skip Skip certain files or folders from appearing in the output.
-  *             If you skip a folder, its entire subtree is ignored
-  * @param preOrder Whether you want a folder to appear before or after its
-  *                 contents in the final sequence. e.g. if you're deleting
-  *                 them recursively you want it to be false so the folder
-  *                 gets deleted last, but if you're copying them recursively
-  *                 you want `preOrder` to be `true` so the folder gets
-  *                 created first.
   */
-case class Walker(skip: Path => Boolean = _ => false,
-                  preOrder: Boolean = false,
-                  followLinks: Boolean = false,
-                  maxDepth: Int = Int.MaxValue)
-  extends Internals.StreamableOp1[Path, Path, IndexedSeq[Path]] {
-  def attrs(arg: Path) = recursiveListFiles(arg)
+object walk {
+  /**
+    * @param path the root path whose contents you wish to walk
+    *
+    * @param skip Skip certain files or folders from appearing in the output.
+    *             If you skip a folder, its entire subtree is ignored
+    *
+    * @param preOrder Whether you want a folder to appear before or after its
+    *                 contents in the final sequence. e.g. if you're deleting
+    *                 them recursively you want it to be false so the folder
+    *                 gets deleted last, but if you're copying them recursively
+    *                 you want `preOrder` to be `true` so the folder gets
+    *                 created first.
+    *
+    * @param followLinks Whether or not to follow symlinks while walking; defaults
+    *                    to false
+    *
+    * @param maxDepth The max depth of the tree you wish to walk; defaults to unlimited
+    */
+  def apply(path: Path,
+            skip: Path => Boolean = _ => false,
+            preOrder: Boolean = true,
+            followLinks: Boolean = false,
+            maxDepth: Int = Int.MaxValue): IndexedSeq[Path] = {
+    iter(path, skip, preOrder, followLinks, maxDepth).toArray[Path]
+  }
 
-  def materialize(src: Path, i: geny.Generator[Path]) = list.materialize(src, i)
-  def recursiveListFiles(p: Path): geny.Generator[(Path, BasicFileAttributes)] = {
-    val opts0 = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
-    val opts = new java.util.HashSet[FileVisitOption]
-    if (followLinks) opts.add(FileVisitOption.FOLLOW_LINKS)
-    val pNio = p.toNIO
-    if (!Files.exists(pNio, opts0:_*)){
-      throw new java.nio.file.NoSuchFileException(pNio.toString)
+  /**
+    * @param path the root path whose contents you wish to walk
+    *
+    * @param skip Skip certain files or folders from appearing in the output.
+    *             If you skip a folder, its entire subtree is ignored
+    *
+    * @param preOrder Whether you want a folder to appear before or after its
+    *                 contents in the final sequence. e.g. if you're deleting
+    *                 them recursively you want it to be false so the folder
+    *                 gets deleted last, but if you're copying them recursively
+    *                 you want `preOrder` to be `true` so the folder gets
+    *                 created first.
+    *
+    * @param followLinks Whether or not to follow symlinks while walking; defaults
+    *                    to false
+    *
+    * @param maxDepth The max depth of the tree you wish to walk; defaults to unlimited
+    */
+  def attrs(path: Path,
+            skip: Path => Boolean = _ => false,
+            preOrder: Boolean = true,
+            followLinks: Boolean = false,
+            maxDepth: Int = Int.MaxValue): IndexedSeq[(Path, BasicFileAttributes)] = {
+    iter.attrs(path, skip, preOrder, followLinks, maxDepth).toArray[(Path, BasicFileAttributes)]
+  }
+
+  object iter {
+
+    /**
+      * @param path the root path whose contents you wish to walk
+      *
+      * @param skip Skip certain files or folders from appearing in the output.
+      *             If you skip a folder, its entire subtree is ignored
+      *
+      * @param preOrder Whether you want a folder to appear before or after its
+      *                 contents in the final sequence. e.g. if you're deleting
+      *                 them recursively you want it to be false so the folder
+      *                 gets deleted last, but if you're copying them recursively
+      *                 you want `preOrder` to be `true` so the folder gets
+      *                 created first.
+      *
+      * @param followLinks Whether or not to follow symlinks while walking; defaults
+      *                    to false
+      *
+      * @param maxDepth The max depth of the tree you wish to walk; defaults to unlimited
+      */
+    def apply(path: Path,
+              skip: Path => Boolean = _ => false,
+              preOrder: Boolean = true,
+              followLinks: Boolean = false,
+              maxDepth: Int = Int.MaxValue): Generator[Path] = {
+
+      attrs(path, skip, preOrder, followLinks, maxDepth).map(_._1)
     }
-    new geny.Generator[(Path, BasicFileAttributes)]{
-      def generate(handleItem: ((Path, BasicFileAttributes)) => Generator.Action) = {
-        var currentAction: geny.Generator.Action = geny.Generator.Continue
-        val attrsStack = collection.mutable.Buffer.empty[BasicFileAttributes]
-        def actionToResult(action: Generator.Action) = action match{
-          case Generator.Continue => FileVisitResult.CONTINUE
-          case Generator.End =>
-            currentAction = Generator.End
-            FileVisitResult.TERMINATE
 
-        }
-        Files.walkFileTree(
-          pNio,
-          opts,
-          maxDepth,
-          new FileVisitor[java.nio.file.Path]{
-            def preVisitDirectory(dir: file.Path, attrs: BasicFileAttributes) = {
-              val dirP = Path(dir.toAbsolutePath)
-              if (skip(dirP)) FileVisitResult.SKIP_SUBTREE
-              else actionToResult(
-                if (preOrder && dirP != p) handleItem((dirP, attrs))
-                else {
-                  attrsStack.append(attrs)
-                  currentAction
-                }
-              )
-            }
+    /**
+      * @param path the root path whose contents you wish to walk
+      *
+      * @param skip Skip certain files or folders from appearing in the output.
+      *             If you skip a folder, its entire subtree is ignored
+      *
+      * @param preOrder Whether you want a folder to appear before or after its
+      *                 contents in the final sequence. e.g. if you're deleting
+      *                 them recursively you want it to be false so the folder
+      *                 gets deleted last, but if you're copying them recursively
+      *                 you want `preOrder` to be `true` so the folder gets
+      *                 created first.
+      *
+      * @param followLinks Whether or not to follow symlinks while walking; defaults
+      *                    to false
+      *
+      * @param maxDepth The max depth of the tree you wish to walk; defaults to unlimited
+      */
+    def attrs(path: Path,
+              skip: Path => Boolean = _ => false,
+              preOrder: Boolean = true,
+              followLinks: Boolean = false,
+              maxDepth: Int = Int.MaxValue): Generator[(Path, BasicFileAttributes)] = {
 
-            def visitFile(file: java.nio.file.Path, attrs: BasicFileAttributes) = {
-              val fileP = Path(file.toAbsolutePath)
-              actionToResult(
-                if (skip(fileP)) currentAction
-                else handleItem((fileP, attrs))
-              )
-            }
+      val opts0 = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+      val opts = new java.util.HashSet[FileVisitOption]
+      if (followLinks) opts.add(FileVisitOption.FOLLOW_LINKS)
+      val pNio = path.toNIO
+      if (!Files.exists(pNio, opts0:_*)){
+        throw new java.nio.file.NoSuchFileException(pNio.toString)
+      }
+      new geny.Generator[(Path, BasicFileAttributes)]{
+        def generate(handleItem: ((Path, BasicFileAttributes)) => Generator.Action) = {
+          var currentAction: geny.Generator.Action = geny.Generator.Continue
+          val attrsStack = collection.mutable.Buffer.empty[BasicFileAttributes]
+          def actionToResult(action: Generator.Action) = action match{
+            case Generator.Continue => FileVisitResult.CONTINUE
+            case Generator.End =>
+              currentAction = Generator.End
+              FileVisitResult.TERMINATE
 
-            def visitFileFailed(file: java.nio.file.Path, exc: IOException) =
-              actionToResult(currentAction)
-
-            def postVisitDirectory(dir: java.nio.file.Path, exc: IOException) = {
-              actionToResult(
-                if (preOrder) currentAction
-                else {
-                  val dirP = Path(dir.toAbsolutePath)
-                  if (dirP != p) handleItem((dirP, attrsStack.remove(attrsStack.length - 1)))
-                  else currentAction
-                }
-              )
-            }
           }
-        )
-        currentAction
+          Files.walkFileTree(
+            pNio,
+            opts,
+            maxDepth,
+            new FileVisitor[java.nio.file.Path]{
+              def preVisitDirectory(dir: file.Path, attrs: BasicFileAttributes) = {
+                val dirP = Path(dir.toAbsolutePath)
+                if (skip(dirP)) FileVisitResult.SKIP_SUBTREE
+                else actionToResult(
+                  if (preOrder && dirP != path) handleItem((dirP, attrs))
+                  else {
+                    attrsStack.append(attrs)
+                    currentAction
+                  }
+                )
+              }
+
+              def visitFile(file: java.nio.file.Path, attrs: BasicFileAttributes) = {
+                val fileP = Path(file.toAbsolutePath)
+                actionToResult(
+                  if (skip(fileP)) currentAction
+                  else handleItem((fileP, attrs))
+                )
+              }
+
+              def visitFileFailed(file: java.nio.file.Path, exc: IOException) =
+                actionToResult(currentAction)
+
+              def postVisitDirectory(dir: java.nio.file.Path, exc: IOException) = {
+                actionToResult(
+                  if (preOrder) currentAction
+                  else {
+                    val dirP = Path(dir.toAbsolutePath)
+                    if (dirP != path) handleItem((dirP, attrsStack.remove(attrsStack.length - 1)))
+                    else currentAction
+                  }
+                )
+              }
+            }
+          )
+          currentAction
+        }
       }
     }
   }
-  object iter extends (Path => geny.Generator[Path]){
-    def apply(arg: Path) = recursiveListFiles(arg).map(_._1)
-    def attrs(arg: Path) = recursiveListFiles(arg)
-  }
-
 }
-
 
 /**
   * Checks if a file or folder exists at the given path.

@@ -107,7 +107,7 @@ object remove extends Function1[Path, Unit]{
       val nioTarget = target.toNIO
       if (Files.exists(nioTarget)) {
         if (Files.isDirectory(nioTarget)) {
-          walk.iter(target).foreach(remove)
+          walk.iter(target, preOrder = false).foreach(remove)
         }
         Files.delete(nioTarget)
       }

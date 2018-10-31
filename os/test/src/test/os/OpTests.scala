@@ -16,29 +16,28 @@ object OpTests extends TestSuite{
         res/'folder2/'folder2a,
         res/'folder2/'folder2b
       )
-
-//      os.list(res/'folder2/'folder2b) == Seq()
     )
     'lsR{
       os.walk(res).foreach(println)
       intercept[java.nio.file.NoSuchFileException](os.walk(os.pwd/'out/'scratch/'nonexistent))
+      val xxx = os.walk(res)
       assert(
         os.walk(res/'folder2/'folder2b) == Seq(res/'folder2/'folder2b/"b.txt"),
         os.walk(res/'folder2) == Seq(
-          res/'folder2/'folder2a,
           res/'folder2/'folder2b,
-          res/'folder2/'folder2a/"I am.txt",
-          res/'folder2/'folder2b/"b.txt"
+          res/'folder2/'folder2b/"b.txt",
+          res/'folder2/'folder2a,
+          res/'folder2/'folder2a/"I am.txt"
         ),
-        os.walk(res) == Seq(
+        xxx == Seq(
           res/"File.txt",
-          res/'folder1,
           res/'folder2,
-          res/'folder1/"Yoghurt Curds Cream Cheese.txt",
-          res/'folder2/'folder2a,
           res/'folder2/'folder2b,
+          res/'folder2/'folder2b/"b.txt",
+          res/'folder2/'folder2a,
           res/'folder2/'folder2a/"I am.txt",
-          res/'folder2/'folder2b/"b.txt"
+          res/'folder1,
+          res/'folder1/"Yoghurt Curds Cream Cheese.txt"
         )
       )
     }
@@ -83,6 +82,7 @@ object OpTests extends TestSuite{
         }
       }
     }
+
     'rm{
       // shouldn't crash
       os.remove.all(os.pwd/'out/'scratch/'nonexistent)
@@ -91,6 +91,7 @@ object OpTests extends TestSuite{
         os.remove(os.pwd/'out/'scratch/'nonexistent)
       }
     }
+
     'Mutating{
       val test = os.pwd/'out/'scratch/'test
       os.remove.all(test)
@@ -201,6 +202,7 @@ object OpTests extends TestSuite{
         }
         //          ls! wd | mv*
       }
+
       'mkdirRm{
         'singleFolder{
           val single = test/'single
@@ -221,6 +223,7 @@ object OpTests extends TestSuite{
           assert(os.list(nested) == Seq())
         }
       }
+
       'readWrite{
         val d = test/'readWrite
         os.makeDirs(d)
@@ -255,6 +258,7 @@ object OpTests extends TestSuite{
           assert(os.read(d/"append.txt") == " Wor")
         }
       }
+
       'Failures{
         val d = test/'failures
         os.makeDirs(d)

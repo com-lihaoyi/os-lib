@@ -19,10 +19,14 @@ object FileType{
   case object Other extends FileType
 }
 object PermSet{
-  implicit def constructFromSet(arg: Set[PosixFilePermission]): PermSet = {
+  implicit def fromSet(arg: Set[PosixFilePermission]): PermSet = {
     new PermSet(arg)
   }
-  implicit def constructFromString(arg: String): PermSet = {
+
+  /**
+    * Parses a `rwx-wxr-w` string into a [[PermSet]]
+    */
+  implicit def fromString(arg: String): PermSet = {
     require(
       arg.length == 9,
       "Invalid permissions string: must be length 9, not " + arg.length
@@ -49,7 +53,11 @@ object PermSet{
     add(8, 'x', OTHERS_EXECUTE)
     new PermSet(perms.asScala.toSet)
   }
-  implicit def constructFromInt(arg: Int): PermSet = {
+
+  /**
+    * Parses a 0x777 integer into a [[PermSet]]
+    */
+  implicit def fromInt(arg: Int): PermSet = {
     import PosixFilePermission._
     val perms = new java.util.HashSet[PosixFilePermission]()
     def add(i: Int, perm: PosixFilePermission) = {
@@ -69,7 +77,10 @@ object PermSet{
 }
 
 /**
-  * A set of permissions
+  * A set of permissions; can be converted easily to the rw-rwx-r-x form via
+  * [[toString]], or to the 0x777 form via [[toInt]] and the other way via
+  * `PermSet.fromString`/`PermSet.fromInt`
+  *
   */
 class PermSet(val value: Set[PosixFilePermission]) {
   def contains(elem: PosixFilePermission) = value.contains(elem)
