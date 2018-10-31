@@ -3,8 +3,6 @@ package os
 import java.io.InputStream
 import java.util.concurrent.TimeUnit
 
-import os.Writable
-
 /**
   * Primary Python APIs:
   *

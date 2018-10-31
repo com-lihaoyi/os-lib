@@ -6,7 +6,7 @@
  */
 package os
 
-import java.io.{File, IOException}
+import java.io._
 import java.nio.file
 import java.nio.file._
 import java.nio.file.attribute._
@@ -290,24 +290,65 @@ object write extends Function2[Path, Writable, Unit]{
 object read extends Function1[Readable, String]{
   def getInputStream(p: Readable) = p.getInputStream()
 
-//  def apply(arg: InputPath) = new String(arg.getBytes, Charset.forName("UTF-8"))
   def apply(arg: Readable) = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
-  def apply(arg: Readable, charSet: Codec) = new String(arg.getBytes, charSet.charSet)
+  def apply(arg: Readable, charSet: Codec) = {
+    new String(read.bytes(arg), charSet.charSet)
+  }
 
   object lines extends Internals.StreamableOp1[Readable, String, IndexedSeq[String]]{
     def materialize(src: Readable, i: geny.Generator[String]) = i.toArray[String]
 
     object iter extends (Readable => geny.Generator[String]){
-      def apply(arg: Readable) = arg.getLineIterator(java.nio.charset.StandardCharsets.UTF_8)
+      def apply(arg: Readable) = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
 
-      def apply(arg: Readable, charSet: Codec) = arg.getLineIterator(charSet)
+      def apply(arg: Readable, charSet: Codec) = {
+        new geny.Generator[String]{
+          def generate(handleItem: String => Generator.Action) = {
+            val is = arg.getInputStream()
+            val isr = new InputStreamReader(is)
+            val buf = new BufferedReader(isr)
+            var currentAction: Generator.Action = Generator.Continue
+            var looping = true
+            try{
+              while(looping){
+                buf.readLine() match{
+                  case null => looping = false
+                  case s =>
+                    handleItem(s) match{
+                      case Generator.Continue => // go around again
+                      case Generator.End =>
+                        currentAction = Generator.End
+                        looping = false
+                    }
+                }
+              }
+              currentAction
+            } finally{
+              is.close()
+              isr.close()
+              buf.close()
+            }
+          }
+        }
+      }
     }
 
-    def apply(arg: Readable, charSet: Codec) = arg.getLines(charSet)
-    override def apply(arg: Readable) = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
+    def apply(arg: Readable, charSet: Codec) = materialize(arg, iter(arg, charSet))
   }
   object bytes extends Function1[Readable, Array[Byte]]{
-    def apply(arg: Readable) = arg.getBytes
+    def apply(arg: Readable) = {
+      val is = arg.getInputStream
+      val out = new java.io.ByteArrayOutputStream()
+      val buffer = new Array[Byte](4096)
+      var r = 0
+      while (r != -1) {
+        r = is.read(buffer)
+        if (r != -1) out.write(buffer, 0, r)
+      }
+      is.close()
+      out.toByteArray
+
+    }
   }
 }
 

@@ -281,7 +281,7 @@ object Path {
 class Path private[os](val root: java.nio.file.Path, segments0: Array[String])
 extends FilePath with BasePathImpl with Readable{
   val segments: IndexedSeq[String] = segments0
-  protected[os] def getInputStream = java.nio.file.Files.newInputStream(toNIO)
+  def getInputStream = java.nio.file.Files.newInputStream(toNIO)
   type ThisType = Path
 
   def toNIO = root.resolve(segments0.mkString(root.getFileSystem.getSeparator))
@@ -320,13 +320,6 @@ extends FilePath with BasePathImpl with Readable{
   }
 
   def toIO = toNIO.toFile
-
-  override def getBytes = java.nio.file.Files.readAllBytes(toNIO)
-  import collection.JavaConverters._
-
-  override def getLines(charSet: Codec) = {
-    java.nio.file.Files.readAllLines(toNIO, charSet.charSet).asScala.toArray[String]
-  }
 }
 
 
@@ -345,7 +338,7 @@ class ResourcePath private[os](val resRoot: ResourceRoot, segments0: Array[Strin
   type ThisType = ResourcePath
   override def toString = resRoot.errorName + "/" + segments0.mkString("/")
 
-  protected[os] def getInputStream = {
+  def getInputStream = {
     resRoot.getResourceAsStream(segments.mkString("/")) match{
       case null => throw ResourceNotFoundException(this)
       case stream => stream
