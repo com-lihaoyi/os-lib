@@ -40,7 +40,7 @@ package object os extends RelPathStuff{
     * `java.io.File.deleteOnExit`. Pass in `deleteOnExit = false` if you want
     * the temp file to stick around.
     */
-  object tmp{
+  object temp{
     /**
       * Creates a temporary directory
       */

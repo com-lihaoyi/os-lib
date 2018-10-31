@@ -336,7 +336,7 @@ object PathTests extends TestSuite{
       'symlinks{
 
         val names = Seq('test123, 'test124, 'test125, 'test126)
-        val twd = tmp.dir()
+        val twd = temp.dir()
 
         'nestedSymlinks{
           if(Unix()) {
