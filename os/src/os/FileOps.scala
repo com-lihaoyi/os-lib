@@ -16,65 +16,6 @@ import geny.Generator
 import scala.io.Codec
 import scala.util.Try
 
-
-object Internals{
-
-
-  trait Mover{
-    def check: Boolean
-    def apply(t: PartialFunction[String, String])(from: Path) = {
-      if (check || t.isDefinedAt(from.last)){
-        val dest = from/RelPath.up/t(from.last)
-        Files.move(from.toNIO, dest.toNIO)
-      }
-    }
-    def *(t: PartialFunction[Path, Path])(from: Path) = {
-      if (check || t.isDefinedAt(from)) {
-        val dest = t(from)
-        makeDirs(dest/RelPath.up)
-        Files.move(from.toNIO, t(from).toNIO)
-      }
-    }
-  }
-
-
-  class Writable(val writeableData: geny.Generator[Array[Byte]])
-
-  object Writable extends LowPri{
-    implicit def WritableString(s: String) = new Writable(
-      geny.Generator(s.getBytes(java.nio.charset.StandardCharsets.UTF_8))
-    )
-    implicit def WritableBytes(a: Array[Byte]): Writable = new Writable(geny.Generator(a))
-
-  }
-  trait LowPri{
-
-    implicit def WritableGenerator[M[_], T](a: M[T])
-                                           (implicit f: T => Writable,
-                                            i: M[T] => geny.Generator[T]) = {
-      new Writable(
-        i(a).flatMap(f(_).writeableData)
-      )
-    }
-  }
-}
-
-/**
- * An [[Function1]] that returns a Seq[R], but can also do so
- * lazily (Iterator[R]) via `op.iter! arg`. You can then use
- * the iterator however you wish
- */
-trait StreamableOp1[T1, R, C <: Seq[R]] extends Function1[T1, C]{
-  def materialize(src: T1, i: geny.Generator[R]): C
-  def apply(arg: T1) = materialize(arg, iter(arg))
-
-  /**
-    * Returns a lazy [[Iterator]] instead of an eager sequence of results.
-    */
-  val iter: T1 => geny.Generator[R]
-}
-
-
 /**
  * Makes directories up to the specified path. Equivalent
  * to `mkdir -p` in bash
@@ -177,11 +118,11 @@ object remove extends Function1[Path, Unit]{
 /**
   * List the files and folders in a directory. Can be called with `.iter`
   * to return an iterator, or `.rec` to recursively list everything in
-  * subdirectories. `.rec` is a [[list.Walker]] which means that apart from
+  * subdirectories. `.rec` is a [[Walker]] which means that apart from
   * straight-forwardly listing everything, you can pass in a `skip` predicate
   * to cause your recursion to skip certain files or folders.
   */
-object list extends StreamableOp1[Path, Path, IndexedSeq[Path]] {
+object list extends Internals.StreamableOp1[Path, Path, IndexedSeq[Path]] {
   def materialize(src: Path, i: geny.Generator[Path]) = i.toArray[Path].sorted
 
   object iter extends (Path => geny.Generator[Path]){
@@ -221,7 +162,7 @@ case class Walker(skip: Path => Boolean = _ => false,
                   preOrder: Boolean = false,
                   followLinks: Boolean = false,
                   maxDepth: Int = Int.MaxValue)
-  extends StreamableOp1[Path, Path, IndexedSeq[Path]] {
+  extends Internals.StreamableOp1[Path, Path, IndexedSeq[Path]] {
   def attrs(arg: Path) = recursiveListFiles(arg)
 
   def materialize(src: Path, i: geny.Generator[Path]) = list.materialize(src, i)
@@ -365,7 +306,7 @@ object read extends Function1[Readable, String]{
   def apply(arg: Readable) = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
   def apply(arg: Readable, charSet: Codec) = new String(arg.getBytes, charSet.charSet)
 
-  object lines extends StreamableOp1[Readable, String, IndexedSeq[String]]{
+  object lines extends Internals.StreamableOp1[Readable, String, IndexedSeq[String]]{
     def materialize(src: Readable, i: geny.Generator[String]) = i.toArray[String]
 
     object iter extends (Readable => geny.Generator[String]){
@@ -642,21 +583,3 @@ case class stat(name: String,
   def isSymLink = fileType == FileType.SymLink
   def isFile = fileType == FileType.File
 }
-
-/*object free{
-  def memory: Long = ???
-  def disk: Long = ???
-}
-object process{
-  def pid: Long = ???
-  def pgrp: Long = ???
-}
-object system{
-  object uname{
-    def sysname: String = ???
-    def nodename: String = ???
-    def release: String = ???
-    def version: String = ???
-    def machine: String = ???
-  }
-}*/
