@@ -34,45 +34,7 @@ package object os extends RelPathStuff{
    */
   val home = Path(System.getProperty("user.home"))
 
-  /**
-    * Alias for `java.nio.file.Files.createTempFile` and
-    * `java.io.File.deleteOnExit`. Pass in `deleteOnExit = false` if you want
-    * the temp file to stick around.
-    */
-  object temp{
-    /**
-      * Creates a temporary directory
-      */
-    def dir(dir: Path = null,
-            prefix: String = null,
-            deleteOnExit: Boolean = true): Path = {
-      val nioPath = dir match{
-        case null => java.nio.file.Files.createTempDirectory(prefix)
-        case _ => java.nio.file.Files.createTempDirectory(dir.toNIO, prefix)
-      }
-      if (deleteOnExit) nioPath.toFile.deleteOnExit()
-      Path(nioPath)
-    }
 
-    /**
-      * Creates a temporary file with the provided contents
-      */
-    def apply(contents: Source = null,
-              dir: Path = null,
-              prefix: String = null,
-              suffix: String = null,
-              deleteOnExit: Boolean = true): Path = {
-
-      val nioPath = dir match{
-        case null => java.nio.file.Files.createTempFile(prefix, suffix)
-        case _ => java.nio.file.Files.createTempFile(dir.toNIO, prefix, suffix)
-      }
-
-      if (contents != null) write.over(Path(nioPath), contents)
-      if (deleteOnExit) nioPath.toFile.deleteOnExit()
-      Path(nioPath)
-    }
-  }
 
   /**
    * The current working directory for this process.
