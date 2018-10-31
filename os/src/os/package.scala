@@ -40,8 +40,6 @@ package object os extends RelPathStuff{
    * The current working directory for this process.
    */
   lazy val pwd = os.Path(new java.io.File("").getCanonicalPath)
-  @deprecated("replaced by pwd","0.7.5")
-  lazy val cwd = pwd
 
   /**
     * If you want to call subprocesses using [[%]] or [[%%]] and don't care
