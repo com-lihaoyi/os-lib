@@ -146,7 +146,7 @@ object copy extends Function2[Path, Path, Unit] with CopyMove{
     }
 
     copyOne(from)
-    if (stat(from).isDir) list.rec(from).map(copyOne)
+    if (stat(from).isDir) walk(from).map(copyOne)
   }
 
 }
@@ -166,7 +166,7 @@ object remove extends Function1[Path, Unit]{
       val nioTarget = target.toNIO
       if (Files.exists(nioTarget)) {
         if (Files.isDirectory(nioTarget)) {
-          list.rec.iter(target).foreach(remove)
+          walk.iter(target).foreach(remove)
         }
         Files.delete(nioTarget)
       }
@@ -195,103 +195,104 @@ object list extends StreamableOp1[Path, Path, IndexedSeq[Path]] {
         }
     }
   }
+}
 
-  object rec extends Walker(){
-    def apply(skip: Path => Boolean = _ => false,
-              preOrder: Boolean = false,
-              followLinks: Boolean = false,
-              maxDepth: Int = Int.MaxValue) = Walker(skip, preOrder, followLinks, maxDepth)
-  }
 
-  /**
-    * Walks a directory recursively and returns a [[IndexedSeq]] of all its contents.
-    *
-    * @param skip Skip certain files or folders from appearing in the output.
-    *             If you skip a folder, its entire subtree is ignored
-    * @param preOrder Whether you want a folder to appear before or after its
-    *                 contents in the final sequence. e.g. if you're deleting
-    *                 them recursively you want it to be false so the folder
-    *                 gets deleted last, but if you're copying them recursively
-    *                 you want `preOrder` to be `true` so the folder gets
-    *                 created first.
-    */
-  case class Walker(skip: Path => Boolean = _ => false,
-                    preOrder: Boolean = false,
-                    followLinks: Boolean = false,
-                    maxDepth: Int = Int.MaxValue)
+object walk extends Walker(){
+  def apply(skip: Path => Boolean = _ => false,
+            preOrder: Boolean = false,
+            followLinks: Boolean = false,
+            maxDepth: Int = Int.MaxValue) = Walker(skip, preOrder, followLinks, maxDepth)
+}
+
+/**
+  * Walks a directory recursively and returns a [[IndexedSeq]] of all its contents.
+  *
+  * @param skip Skip certain files or folders from appearing in the output.
+  *             If you skip a folder, its entire subtree is ignored
+  * @param preOrder Whether you want a folder to appear before or after its
+  *                 contents in the final sequence. e.g. if you're deleting
+  *                 them recursively you want it to be false so the folder
+  *                 gets deleted last, but if you're copying them recursively
+  *                 you want `preOrder` to be `true` so the folder gets
+  *                 created first.
+  */
+case class Walker(skip: Path => Boolean = _ => false,
+                  preOrder: Boolean = false,
+                  followLinks: Boolean = false,
+                  maxDepth: Int = Int.MaxValue)
   extends StreamableOp1[Path, Path, IndexedSeq[Path]] {
-    def attrs(arg: Path) = recursiveListFiles(arg)
+  def attrs(arg: Path) = recursiveListFiles(arg)
 
-    def materialize(src: Path, i: geny.Generator[Path]) = list.this.materialize(src, i)
-    def recursiveListFiles(p: Path): geny.Generator[(Path, BasicFileAttributes)] = {
-      val opts0 = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
-      val opts = new java.util.HashSet[FileVisitOption]
-      if (followLinks) opts.add(FileVisitOption.FOLLOW_LINKS)
-      val pNio = p.toNIO
-      if (!Files.exists(pNio, opts0:_*)){
-        throw new java.nio.file.NoSuchFileException(pNio.toString)
-      }
-      new geny.Generator[(Path, BasicFileAttributes)]{
-        def generate(handleItem: ((Path, BasicFileAttributes)) => Generator.Action) = {
-          var currentAction: geny.Generator.Action = geny.Generator.Continue
-          val attrsStack = collection.mutable.Buffer.empty[BasicFileAttributes]
-          def actionToResult(action: Generator.Action) = action match{
-            case Generator.Continue => FileVisitResult.CONTINUE
-            case Generator.End =>
-              currentAction = Generator.End
-              FileVisitResult.TERMINATE
+  def materialize(src: Path, i: geny.Generator[Path]) = list.materialize(src, i)
+  def recursiveListFiles(p: Path): geny.Generator[(Path, BasicFileAttributes)] = {
+    val opts0 = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+    val opts = new java.util.HashSet[FileVisitOption]
+    if (followLinks) opts.add(FileVisitOption.FOLLOW_LINKS)
+    val pNio = p.toNIO
+    if (!Files.exists(pNio, opts0:_*)){
+      throw new java.nio.file.NoSuchFileException(pNio.toString)
+    }
+    new geny.Generator[(Path, BasicFileAttributes)]{
+      def generate(handleItem: ((Path, BasicFileAttributes)) => Generator.Action) = {
+        var currentAction: geny.Generator.Action = geny.Generator.Continue
+        val attrsStack = collection.mutable.Buffer.empty[BasicFileAttributes]
+        def actionToResult(action: Generator.Action) = action match{
+          case Generator.Continue => FileVisitResult.CONTINUE
+          case Generator.End =>
+            currentAction = Generator.End
+            FileVisitResult.TERMINATE
 
-          }
-          Files.walkFileTree(
-            pNio,
-            opts,
-            maxDepth,
-            new FileVisitor[java.nio.file.Path]{
-              def preVisitDirectory(dir: file.Path, attrs: BasicFileAttributes) = {
-                val dirP = Path(dir.toAbsolutePath)
-                if (skip(dirP)) FileVisitResult.SKIP_SUBTREE
-                else actionToResult(
-                  if (preOrder && dirP != p) handleItem((dirP, attrs))
-                  else {
-                    attrsStack.append(attrs)
-                    currentAction
-                  }
-                )
-              }
-
-              def visitFile(file: java.nio.file.Path, attrs: BasicFileAttributes) = {
-                val fileP = Path(file.toAbsolutePath)
-                actionToResult(
-                  if (skip(fileP)) currentAction
-                  else handleItem((fileP, attrs))
-                )
-              }
-
-              def visitFileFailed(file: java.nio.file.Path, exc: IOException) =
-                actionToResult(currentAction)
-
-              def postVisitDirectory(dir: java.nio.file.Path, exc: IOException) = {
-                actionToResult(
-                  if (preOrder) currentAction
-                  else {
-                    val dirP = Path(dir.toAbsolutePath)
-                    if (dirP != p) handleItem((dirP, attrsStack.remove(attrsStack.length - 1)))
-                    else currentAction
-                  }
-                )
-              }
-            }
-          )
-          currentAction
         }
+        Files.walkFileTree(
+          pNio,
+          opts,
+          maxDepth,
+          new FileVisitor[java.nio.file.Path]{
+            def preVisitDirectory(dir: file.Path, attrs: BasicFileAttributes) = {
+              val dirP = Path(dir.toAbsolutePath)
+              if (skip(dirP)) FileVisitResult.SKIP_SUBTREE
+              else actionToResult(
+                if (preOrder && dirP != p) handleItem((dirP, attrs))
+                else {
+                  attrsStack.append(attrs)
+                  currentAction
+                }
+              )
+            }
+
+            def visitFile(file: java.nio.file.Path, attrs: BasicFileAttributes) = {
+              val fileP = Path(file.toAbsolutePath)
+              actionToResult(
+                if (skip(fileP)) currentAction
+                else handleItem((fileP, attrs))
+              )
+            }
+
+            def visitFileFailed(file: java.nio.file.Path, exc: IOException) =
+              actionToResult(currentAction)
+
+            def postVisitDirectory(dir: java.nio.file.Path, exc: IOException) = {
+              actionToResult(
+                if (preOrder) currentAction
+                else {
+                  val dirP = Path(dir.toAbsolutePath)
+                  if (dirP != p) handleItem((dirP, attrsStack.remove(attrsStack.length - 1)))
+                  else currentAction
+                }
+              )
+            }
+          }
+        )
+        currentAction
       }
     }
-    object iter extends (Path => geny.Generator[Path]){
-      def apply(arg: Path) = recursiveListFiles(arg).map(_._1)
-      def attrs(arg: Path) = recursiveListFiles(arg)
-    }
-
   }
+  object iter extends (Path => geny.Generator[Path]){
+    def apply(arg: Path) = recursiveListFiles(arg).map(_._1)
+    def attrs(arg: Path) = recursiveListFiles(arg)
+  }
+
 }
 
 /**

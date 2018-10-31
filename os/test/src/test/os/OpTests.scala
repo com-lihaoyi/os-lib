@@ -20,17 +20,17 @@ object OpTests extends TestSuite{
 //      os.list(res/'folder2/'folder2b) == Seq()
     )
     'lsR{
-      os.list.rec(res).foreach(println)
-      intercept[java.nio.file.NoSuchFileException](os.list.rec(os.pwd/'out/'scratch/'nonexistent))
+      os.walk(res).foreach(println)
+      intercept[java.nio.file.NoSuchFileException](os.walk(os.pwd/'out/'scratch/'nonexistent))
       assert(
-        os.list.rec(res/'folder2/'folder2b) == Seq(res/'folder2/'folder2b/"b.txt"),
-        os.list.rec(res/'folder2) == Seq(
+        os.walk(res/'folder2/'folder2b) == Seq(res/'folder2/'folder2b/"b.txt"),
+        os.walk(res/'folder2) == Seq(
           res/'folder2/'folder2a,
           res/'folder2/'folder2b,
           res/'folder2/'folder2a/"I am.txt",
           res/'folder2/'folder2b/"b.txt"
         ),
-        os.list.rec(res) == Seq(
+        os.walk(res) == Seq(
           res/"File.txt",
           res/'folder1,
           res/'folder2,
@@ -44,7 +44,7 @@ object OpTests extends TestSuite{
     }
     'lsRecPermissions{
       if(Unix()){
-        assert(os.list.rec(os.root/'var/'run).nonEmpty)
+        assert(os.walk(os.root/'var/'run).nonEmpty)
       }
     }
     'readResource{
@@ -163,9 +163,9 @@ object OpTests extends TestSuite{
           os.write(d/'py/'A, "APy")
           os.write(d/'py/'B, "BPy")
           'partialMoves{
-            os.list.rec(d).map(os.move*{case d/"py"/x => d/x })
+            os.walk(d).map(os.move*{case d/"py"/x => d/x })
             assert(
-              os.list.rec(d).toSet == Set(
+              os.walk(d).toSet == Set(
                 d/'py,
                 d/'scala,
                 d/'scala/'A,
@@ -176,17 +176,17 @@ object OpTests extends TestSuite{
             )
           }
           'fullMoves{
-            def die = os.list.rec(d).map(os.move.all*{case d/"py"/x => d/x })
+            def die = os.walk(d).map(os.move.all*{case d/"py"/x => d/x })
             intercept[MatchError]{ die }
 
-            os.list.rec(d).filter(os.isFile).map(os.move.all*{
+            os.walk(d).filter(os.isFile).map(os.move.all*{
               case d/"py"/x => d/'scala/'py/x
               case d/"scala"/x => d/'py/'scala/x
               case d => println("NOT FOUND " + d); d
             })
 
             assert(
-              os.list.rec(d).toSet == Set(
+              os.walk(d).toSet == Set(
                 d/'py,
                 d/'scala,
                 d/'py/'scala,

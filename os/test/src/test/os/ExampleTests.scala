@@ -71,7 +71,7 @@ object ExampleTests extends TestSuite{
       os.list(wd)    ==> Seq(wd/"file1.txt", wd/"file2.txt", wd/'file3, wd/'this)
 
       // `ls.rec` does the same thing recursively
-      os.list.rec(deep) ==> Seq(deep/'deeeep, deep/'deeeep/"file.txt")
+      os.walk(deep) ==> Seq(deep/'deeeep, deep/'deeeep/"file.txt")
 
       // You can move files or folders with `mv` and remove them with `rm!`
       os.list(deep)  ==> Seq(deep/'deeeep)
@@ -150,7 +150,7 @@ object ExampleTests extends TestSuite{
       val renamed = os.list(wd/'dir2)
 
       // Line-count of all .java files recursively in wd
-      val lineCount = os.list.rec(wd)
+      val lineCount = os.walk(wd)
         .filter(_.ext == "java")
         .map(os.read.lines)
         .map(_.size)
@@ -184,10 +184,10 @@ object ExampleTests extends TestSuite{
       val dots = os.list(wd).filter(_.last(0) == '.')
 
       // Find the names of the 10 largest files in the current working directory
-      os.list.rec(wd).map(x => os.size(x) -> x).sortBy(-_._1).take(10)
+      os.walk(wd).map(x => os.size(x) -> x).sortBy(-_._1).take(10)
 
       // Sorted list of the most common words in your .scala source files
-      def txt = os.list.rec(wd).filter(_.ext == "scala").map(os.read)
+      def txt = os.walk(wd).filter(_.ext == "scala").map(os.read)
       def freq(s: Seq[String]) = s groupBy (x => x) mapValues (_.length) toSeq
       val map = freq(txt.flatMap(_.split("[^a-zA-Z0-9_]"))).sortBy(-_._2)
 
@@ -295,7 +295,7 @@ object ExampleTests extends TestSuite{
       val wd = pwd/'os/'test/'resources/'testdata
 
       // find . -name '*.txt' | xargs wc -l
-      val lines = os.list.rec(wd)
+      val lines = os.walk(wd)
         .filter(_.ext == "txt")
         .map(read.lines)
         .map(_.length)
@@ -304,12 +304,12 @@ object ExampleTests extends TestSuite{
       assert(lines == 20)
     }
     'addUpScalaSize{
-      os.list.rec(os.pwd).filter(_.ext == "scala").map(os.size).reduce(_ + _)
+      os.walk(os.pwd).filter(_.ext == "scala").map(os.size).reduce(_ + _)
     }
     'concatAll{if (Unix()){
       os.write.over(
         os.pwd/'out/'scratch/'test/"omg.txt",
-        os.list.rec(os.pwd).filter(_.ext == "scala").map(os.read)
+        os.walk(os.pwd).filter(_.ext == "scala").map(os.read)
       )
     }}
 
@@ -340,7 +340,7 @@ object ExampleTests extends TestSuite{
     }
     'allSubpathsResolveCorrectly{
       import os._
-      for(abs <- os.list.rec(pwd)){
+      for(abs <- os.walk(pwd)){
         val rel = abs.relativeTo(pwd)
         assert(rel.ups == 0)
         assert(pwd / rel == abs)
