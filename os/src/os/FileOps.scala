@@ -8,7 +8,7 @@ package os
 
 import java.io.File
 import java.nio.file._
-import java.nio.file.attribute.FileTime
+import java.nio.file.attribute._
 
 import scala.io.Codec
 
@@ -363,23 +363,85 @@ object exists extends Function1[Path, Boolean]{
   }
 }
 
-//object chmod extends Function2[Path, Unit, Unit]{
-//  def apply(arg1: Path, arg2: Unit) = ???
-//}
-//object chgrp extends Function2[Path, Unit, Unit]{
-//  def apply(arg1: Path, arg2: Unit) = ???
-//}
-//object chown extends Function2[Path, Unit, Unit]{
-//  def apply(arg1: Path, arg2: Unit) = ???
-//}
-//object ps extends Function1[Unit, Unit]{
-//  def apply(arg: Unit): Unit = ???
-//  object tree extends Function1[Unit, Unit]{
-//    def apply(arg: Unit): Unit = ???
-//  }
-//}
+object chmod {
+  def apply(p: Path, arg2: Set[PosixFilePermission]) = {
+    import collection.JavaConverters._
+    Files.setPosixFilePermissions(p.toNIO, arg2.asJava)
+  }
+  def apply(p: Path, arg2: String) = {
+    require(
+      arg2.length == 9,
+      "Invalid permissions string: must be length 9, not " + arg2.length
+    )
+    import PosixFilePermission._
+    val perms = new java.util.HashSet[PosixFilePermission]()
+    def add(i: Int, expected: Char, perm: PosixFilePermission) = {
+      if(arg2(i) == expected) perms.add(perm)
+      else if (arg2(i) != '-') {
+        throw new Exception(
+          "Invalid permissions string: unknown character [" + arg2(i) + "] " +
+          "at index " + i + ". Must be [-] or [" + expected + "]."
+        )
+      }
+    }
+    add(0, 'r', OWNER_READ)
+    add(1, 'w', OWNER_WRITE)
+    add(2, 'x', OWNER_EXECUTE)
+    add(3, 'r', GROUP_READ)
+    add(4, 'w', GROUP_WRITE)
+    add(5, 'x', GROUP_EXECUTE)
+    add(6, 'r', OTHERS_READ)
+    add(7, 'w', OTHERS_WRITE)
+    add(8, 'x', OTHERS_EXECUTE)
+    Files.setPosixFilePermissions(p.toNIO, perms)
+  }
+  def apply(p: Path, arg2: Int) = {
 
+    import PosixFilePermission._
+    val perms = new java.util.HashSet[PosixFilePermission]()
+    def add(i: Int, perm: PosixFilePermission) = {
+      if((arg2 & (0x100 >> i)) != 0) perms.add(perm)
+    }
+    add(0, OWNER_READ)
+    add(1, OWNER_WRITE)
+    add(2, OWNER_EXECUTE)
+    add(3, GROUP_READ)
+    add(4, GROUP_WRITE)
+    add(5, GROUP_EXECUTE)
+    add(6, OTHERS_READ)
+    add(7, OTHERS_WRITE)
+    add(8, OTHERS_EXECUTE)
+    Files.setPosixFilePermissions(p.toNIO, perms)
+  }
+}
 
+object chown {
+  def apply(arg1: Path, arg2: UserPrincipal): Unit = {
+    Files.setOwner(arg1.toNIO, arg2)
+  }
+  def apply(arg1: Path, arg2: String): Unit = {
+    apply(
+      arg1,
+      arg1.root.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByName(arg2)
+    )
+  }
+}
+object chgrp {
+  def apply(arg1: Path, arg2: GroupPrincipal): Unit = {
+    Files.getFileAttributeView(
+      arg1.toNIO,
+      classOf[PosixFileAttributeView],
+      LinkOption.NOFOLLOW_LINKS
+    ).setGroup(arg2)
+  }
+  def apply(arg1: Path, arg2: String): Unit = {
+    apply(
+      arg1,
+      arg1.root.getFileSystem.getUserPrincipalLookupService.lookupPrincipalByGroupName(arg2)
+    )
+
+  }
+}
 
 /**
  * Kills the given process with the given signal, e.g.
