@@ -228,16 +228,6 @@ object PathTests extends TestSuite{
       }
     }
     'Extractors{
-      'regex{
-        val r"omg$x" = "omgasd"
-        assert(x == "asd")
-        val r"${y}omg" = "asdomg"
-        assert(y == "asd")
-        val r"omg${z}bbq" = "omgasdbbq"
-        assert(z == "asd")
-        val r"omg${a}b${b}bq" = "omgasdbbq"
-        assert(a == "asd", b == "")
-      }
       'paths{
         val a/b/c/d/"omg" = pwd/'A/'B/'C/'D/"omg"
         assert(
@@ -350,29 +340,29 @@ object PathTests extends TestSuite{
 
         'nestedSymlinks{
           if(Unix()) {
-            names.foreach(p => rm ! twd/p)
-            mkdir ! twd/'test123
-            ln.s(twd/'test123, twd/'test124)
-            ln.s(twd/'test124, twd/'test125)
-            ln.s(twd/'test125, twd/'test126)
+            names.foreach(p => os.remove(twd/p))
+            os.makedirs(twd/'test123)
+            os.symlink(twd/'test123, twd/'test124)
+            os.symlink(twd/'test124, twd/'test125)
+            os.symlink(twd/'test125, twd/'test126)
             assert((twd/'test126).tryFollowLinks.get == (twd/'test123).tryFollowLinks.get)
-            names.foreach(p => rm ! twd/p)
+            names.foreach(p => os.remove(twd/p))
             names.foreach(p => assert(!exists(twd/p)))
           }
         }
 
         'danglingSymlink{
           if(Unix()) {
-            names.foreach(p => rm ! twd/p)
-            mkdir ! twd/'test123
-            ln.s(twd/'test123, twd/'test124)
-            ln.s(twd/'test124, twd/'test125)
-            ln.s(twd/'test125, twd/'test126)
-            rm ! twd / 'test123
+            names.foreach(p => os.remove(twd/p))
+            os.makedirs(twd/'test123)
+            os.symlink(twd/'test123, twd/'test124)
+            os.symlink(twd/'test124, twd/'test125)
+            os.symlink(twd/'test125, twd/'test126)
+            os.remove(twd / 'test123)
             assert( (twd / 'test126).tryFollowLinks.isEmpty)
-            names.foreach(p => rm ! twd / p)
+            names.foreach(p => os.remove(twd / p))
             names.foreach(p => assert(!exists(twd / p)))
-            names.foreach(p => rm ! twd/p)
+            names.foreach(p => os.remove(twd/p))
             names.foreach(p => assert(!exists(twd/p)))
           }
         }

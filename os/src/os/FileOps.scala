@@ -26,7 +26,7 @@ object Internals{
     def *(t: PartialFunction[Path, Path])(from: Path) = {
       if (check || t.isDefinedAt(from)) {
         val dest = t(from)
-        mkdir(dest/RelPath.up)
+        makedirs(dest/RelPath.up)
         new File(from.toString).renameTo(new File(t(from).toString))
       }
     }
@@ -55,7 +55,7 @@ object Internals{
 }
 
 /**
- * An [[Callable1]] that returns a Seq[R], but can also do so
+ * An [[Function1]] that returns a Seq[R], but can also do so
  * lazily (Iterator[R]) via `op.iter! arg`. You can then use
  * the iterator however you wish
  */
@@ -74,7 +74,7 @@ trait StreamableOp1[T1, R, C <: Seq[R]] extends Function1[T1, C]{
  * Makes directories up to the specified path. Equivalent
  * to `mkdir -p` in bash
  */
-object mkdir extends Function1[Path, Unit]{
+object makedirs extends Function1[Path, Unit]{
   def apply(path: Path) = new File(path.toString).mkdirs()
 }
 
@@ -97,7 +97,7 @@ trait CopyMove extends Function2[Path, Path, Unit]{
     */
   object over extends Function2[Path, Path, Unit]{
     def apply(from: Path, to: Path) = {
-      rm(to)
+      remove(to)
       CopyMove.this(from, to)
     }
   }
@@ -108,7 +108,7 @@ trait CopyMove extends Function2[Path, Path, Unit]{
  *
  * Creates any necessary directories
  */
-object mv extends Function2[Path, Path, Unit] with Internals.Mover with CopyMove{
+object move extends Function2[Path, Path, Unit] with Internals.Mover with CopyMove{
   def apply(from: Path, to: Path) = {
     require(
       !to.startsWith(from),
@@ -130,7 +130,7 @@ object mv extends Function2[Path, Path, Unit] with Internals.Mover with CopyMove
  * Creates any necessary directories, and copies folders
  * recursively.
  */
-object cp extends Function2[Path, Path, Unit] with CopyMove{
+object copy extends Function2[Path, Path, Unit] with CopyMove{
   def apply(from: Path, to: Path) = {
     require(
       !to.startsWith(from),
@@ -141,7 +141,7 @@ object cp extends Function2[Path, Path, Unit] with CopyMove{
     }
 
     copyOne(from)
-    if (stat(from).isDir) new os.FilterMapExt(ls.rec! from) | copyOne
+    if (stat(from).isDir) list.rec(from).map(copyOne)
   }
 
 }
@@ -151,7 +151,7 @@ object cp extends Function2[Path, Path, Unit] with CopyMove{
  * any files or folders in the target path, or
  * does nothing if there aren't any
  */
-object rm extends Function1[Path, Unit]{
+object remove extends Function1[Path, Unit]{
   def apply(target: Path) = {
     require(
       target.segments.nonEmpty,
@@ -159,7 +159,7 @@ object rm extends Function1[Path, Unit]{
     )
     // Emulate `rm -rf` functionality by ignoring non-existent files
     val files =
-      try ls.rec(target)
+      try list.rec(target)
       catch {
         case e: NoSuchFileException => Nil
         case e: NotDirectoryException => Nil
@@ -192,11 +192,11 @@ trait ImplicitOp[V] extends Function1[Path, V]{
 /**
   * List the files and folders in a directory. Can be called with `.iter`
   * to return an iterator, or `.rec` to recursively list everything in
-  * subdirectories. `.rec` is a [[ls.Walker]] which means that apart from
+  * subdirectories. `.rec` is a [[list.Walker]] which means that apart from
   * straight-forwardly listing everything, you can pass in a `skip` predicate
   * to cause your recursion to skip certain files or folders.
   */
-object ls extends StreamableOp1[Path, Path, LsSeq] with ImplicitOp[LsSeq]{
+object list extends StreamableOp1[Path, Path, LsSeq] with ImplicitOp[LsSeq]{
   def materialize(src: Path, i: geny.Generator[Path]) =
     LsSeq(src, i.map(_ relativeTo src).toArray.sorted:_*)
 
@@ -234,9 +234,9 @@ object ls extends StreamableOp1[Path, Path, LsSeq] with ImplicitOp[LsSeq]{
                     preOrder: Boolean = false)
   extends StreamableOp1[Path, Path, LsSeq] with ImplicitOp[LsSeq]{
 
-    def materialize(src: Path, i: geny.Generator[Path]) = ls.this.materialize(src, i)
+    def materialize(src: Path, i: geny.Generator[Path]) = list.this.materialize(src, i)
     def recursiveListFiles(p: Path): geny.Generator[Path] = {
-      def these = ls.iter(p)
+      def these = list.iter(p)
       implicit class withFilterable[T](x: geny.Generator[T]){
         def withFilter(p: T => Boolean) = x.filter(p)
       }
@@ -292,7 +292,7 @@ object write extends Function2[Path, Internals.Writable, Unit]{
 
   }
   def apply(target: Path, data: Internals.Writable) = {
-    mkdir(target/RelPath.up)
+    makedirs(target/RelPath.up)
     write(target, data, StandardOpenOption.CREATE_NEW)
   }
 
@@ -302,7 +302,7 @@ object write extends Function2[Path, Internals.Writable, Unit]{
    */
   object append extends Function2[Path, Internals.Writable, Unit]{
     def apply(target: Path, data: Internals.Writable) = {
-      mkdir(target/RelPath.up)
+      makedirs(target/RelPath.up)
       write(target, data, StandardOpenOption.CREATE, StandardOpenOption.APPEND)
     }
   }
@@ -312,7 +312,7 @@ object write extends Function2[Path, Internals.Writable, Unit]{
    */
   object over extends Function2[Path, Internals.Writable, Unit]{
     def apply(target: Path, data: Internals.Writable) = {
-      mkdir(target/RelPath.up)
+      makedirs(target/RelPath.up)
       write(target, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
     }
   }
@@ -386,14 +386,16 @@ case class kill(signal: Int)(implicit wd: Path) extends Function1[Int, CommandRe
   * Creates a hardlink between two paths. Use `.s(src, dest)` to create a
   * symlink
   */
-object ln extends Function2[Path, Path, Unit]{
+object hardlink extends Function2[Path, Path, Unit]{
   def apply(src: Path, dest: Path) = {
     Files.createLink(Paths.get(dest.toString), Paths.get(src.toString))
   }
-  object s extends Function2[Path, Path, Unit]{
-    def apply(src: Path, dest: Path) = {
-      Files.createSymbolicLink(Paths.get(dest.toString), Paths.get(src.toString))
-    }
+
+}
+
+object symlink extends Function2[Path, Path, Unit]{
+  def apply(src: Path, dest: Path) = {
+    Files.createSymbolicLink(Paths.get(dest.toString), Paths.get(src.toString))
   }
 }
 

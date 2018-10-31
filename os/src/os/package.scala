@@ -1,6 +1,26 @@
-package object os extends Extensions with RelPathStuff{
-  implicit val postfixOps = scala.language.postfixOps
+import scala.collection.Seq
 
+package object os extends RelPathStuff{
+  implicit val postfixOps = scala.language.postfixOps
+  implicit def RegexContextMaker(s: StringContext): RegexContext = new RegexContext(s)
+
+  object RegexContext{
+    class Interped(parts: Seq[String]){
+      def unapplySeq(s: String) = {
+        val Seq(head, tail@_*) = parts.map(java.util.regex.Pattern.quote)
+
+        val regex = head + tail.map("(.*)" + _).mkString
+        regex.r.unapplySeq(s)
+      }
+    }
+  }
+
+  /**
+    * Lets you pattern match strings with interpolated glob-variables
+    */
+  class RegexContext(sc: StringContext) {
+    def r = new RegexContext.Interped(sc.parts)
+  }
   /**
    * The root of the filesystem
    */
