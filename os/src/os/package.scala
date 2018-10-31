@@ -115,13 +115,6 @@ package object os extends RelPathStuff{
   }
 
   /**
-    * Lets you treat any path as a file, letting you access any property you'd
-    * normally access through [[stat]]-ing it by [[stat]]-ing the file for you
-    * when necessary.
-    */
-  implicit def fileData(p: Path): stat.full = stat.full(p)
-
-  /**
     * Used to spawn a subprocess interactively; any output gets printed to the
     * console and any input gets requested from the current console. Can be
     * used to run interactive subprocesses like `%vim`, `%python`,

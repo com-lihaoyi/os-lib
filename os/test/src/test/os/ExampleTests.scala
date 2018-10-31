@@ -13,7 +13,7 @@ object ExampleTests extends TestSuite{
       val wd: os.Path = os.pwd/'out/'example3
 
       // And make sure it's empty
-      os.remove(wd)
+      os.remove.all(wd)
       os.makedirs(wd)
 
       // Reading and writing to files is done through the read! and write!
@@ -92,8 +92,8 @@ object ExampleTests extends TestSuite{
 
       // `rm!` behaves the same as `rm -rf` in Bash, and deletes anything:
       // file, folder, even a folder filled with contents
-      os.remove(deep/'renamed_deeeep)
-      os.remove(deep/"file.txt")
+      os.remove.all(deep/'renamed_deeeep)
+      os.remove.all(deep/"file.txt")
       os.list(deep)  ==> Seq()
 
       // You can stat paths to find out information about any file or
@@ -106,7 +106,7 @@ object ExampleTests extends TestSuite{
 
       // Ammonite provides an implicit conversion from `Path` to
       // `stat`, so you can use these attributes directly
-      (wd/"file1.txt").size ==> 20
+      os.size(wd/"file1.txt") ==> 20
 
       // You can also use `stat.full` which provides more information
       val fullInfo = os.stat.full(wd/"file1.txt")
@@ -122,7 +122,7 @@ object ExampleTests extends TestSuite{
       val wd = os.pwd/'out/'example2
 
       // Delete a file or folder, if it exists
-      os.remove(wd)
+      os.remove.all(wd)
 
       // Make a folder named "folder"
       os.makedirs(wd/'folder)
@@ -184,7 +184,7 @@ object ExampleTests extends TestSuite{
       val dots = os.list(wd).filter(_.last(0) == '.')
 
       // Find the names of the 10 largest files in the current working directory
-      os.list.rec(wd).map(x => x.size -> x).sortBy(-_._1).take(10)
+      os.list.rec(wd).map(x => os.size(x) -> x).sortBy(-_._1).take(10)
 
       // Sorted list of the most common words in your .scala source files
       def txt = os.list.rec(wd).filter(_.ext == "scala").map(os.read)
@@ -199,7 +199,7 @@ object ExampleTests extends TestSuite{
     }
     'comparison{
       import os._
-      os.remove(pwd/'out/'scratch/'folder/'thing/'file)
+      os.remove.all(pwd/'out/'scratch/'folder/'thing/'file)
       write(pwd/'out/'scratch/'folder/'thing/'file, "Hello!")
 
       def removeAll(path: String) = {
@@ -219,7 +219,7 @@ object ExampleTests extends TestSuite{
 
       write(pwd/'out/'scratch/'folder/'thing/'file, "Hello!")
 
-      os.remove(pwd/'out/'scratch/'folder/'thing)
+      os.remove.all(pwd/'out/'scratch/'folder/'thing)
       assert(os.list(pwd/'out/'scratch/'folder).toSeq == Nil)
     }
 
@@ -304,7 +304,7 @@ object ExampleTests extends TestSuite{
       assert(lines == 20)
     }
     'addUpScalaSize{
-      os.list.rec(os.pwd).filter(_.ext == "scala").map(_.size).reduce(_ + _)
+      os.list.rec(os.pwd).filter(_.ext == "scala").map(os.size).reduce(_ + _)
     }
     'concatAll{if (Unix()){
       os.write(

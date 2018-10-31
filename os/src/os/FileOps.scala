@@ -8,6 +8,7 @@ package os
 
 import java.io.File
 import java.nio.file._
+import java.nio.file.attribute.FileTime
 
 import scala.io.Codec
 
@@ -152,23 +153,27 @@ object copy extends Function2[Path, Path, Unit] with CopyMove{
  * does nothing if there aren't any
  */
 object remove extends Function1[Path, Unit]{
-  def apply(target: Path) = {
-    require(
-      target.segments.nonEmpty,
-      s"Cannot rm a root directory: $target"
-    )
-    // Emulate `rm -rf` functionality by ignoring non-existent files
-    val files =
-      try list.rec(target)
-      catch {
-        case e: NoSuchFileException => Nil
-        case e: NotDirectoryException => Nil
-      }
+  def apply(target: Path) = Files.delete(target.toNIO)
 
-    files.toArray
-         .reverseIterator
-         .foreach(p => new File(p.toString).delete())
-    new File(target.toString).delete
+  object all extends Function1[Path, Unit]{
+    def apply(target: Path) = {
+      require(
+        target.segments.nonEmpty,
+        s"Cannot rm a root directory: $target"
+      )
+      // Emulate `rm -rf` functionality by ignoring non-existent files
+      val files =
+        try list.rec(target)
+        catch {
+          case e: NoSuchFileException => Nil
+          case e: NotDirectoryException => Nil
+        }
+
+      files.toArray
+        .reverseIterator
+        .foreach(p => new File(p.toString).delete())
+      new File(target.toString).delete
+    }
   }
 }
 
@@ -383,20 +388,57 @@ case class kill(signal: Int)(implicit wd: Path) extends Function1[Int, CommandRe
 }
 
 /**
-  * Creates a hardlink between two paths. Use `.s(src, dest)` to create a
-  * symlink
+  * Creates a hardlink between two paths
   */
 object hardlink extends Function2[Path, Path, Unit]{
   def apply(src: Path, dest: Path) = {
     Files.createLink(Paths.get(dest.toString), Paths.get(src.toString))
   }
-
 }
 
+/**
+  * Creates a symbolic link between two paths
+  */
 object symlink extends Function2[Path, Path, Unit]{
   def apply(src: Path, dest: Path) = {
     Files.createSymbolicLink(Paths.get(dest.toString), Paths.get(src.toString))
   }
+}
+
+/**
+  * Checks whether the given path is a symbolic link
+  */
+object islink extends Function1[Path, Boolean]{
+  def apply(p: Path) = Files.isSymbolicLink(p.toNIO)
+}
+
+/**
+  * Checks whether the given path is a regular file
+  */
+object isfile extends Function1[Path, Boolean]{
+  def apply(p: Path) = Files.isRegularFile(p.toNIO)
+}
+
+
+/**
+  * Checks whether the given path is a directory
+  */
+object isdir extends Function1[Path, Boolean]{
+  def apply(p: Path) = Files.isDirectory(p.toNIO)
+}
+
+/**
+  * Gets the size of the given file
+  */
+object size extends Function1[Path, Long]{
+  def apply(p: Path) = Files.size(p.toNIO)
+}
+
+/**
+  * Gets the mtime of the given file
+  */
+object mtime extends Function1[Path, Long]{
+  def apply(p: Path) = Files.getLastModifiedTime(p.toNIO).toMillis
 }
 
 /*object free{

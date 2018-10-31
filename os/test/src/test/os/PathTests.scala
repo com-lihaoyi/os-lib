@@ -340,7 +340,7 @@ object PathTests extends TestSuite{
 
         'nestedSymlinks{
           if(Unix()) {
-            names.foreach(p => os.remove(twd/p))
+            names.foreach(p => os.remove.all(twd/p))
             os.makedirs(twd/'test123)
             os.symlink(twd/'test123, twd/'test124)
             os.symlink(twd/'test124, twd/'test125)
@@ -353,16 +353,16 @@ object PathTests extends TestSuite{
 
         'danglingSymlink{
           if(Unix()) {
-            names.foreach(p => os.remove(twd/p))
+            names.foreach(p => os.remove.all(twd/p))
             os.makedirs(twd/'test123)
             os.symlink(twd/'test123, twd/'test124)
             os.symlink(twd/'test124, twd/'test125)
             os.symlink(twd/'test125, twd/'test126)
             os.remove(twd / 'test123)
             assert( (twd / 'test126).tryFollowLinks.isEmpty)
-            names.foreach(p => os.remove(twd / p))
+            names.foreach(p => os.remove.all(twd / p))
             names.foreach(p => assert(!exists(twd / p)))
-            names.foreach(p => os.remove(twd/p))
+            names.foreach(p => os.remove.all(twd/p))
             names.foreach(p => assert(!exists(twd/p)))
           }
         }

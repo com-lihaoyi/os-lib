@@ -85,11 +85,15 @@ object OpTests extends TestSuite{
     }
     'rm{
       // shouldn't crash
-      os.remove(os.pwd/'out/'scratch/'nonexistent)
+      os.remove.all(os.pwd/'out/'scratch/'nonexistent)
+      // should crash
+      intercept[NoSuchFileException]{
+        os.remove(os.pwd/'out/'scratch/'nonexistent)
+      }
     }
     'Mutating{
       val test = os.pwd/'out/'scratch/'test
-      os.remove(test)
+      os.remove.all(test)
       os.makedirs(test)
       'cp{
         val d = test/'copying
@@ -175,7 +179,7 @@ object OpTests extends TestSuite{
             def die = os.list.rec(d).map(os.move.all*{case d/"py"/x => d/x })
             intercept[MatchError]{ die }
 
-            os.list.rec(d).filter(_.isFile).map(os.move.all*{
+            os.list.rec(d).filter(os.isfile).map(os.move.all*{
               case d/"py"/x => d/'scala/'py/x
               case d/"scala"/x => d/'py/'scala/x
               case d => println("NOT FOUND " + d); d
@@ -213,7 +217,7 @@ object OpTests extends TestSuite{
             os.list(nested/'inner) == Seq(nested/'inner/'innerer),
             os.list(nested/'inner/'innerer) == Seq(nested/'inner/'innerer/'innerest)
           )
-          os.remove(nested/'inner)
+          os.remove.all(nested/'inner)
           assert(os.list(nested) == Seq())
         }
       }
