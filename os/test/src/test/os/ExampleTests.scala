@@ -307,7 +307,7 @@ object ExampleTests extends TestSuite{
       os.list.rec(os.pwd).filter(_.ext == "scala").map(os.size).reduce(_ + _)
     }
     'concatAll{if (Unix()){
-      os.write(
+      os.write.over(
         os.pwd/'out/'scratch/'test/"omg.txt",
         os.list.rec(os.pwd).filter(_.ext == "scala").map(os.read)
       )

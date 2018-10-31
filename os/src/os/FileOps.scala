@@ -6,9 +6,12 @@
  */
 package os
 
-import java.io.File
+import java.io.{File, IOException}
+import java.nio.file
 import java.nio.file._
 import java.nio.file.attribute._
+
+import geny.Generator
 
 import scala.io.Codec
 import scala.util.Try
@@ -22,14 +25,14 @@ object Internals{
     def apply(t: PartialFunction[String, String])(from: Path) = {
       if (check || t.isDefinedAt(from.last)){
         val dest = from/RelPath.up/t(from.last)
-        new File(from.toString).renameTo(new File(dest.toString))
+        Files.move(from.toNIO, dest.toNIO)
       }
     }
     def *(t: PartialFunction[Path, Path])(from: Path) = {
       if (check || t.isDefinedAt(from)) {
         val dest = t(from)
         makeDirs(dest/RelPath.up)
-        new File(from.toString).renameTo(new File(t(from).toString))
+        Files.move(from.toNIO, t(from).toNIO)
       }
     }
   }
@@ -77,7 +80,7 @@ trait StreamableOp1[T1, R, C <: Seq[R]] extends Function1[T1, C]{
  * to `mkdir -p` in bash
  */
 object makeDirs extends Function1[Path, Unit]{
-  def apply(path: Path) = new File(path.toString).mkdirs()
+  def apply(path: Path) = Files.createDirectories(path.toNIO)
 }
 
 
@@ -158,43 +161,19 @@ object remove extends Function1[Path, Unit]{
 
   object all extends Function1[Path, Unit]{
     def apply(target: Path) = {
-      require(
-        target.segments.nonEmpty,
-        s"Cannot rm a root directory: $target"
-      )
-      // Emulate `rm -rf` functionality by ignoring non-existent files
-      val files =
-        try list.rec(target)
-        catch {
-          case e: NoSuchFileException => Nil
-          case e: NotDirectoryException => Nil
-        }
+      require(target.segments.nonEmpty, s"Cannot rm a root directory: $target")
 
-      files.toArray
-        .reverseIterator
-        .foreach(p => new File(p.toString).delete())
-      new File(target.toString).delete
+      val nioTarget = target.toNIO
+      if (Files.exists(nioTarget)) {
+        if (Files.isDirectory(nioTarget)) {
+          list.rec.iter(target).foreach(remove)
+        }
+        Files.delete(nioTarget)
+      }
     }
   }
 }
 
-/**
- * A specialized Seq[Path] used to provide better a better pretty-printed
- * experience
- */
-case class LsSeq(base: Path, listed: RelPath*) extends Seq[Path]{
-  def length = listed.length
-  def apply(idx: Int) = base/listed.apply(idx)
-  def iterator = listed.iterator.map(base/)
-}
-
-trait ImplicitOp[V] extends Function1[Path, V]{
-  /**
-   * Make the common case of looking around the current directory fast by
-   * letting the user omit the argument if there's one in scope
-   */
-  def !(implicit arg: Path): V = apply(arg)
-}
 /**
   * List the files and folders in a directory. Can be called with `.iter`
   * to return an iterator, or `.rec` to recursively list everything in
@@ -202,10 +181,8 @@ trait ImplicitOp[V] extends Function1[Path, V]{
   * straight-forwardly listing everything, you can pass in a `skip` predicate
   * to cause your recursion to skip certain files or folders.
   */
-object list extends StreamableOp1[Path, Path, LsSeq] with ImplicitOp[LsSeq]{
-  def materialize(src: Path, i: geny.Generator[Path]) =
-    LsSeq(src, i.map(_ relativeTo src).toArray.sorted:_*)
-
+object list extends StreamableOp1[Path, Path, IndexedSeq[Path]] {
+  def materialize(src: Path, i: geny.Generator[Path]) = i.toArray[Path].sorted
 
   object iter extends (Path => geny.Generator[Path]){
     def apply(arg: Path) = geny.Generator.selfClosing{
@@ -221,11 +198,13 @@ object list extends StreamableOp1[Path, Path, LsSeq] with ImplicitOp[LsSeq]{
 
   object rec extends Walker(){
     def apply(skip: Path => Boolean = _ => false,
-              preOrder: Boolean = false) = Walker(skip, preOrder)
+              preOrder: Boolean = false,
+              followLinks: Boolean = false,
+              maxDepth: Int = Int.MaxValue) = Walker(skip, preOrder, followLinks, maxDepth)
   }
 
   /**
-    * Walks a directory recursively and returns a [[LsSeq]] of all its contents.
+    * Walks a directory recursively and returns a [[IndexedSeq]] of all its contents.
     *
     * @param skip Skip certain files or folders from appearing in the output.
     *             If you skip a folder, its entire subtree is ignored
@@ -237,30 +216,79 @@ object list extends StreamableOp1[Path, Path, LsSeq] with ImplicitOp[LsSeq]{
     *                 created first.
     */
   case class Walker(skip: Path => Boolean = _ => false,
-                    preOrder: Boolean = false)
-  extends StreamableOp1[Path, Path, LsSeq] with ImplicitOp[LsSeq]{
+                    preOrder: Boolean = false,
+                    followLinks: Boolean = false,
+                    maxDepth: Int = Int.MaxValue)
+  extends StreamableOp1[Path, Path, IndexedSeq[Path]] {
+    def attrs(arg: Path) = recursiveListFiles(arg)
 
     def materialize(src: Path, i: geny.Generator[Path]) = list.this.materialize(src, i)
-    def recursiveListFiles(p: Path): geny.Generator[Path] = {
-      def these = list.iter(p)
-      implicit class withFilterable[T](x: geny.Generator[T]){
-        def withFilter(p: T => Boolean) = x.filter(p)
+    def recursiveListFiles(p: Path): geny.Generator[(Path, BasicFileAttributes)] = {
+      val opts0 = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+      val opts = new java.util.HashSet[FileVisitOption]
+      if (followLinks) opts.add(FileVisitOption.FOLLOW_LINKS)
+      val pNio = p.toNIO
+      if (!Files.exists(pNio, opts0:_*)){
+        throw new java.nio.file.NoSuchFileException(pNio.toString)
       }
-      for{
-        thing <- these
-        if !skip(thing)
-        sub <- {
-          if (!stat(thing).isDir) geny.Generator(thing)
-          else{
-            val children = recursiveListFiles(thing)
-            if (preOrder) geny.Generator(thing) ++ children
-            else children ++ geny.Generator(thing)
+      new geny.Generator[(Path, BasicFileAttributes)]{
+        def generate(handleItem: ((Path, BasicFileAttributes)) => Generator.Action) = {
+          var currentAction: geny.Generator.Action = geny.Generator.Continue
+          val attrsStack = collection.mutable.Buffer.empty[BasicFileAttributes]
+          def actionToResult(action: Generator.Action) = action match{
+            case Generator.Continue => FileVisitResult.CONTINUE
+            case Generator.End =>
+              currentAction = Generator.End
+              FileVisitResult.TERMINATE
+
           }
+          Files.walkFileTree(
+            pNio,
+            opts,
+            maxDepth,
+            new FileVisitor[java.nio.file.Path]{
+              def preVisitDirectory(dir: file.Path, attrs: BasicFileAttributes) = {
+                val dirP = Path(dir.toAbsolutePath)
+                if (skip(dirP)) FileVisitResult.SKIP_SUBTREE
+                else actionToResult(
+                  if (preOrder && dirP != p) handleItem((dirP, attrs))
+                  else {
+                    attrsStack.append(attrs)
+                    currentAction
+                  }
+                )
+              }
+
+              def visitFile(file: java.nio.file.Path, attrs: BasicFileAttributes) = {
+                val fileP = Path(file.toAbsolutePath)
+                actionToResult(
+                  if (skip(fileP)) currentAction
+                  else handleItem((fileP, attrs))
+                )
+              }
+
+              def visitFileFailed(file: java.nio.file.Path, exc: IOException) =
+                actionToResult(currentAction)
+
+              def postVisitDirectory(dir: java.nio.file.Path, exc: IOException) = {
+                actionToResult(
+                  if (preOrder) currentAction
+                  else {
+                    val dirP = Path(dir.toAbsolutePath)
+                    if (dirP != p) handleItem((dirP, attrsStack.remove(attrsStack.length - 1)))
+                    else currentAction
+                  }
+                )
+              }
+            }
+          )
+          currentAction
         }
-      } yield sub
+      }
     }
     object iter extends (Path => geny.Generator[Path]){
-      def apply(arg: Path) = recursiveListFiles(arg)
+      def apply(arg: Path) = recursiveListFiles(arg).map(_._1)
+      def attrs(arg: Path) = recursiveListFiles(arg)
     }
 
   }
@@ -511,12 +539,12 @@ object stat extends Function1[os.Path, os.stat]{
       // Don't blow up if we stat `root`
       p.segments.lastOption.getOrElse("/"),
       Files.readAttributes(
-        Paths.get(p.toString),
+        p.toNIO,
         classOf[BasicFileAttributes],
         opts:_*
       ),
       Try(Files.readAttributes(
-        Paths.get(p.toString),
+        p.toNIO,
         classOf[PosixFileAttributes],
         opts:_*
       )).toOption
@@ -544,12 +572,12 @@ object stat extends Function1[os.Path, os.stat]{
       os.stat.full.make(
         p.segments.lastOption.getOrElse("/"),
         Files.readAttributes(
-          Paths.get(p.toString),
+          p.toNIO,
           classOf[BasicFileAttributes],
           opts:_*
         ),
         Try(Files.readAttributes(
-          Paths.get(p.toString),
+          p.toNIO,
           classOf[PosixFileAttributes],
           opts:_*
         )).toOption
