@@ -1,7 +1,6 @@
 import scala.collection.Seq
 
 package object os extends RelPathStuff{
-  implicit val postfixOps = scala.language.postfixOps
   implicit def RegexContextMaker(s: StringContext): RegexContext = new RegexContext(s)
 
   object RegexContext{
