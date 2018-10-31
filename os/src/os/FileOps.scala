@@ -356,7 +356,11 @@ object read extends Function1[Readable, String]{
  * Checks if a file or folder exists at the given path.
  */
 object exists extends Function1[Path, Boolean]{
-  def apply(p: Path) = Files.exists(Paths.get(p.toString))
+  def apply(p: Path) = Files.exists(p.toNIO)
+  def apply(p: Path, followLinks: Boolean = true) = {
+    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+    Files.exists(p.toNIO, opts:_*)
+  }
 }
 
 //object chmod extends Function2[Path, Unit, Unit]{
@@ -392,7 +396,7 @@ case class kill(signal: Int)(implicit wd: Path) extends Function1[Int, CommandRe
   */
 object hardlink extends Function2[Path, Path, Unit]{
   def apply(src: Path, dest: Path) = {
-    Files.createLink(Paths.get(dest.toString), Paths.get(src.toString))
+    Files.createLink(dest.toNIO, src.toNIO)
   }
 }
 
@@ -401,7 +405,7 @@ object hardlink extends Function2[Path, Path, Unit]{
   */
 object symlink extends Function2[Path, Path, Unit]{
   def apply(src: Path, dest: Path) = {
-    Files.createSymbolicLink(Paths.get(dest.toString), Paths.get(src.toString))
+    Files.createSymbolicLink(dest.toNIO, src.toNIO)
   }
 }
 
@@ -417,6 +421,10 @@ object islink extends Function1[Path, Boolean]{
   */
 object isfile extends Function1[Path, Boolean]{
   def apply(p: Path) = Files.isRegularFile(p.toNIO)
+  def apply(p: Path, followLinks: Boolean = true) = {
+    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+    Files.isRegularFile(p.toNIO, opts:_*)
+  }
 }
 
 
@@ -425,6 +433,10 @@ object isfile extends Function1[Path, Boolean]{
   */
 object isdir extends Function1[Path, Boolean]{
   def apply(p: Path) = Files.isDirectory(p.toNIO)
+  def apply(p: Path, followLinks: Boolean = true) = {
+    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+    Files.isDirectory(p.toNIO, opts:_*)
+  }
 }
 
 /**
@@ -439,6 +451,10 @@ object size extends Function1[Path, Long]{
   */
 object mtime extends Function1[Path, Long]{
   def apply(p: Path) = Files.getLastModifiedTime(p.toNIO).toMillis
+  def apply(p: Path, followLinks: Boolean = true) = {
+    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+    Files.getLastModifiedTime(p.toNIO, opts:_*).toMillis
+  }
 }
 
 /*object free{

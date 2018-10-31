@@ -33,20 +33,24 @@ class PermSet(s: Set[PosixFilePermission]) extends Set[PosixFilePermission]{
 
 
 object stat extends Function1[os.Path, os.stat]{
-  def apply(p: os.Path) = os.stat.make(
-    // Don't blow up if we stat `root`
-    p.segments.lastOption.getOrElse("/"),
-    Files.readAttributes(
-      Paths.get(p.toString),
-      classOf[BasicFileAttributes],
-      LinkOption.NOFOLLOW_LINKS
-    ),
-    Try(Files.readAttributes(
-      Paths.get(p.toString),
-      classOf[PosixFileAttributes],
-      LinkOption.NOFOLLOW_LINKS
-    )).toOption
-  )
+  def apply(p: os.Path) = apply(p, followLinks = true)
+  def apply(p: os.Path, followLinks: Boolean = true) = {
+    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+    os.stat.make(
+      // Don't blow up if we stat `root`
+      p.segments.lastOption.getOrElse("/"),
+      Files.readAttributes(
+        Paths.get(p.toString),
+        classOf[BasicFileAttributes],
+        opts:_*
+      ),
+      Try(Files.readAttributes(
+        Paths.get(p.toString),
+        classOf[PosixFileAttributes],
+        opts:_*
+      )).toOption
+    )
+  }
   def make(name: String, attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
     import collection.JavaConverters._
     new stat(
@@ -63,19 +67,23 @@ object stat extends Function1[os.Path, os.stat]{
     )
   }
   object full extends Function1[os.Path, os.stat.full] {
-    def apply(p: os.Path) = os.stat.full.make(
-      p.segments.lastOption.getOrElse("/"),
-      Files.readAttributes(
-        Paths.get(p.toString),
-        classOf[BasicFileAttributes],
-        LinkOption.NOFOLLOW_LINKS
-      ),
-      Try(Files.readAttributes(
-        Paths.get(p.toString),
-        classOf[PosixFileAttributes],
-        LinkOption.NOFOLLOW_LINKS
-      )).toOption
-    )
+    def apply(p: os.Path) = apply(p, followLinks = true)
+    def apply(p: os.Path, followLinks: Boolean = true) = {
+      val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+      os.stat.full.make(
+        p.segments.lastOption.getOrElse("/"),
+        Files.readAttributes(
+          Paths.get(p.toString),
+          classOf[BasicFileAttributes],
+          opts:_*
+        ),
+        Try(Files.readAttributes(
+          Paths.get(p.toString),
+          classOf[PosixFileAttributes],
+          opts:_*
+        )).toOption
+      )
+    }
     def make(name: String, attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
       import collection.JavaConverters._
       new full(
