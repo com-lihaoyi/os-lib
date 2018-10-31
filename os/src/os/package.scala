@@ -1,6 +1,6 @@
 import scala.collection.Seq
 
-package object os extends RelPathStuff{
+package object os{
   implicit def RegexContextMaker(s: StringContext): RegexContext = new RegexContext(s)
 
   object RegexContext{
@@ -23,7 +23,7 @@ package object os extends RelPathStuff{
   /**
    * The root of the filesystem
    */
-  val root = os.Path.root
+  val root = Path(java.nio.file.Paths.get("").toAbsolutePath.getRoot)
 
   def resource(implicit resRoot: ResourceRoot = Thread.currentThread().getContextClassLoader) ={
     os.ResourcePath.resource(resRoot)
@@ -39,8 +39,11 @@ package object os extends RelPathStuff{
   /**
    * The current working directory for this process.
    */
-  lazy val pwd = os.Path(new java.io.File("").getCanonicalPath)
+  val pwd = os.Path(new java.io.File("").getCanonicalPath)
 
+  val up = RelPath.up
+
+  val rel = RelPath.rel
   /**
     * Extractor to let you easily pattern match on [[os.Path]]s. Lets you do
     *

@@ -137,6 +137,17 @@ object symlink extends Function2[Path, Path, Unit]{
 
 
 /**
+  * Obtain the final path to a file by resolving symlinks if any.
+  */
+object followLink extends Function1[Path, Option[Path]]{
+  /**
+    * @return Some(path) or else None if the symlink is invalid or other error.
+    */
+  def apply(src: Path) = Try(Path(src.toNIO.toRealPath())).toOption
+}
+
+
+/**
   * Alias for `java.nio.file.Files.createTempFile` and
   * `java.io.File.deleteOnExit`. Pass in `deleteOnExit = false` if you want
   * the temp file to stick around.

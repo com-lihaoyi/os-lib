@@ -252,15 +252,15 @@ object ExampleTests extends TestSuite{
     'relPaths{
       import os._
       // The path "folder/file"
-      val rel1 = 'folder/'file
-      val rel2 = 'folder/'file
+      val rel1 = rel/'folder/'file
+      val rel2 = rel/'folder/'file
 
       // The path "file"; will get converted to a RelPath by an implicit
       val rel3 = 'file
 
       // The relative difference between two paths
       val target = pwd/'out/'scratch/'file
-      assert((target relativeTo pwd) == 'out/'scratch/'file)
+      assert((target relativeTo pwd) == rel/'out/'scratch/'file)
 
       // `up`s get resolved automatically
       val minus = pwd relativeTo target
@@ -287,7 +287,7 @@ object ExampleTests extends TestSuite{
       assert((root/'folder/'file/up).toString == "/folder")
       // not "/folder/file/.."
 
-      assert(('folder/'file/up).toString == "folder")
+      assert((rel/'folder/'file/up).toString == "folder")
       // not "folder/file/.."
     }}
     'findWc{

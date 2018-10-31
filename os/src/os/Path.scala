@@ -55,8 +55,6 @@ trait BasePath{
 }
 
 object BasePath {
-
-
   def checkSegment(s: String) = {
     def fail(msg: String) = throw PathError.InvalidSegment(s, msg)
     def considerStr =
@@ -101,7 +99,6 @@ object BasePath {
     s.iterator().asScala.map(_.toString).filter(_ != ".").filter(_ != "").toArray
   }
 }
-
 
 trait BasePathImpl extends BasePath{
   def segments: IndexedSeq[String]
@@ -192,7 +189,7 @@ class RelPath private[os](segments0: Array[String], val ups: Int)
   }
 }
 
-object RelPath extends RelPathStuff {
+object RelPath {
   def apply[T: PathConvertible](f0: T): RelPath = {
     val f = implicitly[PathConvertible[T]].apply(f0)
 
@@ -215,26 +212,17 @@ object RelPath extends RelPathStuff {
   }
 
   implicit def SeqPath[T](s: Seq[T])(implicit conv: T => RelPath): RelPath = {
-    s.foldLeft(empty){_ / _}
+    s.foldLeft(rel){_ / _}
   }
 
   implicit def ArrayPath[T](s: Array[T])(implicit conv: T => RelPath): RelPath = SeqPath(s)
 
-
   implicit val relPathOrdering: Ordering[RelPath] =
     Ordering.by((rp: RelPath) => (rp.ups, rp.segments.length, rp.segments.toIterable))
-}
-trait RelPathStuff{
-  val up: RelPath = new RelPath(Array.empty[String], 1)
-  val empty: RelPath = new RelPath(Array.empty[String], 0)
-  implicit class RelPathStart(p1: String){
-    def /(subpath: RelPath) = empty/p1/subpath
-  }
-  implicit class RelPathStart2(p1: Symbol){
-    def /(subpath: RelPath) = empty/p1/subpath
-  }
-}
 
+  val up: RelPath = new RelPath(Array.empty[String], 1)
+  val rel: RelPath = new RelPath(Array.empty[String], 0)
+}
 
 object Path {
   def apply(p: FilePath, base: Path) = p match{
@@ -253,9 +241,6 @@ object Path {
     new Path(f.getRoot, BasePath.chunkify(f.normalize()))
   }
 
-  val root = Path(java.nio.file.Paths.get("").toAbsolutePath.getRoot)
-  val home = Path(System.getProperty("user.home"))
-
   implicit val pathOrdering: Ordering[Path] =
     Ordering.by((rp: Path) => (rp.segments.length, rp.segments.toIterable))
 }
@@ -273,9 +258,7 @@ class Path private[os](val root: java.nio.file.Path, segments0: Array[String])
   def toNIO = root.resolve(segments0.mkString(root.getFileSystem.getSeparator))
 
   protected[this] def make(p: Seq[String], ups: Int) = {
-    if (ups > 0){
-      throw PathError.AbsolutePathOutsideRoot
-    }
+    if (ups > 0) throw PathError.AbsolutePathOutsideRoot
     new Path(root, p.toArray[String])
   }
   override def toString = toNIO.toString
@@ -287,12 +270,6 @@ class Path private[os](val root: java.nio.file.Path, segments0: Array[String])
   override def hashCode = segments.hashCode()
 
   def startsWith(target: Path) = segments0.startsWith(target.segments)
-
-  /**
-    * Obtain the final path to a file by resolving symlinks if any.
-    * @return Some(path) or else None if the symlink is invalid or other error.
-    */
-  def tryFollowLinks: Option[Path] = Try(Path(toNIO.toRealPath())).toOption
 
   def relativeTo(base: Path): RelPath = {
     var newUps = 0
@@ -308,12 +285,10 @@ class Path private[os](val root: java.nio.file.Path, segments0: Array[String])
   def toIO = toNIO.toFile
 }
 
-
-
-
 sealed trait PathConvertible[T]{
   def apply(t: T): java.nio.file.Path
 }
+
 object PathConvertible{
   implicit object StringConvertible extends PathConvertible[String]{
     def apply(t: String) = java.nio.file.Paths.get(t)
