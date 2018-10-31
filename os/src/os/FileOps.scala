@@ -243,31 +243,19 @@ case class Walker(skip: Path => Boolean = _ => false,
  * or [[write.append]] if you want to over-write it or add to what's already
  * there.
  */
-object write extends Function2[Path, Internals.Writable, Unit]{
+object write extends Function2[Path, Writable, Unit]{
   /**
     * Performs the actual opening and writing to a file. Basically cribbed
     * from `java.nio.file.Files.write` so we could re-use it properly for
-    * different combinations of flags and all sorts of [[Internals.Writable]]s
+    * different combinations of flags and all sorts of [[Writable]]s
     */
-  def write(target: Path, data: Internals.Writable, flags: StandardOpenOption*) = {
+  def write(target: Path, data: Writable, flags: StandardOpenOption*) = {
 
     val out = Files.newOutputStream(target.toNIO, flags:_*)
-    try {
-      for(bytes <- data.writeableData){
-        val len: Int = bytes.length
-        var rem: Int = len
-        while (rem > 0) {
-          val n: Int = Math.min(rem, 8192)
-          out.write(bytes, len - rem, n)
-          rem -= n
-        }
-      }
-    } finally {
-      if (out != null) out.close()
-    }
-
+    try data.write(out)
+    finally if (out != null) out.close()
   }
-  def apply(target: Path, data: Internals.Writable) = {
+  def apply(target: Path, data: Writable) = {
     makeDirs(target/RelPath.up)
     write(target, data, StandardOpenOption.CREATE_NEW)
   }
@@ -276,8 +264,8 @@ object write extends Function2[Path, Internals.Writable, Unit]{
    * Identical to [[write]], except if the file already exists,
    * appends to the file instead of error-ing out
    */
-  object append extends Function2[Path, Internals.Writable, Unit]{
-    def apply(target: Path, data: Internals.Writable) = {
+  object append extends Function2[Path, Writable, Unit]{
+    def apply(target: Path, data: Writable) = {
       makeDirs(target/RelPath.up)
       write(target, data, StandardOpenOption.CREATE, StandardOpenOption.APPEND)
     }
@@ -286,8 +274,8 @@ object write extends Function2[Path, Internals.Writable, Unit]{
    * Identical to [[write]], except if the file already exists,
    * replaces the file instead of error-ing out
    */
-  object over extends Function2[Path, Internals.Writable, Unit]{
-    def apply(target: Path, data: Internals.Writable) = {
+  object over extends Function2[Path, Writable, Unit]{
+    def apply(target: Path, data: Writable) = {
       makeDirs(target/RelPath.up)
       write(target, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
     }
