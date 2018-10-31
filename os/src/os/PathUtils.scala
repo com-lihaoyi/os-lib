@@ -13,7 +13,7 @@ trait Readable{
   protected[os] def getBytes(): Array[Byte] = {
     val is = getInputStream
     val out = new java.io.ByteArrayOutputStream()
-    val buffer = new Array[Byte](32768)
+    val buffer = new Array[Byte](4096)
     var r = 0
     while (r != -1) {
       r = is.read(buffer)
