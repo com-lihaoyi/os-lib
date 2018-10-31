@@ -1,10 +1,19 @@
 package os
 
+import java.io.{InputStream, OutputStream}
 import java.nio.file.Files
 
 object Internals{
 
-
+  def transfer(src: InputStream, dest: OutputStream) = {
+    val buffer = new Array[Byte](4096)
+    var r = 0
+    while (r != -1) {
+      r = src.read(buffer)
+      if (r != -1) dest.write(buffer, 0, r)
+    }
+    src.close()
+  }
   trait Mover{
     def check: Boolean
     def apply(t: PartialFunction[String, String])(from: Path) = {

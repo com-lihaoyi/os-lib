@@ -58,7 +58,7 @@ package object os extends RelPathStuff{
     /**
       * Creates a temporary file with the provided contents
       */
-    def apply(contents: Writable = null,
+    def apply(contents: Source = null,
               dir: Path = null,
               prefix: String = null,
               suffix: String = null,

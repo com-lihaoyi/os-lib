@@ -243,19 +243,19 @@ case class Walker(skip: Path => Boolean = _ => false,
  * or [[write.append]] if you want to over-write it or add to what's already
  * there.
  */
-object write extends Function2[Path, Writable, Unit]{
+object write extends Function2[Path, Source, Unit]{
   /**
     * Performs the actual opening and writing to a file. Basically cribbed
     * from `java.nio.file.Files.write` so we could re-use it properly for
-    * different combinations of flags and all sorts of [[Writable]]s
+    * different combinations of flags and all sorts of [[Source]]s
     */
-  def write(target: Path, data: Writable, flags: StandardOpenOption*) = {
+  def write(target: Path, data: Source, flags: StandardOpenOption*) = {
 
     val out = Files.newOutputStream(target.toNIO, flags:_*)
-    try data.write(out)
+    try Internals.transfer(data.getInputStream(), out)
     finally if (out != null) out.close()
   }
-  def apply(target: Path, data: Writable) = {
+  def apply(target: Path, data: Source) = {
     makeDirs(target/RelPath.up)
     write(target, data, StandardOpenOption.CREATE_NEW)
   }
@@ -264,8 +264,8 @@ object write extends Function2[Path, Writable, Unit]{
    * Identical to [[write]], except if the file already exists,
    * appends to the file instead of error-ing out
    */
-  object append extends Function2[Path, Writable, Unit]{
-    def apply(target: Path, data: Writable) = {
+  object append extends Function2[Path, Source, Unit]{
+    def apply(target: Path, data: Source) = {
       makeDirs(target/RelPath.up)
       write(target, data, StandardOpenOption.CREATE, StandardOpenOption.APPEND)
     }
@@ -274,8 +274,8 @@ object write extends Function2[Path, Writable, Unit]{
    * Identical to [[write]], except if the file already exists,
    * replaces the file instead of error-ing out
    */
-  object over extends Function2[Path, Writable, Unit]{
-    def apply(target: Path, data: Writable) = {
+  object over extends Function2[Path, Source, Unit]{
+    def apply(target: Path, data: Source) = {
       makeDirs(target/RelPath.up)
       write(target, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
     }
@@ -287,21 +287,21 @@ object write extends Function2[Path, Writable, Unit]{
  * Reads a file into memory, either as a String,
  * as (read.lines(...): Seq[String]), or as (read.bytes(...): Array[Byte]).
  */
-object read extends Function1[Readable, String]{
-  def getInputStream(p: Readable) = p.getInputStream()
+object read extends Function1[Source, String]{
+  def getInputStream(p: Source) = p.getInputStream()
 
-  def apply(arg: Readable) = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
-  def apply(arg: Readable, charSet: Codec) = {
+  def apply(arg: Source) = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
+  def apply(arg: Source, charSet: Codec) = {
     new String(read.bytes(arg), charSet.charSet)
   }
 
-  object lines extends Internals.StreamableOp1[Readable, String, IndexedSeq[String]]{
-    def materialize(src: Readable, i: geny.Generator[String]) = i.toArray[String]
+  object lines extends Internals.StreamableOp1[Source, String, IndexedSeq[String]]{
+    def materialize(src: Source, i: geny.Generator[String]) = i.toArray[String]
 
-    object iter extends (Readable => geny.Generator[String]){
-      def apply(arg: Readable) = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
+    object iter extends (Source => geny.Generator[String]){
+      def apply(arg: Source) = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
 
-      def apply(arg: Readable, charSet: Codec) = {
+      def apply(arg: Source, charSet: Codec) = {
         new geny.Generator[String]{
           def generate(handleItem: String => Generator.Action) = {
             val is = arg.getInputStream()
@@ -333,21 +333,14 @@ object read extends Function1[Readable, String]{
       }
     }
 
-    def apply(arg: Readable, charSet: Codec) = materialize(arg, iter(arg, charSet))
+    def apply(arg: Source, charSet: Codec) = materialize(arg, iter(arg, charSet))
   }
-  object bytes extends Function1[Readable, Array[Byte]]{
-    def apply(arg: Readable) = {
-      val is = arg.getInputStream
-      val out = new java.io.ByteArrayOutputStream()
-      val buffer = new Array[Byte](4096)
-      var r = 0
-      while (r != -1) {
-        r = is.read(buffer)
-        if (r != -1) out.write(buffer, 0, r)
-      }
-      is.close()
-      out.toByteArray
 
+  object bytes extends Function1[Source, Array[Byte]]{
+    def apply(arg: Source) = {
+      val out = new java.io.ByteArrayOutputStream()
+      Internals.transfer(arg.getInputStream(), out)
+      out.toByteArray
     }
   }
 }

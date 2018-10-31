@@ -279,7 +279,7 @@ object Path {
  * normalized and cannot contain any empty `""`, `"."` or `".."` segments
  */
 class Path private[os](val root: java.nio.file.Path, segments0: Array[String])
-extends FilePath with BasePathImpl with Readable{
+extends FilePath with BasePathImpl with Source{
   val segments: IndexedSeq[String] = segments0
   def getInputStream = java.nio.file.Files.newInputStream(toNIO)
   type ThisType = Path
@@ -333,7 +333,7 @@ object ResourcePath{
   * Classloaders are tricky: http://stackoverflow.com/questions/12292926
   */
 class ResourcePath private[os](val resRoot: ResourceRoot, segments0: Array[String])
-  extends BasePathImpl with Readable{
+  extends BasePathImpl with Source{
   val segments: IndexedSeq[String] = segments0
   type ThisType = ResourcePath
   override def toString = resRoot.errorName + "/" + segments0.mkString("/")

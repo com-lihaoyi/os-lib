@@ -33,12 +33,12 @@ object proc {
   def call(command: Seq[Shellable],
            cwd: Path = null,
            env: Map[String, String] = null,
-           stdin: Writable): (Array[Byte], Array[Byte], Int) = ???
+           stdin: Source): (Array[Byte], Array[Byte], Int) = ???
 
   def stream(command: Seq[Shellable],
              cwd: Path = null,
              env: Map[String, String] = null,
-             stdin: Writable,
+             stdin: Source,
              onOut: Array[Byte] => Unit,
              onErr: Array[Byte] => Unit): Int = ???
 }
@@ -58,7 +58,7 @@ abstract class Process(val wrapped: java.lang.Process){
   def destroy(): Unit = wrapped.destroy()
   def destroyForcibly(): Unit = wrapped.destroyForcibly()
 
-  def write(input: Writable): Unit
+  def write(input: Source): Unit
 }
 
 trait ProcessStream{
