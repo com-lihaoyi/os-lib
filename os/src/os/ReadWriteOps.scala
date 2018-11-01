@@ -1,6 +1,7 @@
 package os
 
 import java.io.{BufferedReader, InputStreamReader}
+import java.nio.ByteBuffer
 import java.nio.channels.{Channels, FileChannel}
 import java.nio.file.attribute.{FileAttribute, PosixFilePermission, PosixFilePermissions}
 import java.nio.file.{Files, StandardOpenOption}
@@ -26,7 +27,8 @@ object write{
   def write(target: Path,
             data: Source,
             flags: Seq[StandardOpenOption],
-            perms: PermSet) = {
+            perms: PermSet,
+            offset: Long) = {
 
     import collection.JavaConverters._
     val permArray =
@@ -38,6 +40,7 @@ object write{
       flags.toSet.asJava,
       permArray:_*
     )
+    out.position(offset)
     try {
       data.getChannel().collect{case fcn: FileChannel => fcn} match{
         case Some(fcn) => fcn.transferTo(0, Long.MaxValue, out)
@@ -48,7 +51,7 @@ object write{
   }
   def apply(target: Path, data: Source, permSet: PermSet = null) = {
     makeDirs(target/RelPath.up)
-    write(target, data, Seq(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE), permSet)
+    write(target, data, Seq(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE), permSet, 0)
   }
 
   /**
@@ -61,7 +64,8 @@ object write{
       write(
         target, data,
         Seq(StandardOpenOption.CREATE, StandardOpenOption.APPEND, StandardOpenOption.WRITE),
-        permSet
+        permSet,
+        0
       )
     }
   }
@@ -70,15 +74,20 @@ object write{
     * replaces the file instead of error-ing out
     */
   object over{
-    def apply(target: Path, data: Source, permSet: PermSet = null) = {
+    def apply(target: Path,
+              data: Source,
+              permSet: PermSet = null,
+              offset: Long = 0) = {
       makeDirs(target/RelPath.up)
-      write(target, data,
+      write(
+        target, data,
         Seq(
           StandardOpenOption.CREATE,
           StandardOpenOption.TRUNCATE_EXISTING,
           StandardOpenOption.WRITE
         ),
-        permSet
+        permSet,
+        offset
       )
     }
   }
@@ -95,6 +104,12 @@ object read extends Function1[Source, String]{
   def apply(arg: Source) = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
   def apply(arg: Source, charSet: Codec) = {
     new String(read.bytes(arg), charSet.charSet)
+  }
+  def apply(arg: SeekableSource,
+            offset: Long = 0,
+            count: Int = Int.MaxValue,
+            charSet: Codec = java.nio.charset.StandardCharsets.UTF_8) = {
+    new String(read.bytes(arg, offset, count), charSet.charSet)
   }
 
   object lines extends Internals.StreamableOp1[Source, String, IndexedSeq[String]]{
@@ -143,6 +158,15 @@ object read extends Function1[Source, String]{
       val out = new java.io.ByteArrayOutputStream()
       Internals.transfer(arg.getInputStream(), out)
       out.toByteArray
+    }
+    def apply(arg: SeekableSource, offset: Long, count: Int) = {
+      val arr = new Array[Byte](count)
+      val buf = ByteBuffer.wrap(arr)
+      val channel = arg.getChannel().get
+      channel.position(offset)
+      val finalCount = channel.read(buf)
+      if (finalCount == arr.length) arr
+      else arr.take(finalCount)
     }
   }
 }

@@ -1,7 +1,7 @@
 package os
 
 import java.io.{ByteArrayInputStream, InputStream, OutputStream, SequenceInputStream}
-import java.nio.channels.{Channels, FileChannel, ReadableByteChannel}
+import java.nio.channels.{Channels, FileChannel, ReadableByteChannel, SeekableByteChannel}
 
 
 /**
@@ -10,23 +10,26 @@ import java.nio.channels.{Channels, FileChannel, ReadableByteChannel}
   */
 trait Source{
   def getInputStream(): java.io.InputStream
-  def getChannel(): Option[ReadableByteChannel] = None
+  def getChannel(): Option[SeekableByteChannel]
 }
 
 object Source extends WritableLowPri{
-  implicit class ChannelSource(cn: ReadableByteChannel) extends Source{
+  implicit class ChannelSource(cn: SeekableByteChannel) extends Source{
     def getInputStream() = Channels.newInputStream(cn)
     override def getChannel() = Some(cn)
   }
   implicit class InputStreamSource(is: InputStream) extends Source{
     def getInputStream() = is
+    def getChannel() = None
   }
 
   implicit def StringSource(s: String) = new Source{
     def getInputStream() = new ByteArrayInputStream(s.getBytes())
+    def getChannel() = None
   }
   implicit def BytesSource(a: Array[Byte]): Source = new Source{
     def getInputStream() = new ByteArrayInputStream(a)
+    def getChannel() = None
   }
 }
 trait WritableLowPri {
@@ -34,6 +37,7 @@ trait WritableLowPri {
                                          (implicit f: T => Source,
                                           g: M[T] => TraversableOnce[T]) = {
     new Source {
+      def getChannel() = None
       def getInputStream() = {
         import collection.JavaConverters._
 
@@ -45,3 +49,12 @@ trait WritableLowPri {
     }
   }
 }
+
+/**
+  * A source which is guaranteeds to provide a [[SeekableByteChannel]]
+  */
+trait SeekableSource extends Source{
+  def getInputStream(): java.io.InputStream
+  override def getChannel(): Some[SeekableByteChannel]
+}
+

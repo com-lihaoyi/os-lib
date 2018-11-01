@@ -17,7 +17,7 @@ class ResourcePath private[os](val resRoot: ResourceRoot, segments0: Array[Strin
   val segments: IndexedSeq[String] = segments0
   type ThisType = ResourcePath
   override def toString = resRoot.errorName + "/" + segments0.mkString("/")
-
+  def getChannel() = None
   def getInputStream = {
     resRoot.getResourceAsStream(segments.mkString("/")) match{
       case null => throw ResourceNotFoundException(this)

@@ -250,7 +250,7 @@ object Path {
   * normalized and cannot contain any empty `""`, `"."` or `".."` segments
   */
 class Path private[os](val root: java.nio.file.Path, segments0: Array[String])
-  extends FilePath with BasePathImpl with Source{
+  extends FilePath with BasePathImpl with SeekableSource{
   val segments: IndexedSeq[String] = segments0
   def getInputStream = java.nio.file.Files.newInputStream(toNIO)
   override def getChannel() = Some(java.nio.file.Files.newByteChannel(toNIO))
