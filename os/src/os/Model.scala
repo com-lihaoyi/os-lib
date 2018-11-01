@@ -61,7 +61,7 @@ object PermSet{
     import PosixFilePermission._
     val perms = new java.util.HashSet[PosixFilePermission]()
     def add(i: Int, perm: PosixFilePermission) = {
-      if((arg & (0x100 >> i)) != 0) perms.add(perm)
+      if((arg & (256 >> i)) != 0) perms.add(perm)
     }
     add(0, OWNER_READ)
     add(1, OWNER_WRITE)
@@ -90,9 +90,8 @@ class PermSet(val value: Set[PosixFilePermission]) {
   def toInt(): Int = {
     var total = 0
     import PosixFilePermission._
-    val perms = new java.util.HashSet[PosixFilePermission]()
     def add(i: Int, perm: PosixFilePermission) = {
-      if (value.contains(perm)) total += (0x100 >> i)
+      if (value.contains(perm)) total += (256 >> i)
     }
     add(0, OWNER_READ)
     add(1, OWNER_WRITE)
@@ -192,12 +191,14 @@ object Shellable{
   implicit def StringShellable(s: String): Shellable = Shellable(Seq(s))
 
   implicit def SymbolShellable(s: Symbol): Shellable = Shellable(Seq(s.name))
-  implicit def BasePathShellable(s: BasePath): Shellable = Shellable(Seq(s.toString))
+  implicit def PathShellable(s: Path): Shellable = Shellable(Seq(s.toString))
+  implicit def RelPathShellable(s: RelPath): Shellable = Shellable(Seq(s.toString))
   implicit def NumericShellable[T: Numeric](s: T): Shellable = Shellable(Seq(s.toString))
 
-  implicit def OptShellable[T](s: Option[T])(implicit f: T => Shellable): Shellable =
+  implicit def IterableShellable[T](s: Iterable[T])(implicit f: T => Shellable): Shellable =
     Shellable(s.toSeq.flatMap(f(_).s))
-  implicit def SeqShellable[T](s: Seq[T])(implicit f: T => Shellable): Shellable =
+
+  implicit def ArrayShellable[T](s: Array[T])(implicit f: T => Shellable): Shellable =
     Shellable(s.flatMap(f(_).s))
 }
 
@@ -239,4 +240,43 @@ case class RedirectToPath(p: Path, append: Boolean = false) extends Redirect{
     else ProcessBuilder.Redirect.to(p.toIO)
 
   def toRedirectFrom = ProcessBuilder.Redirect.from(p.toIO)
+}
+
+
+/**
+  * The result from doing an system `stat` on a particular path.
+  *
+  * Created via `stat! filePath`.
+  *
+  * If you want more information, use `stat.full`
+  */
+case class StatInfo(name: String,
+                    size: Long,
+                    mtime: FileTime,
+                    owner: UserPrincipal,
+                    permissions: PermSet,
+                    fileType: FileType){
+  def isDir = fileType == FileType.Dir
+  def isSymLink = fileType == FileType.SymLink
+  def isFile = fileType == FileType.File
+}
+
+/**
+  * A richer, more informative version of the [[stat]] object.
+  *
+  * Created using `stat.full! filePath`
+  */
+case class FullStatInfo(name: String,
+                        size: Long,
+                        mtime: FileTime,
+                        ctime: FileTime,
+                        atime: FileTime,
+                        group: GroupPrincipal,
+                        owner: UserPrincipal,
+                        permissions: PermSet,
+                        fileType: FileType){
+  override def productPrefix = "stat.full"
+  def isDir = fileType == FileType.Dir
+  def isSymLink = fileType == FileType.SymLink
+  def isFile = fileType == FileType.File
 }

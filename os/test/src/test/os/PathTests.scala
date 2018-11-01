@@ -341,7 +341,7 @@ object PathTests extends TestSuite{
         'nestedSymlinks{
           if(Unix()) {
             names.foreach(p => os.remove.all(twd/p))
-            os.makeDirs(twd/'test123)
+            os.makeDir.all(twd/'test123)
             os.symlink(twd/'test123, twd/'test124)
             os.symlink(twd/'test124, twd/'test125)
             os.symlink(twd/'test125, twd/'test126)
@@ -354,7 +354,7 @@ object PathTests extends TestSuite{
         'danglingSymlink{
           if(Unix()) {
             names.foreach(p => os.remove.all(twd/p))
-            os.makeDirs(twd/'test123)
+            os.makeDir.all(twd/'test123)
             os.symlink(twd/'test123, twd/'test124)
             os.symlink(twd/'test124, twd/'test125)
             os.symlink(twd/'test125, twd/'test126)

@@ -7,23 +7,37 @@ import os.{RegexContextMaker, /}
 object ExampleTests extends TestSuite{
 
   val tests = Tests {
-    'reference{
+    'splash{
+      // Make sure working directory exists and is empty
+      val wd = os.pwd/"out"/"splash"
+      os.remove.all(wd)
+      os.makeDir.all(wd)
 
+      os.write(wd/"file.txt", "hello")
+      os.read(wd/"file.txt") ==> "hello"
+
+      os.copy(wd/"file.txt", wd/"copied.txt")
+      os.list(wd) ==> Seq(wd/"copied.txt", wd/"file.txt")
+
+      val invoked = os.proc("cat", wd/"file.txt", wd/"copied.txt").call(cwd = wd)
+      invoked.out.trim ==> "hellohello"
+    }
+    'reference{
       // Let's pick our working directory
-      val wd: os.Path = os.pwd/'out/'example3
+      val wd = os.pwd/'out/'example3
 
       // And make sure it's empty
       os.remove.all(wd)
-      os.makeDirs(wd)
+      os.makeDir.all(wd)
 
-      // Reading and writing to files is done through the read! and write!
-      // You can write `Strings`, `Traversable[String]`s or `Array[Byte]`s
+      // Reading and writing to files is done through the `os.read` and
+      // `os.write` You can write `Strings`, `Traversable[String]`s or `Array[Byte]`s
       os.write(wd/"file1.txt", "I am cow")
       os.write(wd/"file2.txt", Seq("I am cow\n", "hear me moo"))
       os.write(wd/'file3, "I weigh twice as much as you".getBytes)
 
-      // When reading, you can either `read!` a `String`, `read.lines!` to
-      // get a `Vector[String]` or `read.bytes` to get an `Array[Byte]`
+      // When reading, you can either `os.read` a `String`, `os.read.lines` to
+      // get a `Vector[String]` or `os.read.bytes` to get an `Array[Byte]`
       os.read(wd/"file1.txt")        ==> "I am cow"
       os.read(wd/"file2.txt")        ==> "I am cow\nhear me moo"
       os.read.lines(wd/"file2.txt")  ==> Vector("I am cow", "hear me moo")
@@ -50,7 +64,7 @@ object ExampleTests extends TestSuite{
       )
       os.read(inputStream)           ==> "hello"
 
-      // By default, `write` fails if there is already a file in place. Use
+      // By default, `os.write` fails if there is already a file in place. Use
       // `write.append` or `write.over` if you want to append-to/overwrite
       // any existing files
       os.write.append(wd/"file1.txt", "\nI eat grass")
@@ -59,41 +73,43 @@ object ExampleTests extends TestSuite{
       os.read(wd/"file1.txt")        ==> "I am cow\nI eat grass"
       os.read(wd/"file2.txt")        ==> "I am cow\nHere I stand"
 
-      // You can create folders through `mkdir!`. This behaves the same as
+      // You can create folders through `os.makeDir.all`. This behaves the same as
       // `mkdir -p` in Bash, and creates and parents necessary
       val deep = wd/'this/'is/'very/'deep
-      os.makeDirs(deep)
+      os.makeDir.all(deep)
       // Writing to a file also creates necessary parents
       os.write(deep/'deeeep/"file.txt", "I am cow")
 
-      // `ls` provides a listing of every direct child of the given folder.
+      // `os.list` provides a listing of every direct child of the given folder.
       // Both files and folders are included
       os.list(wd)    ==> Seq(wd/"file1.txt", wd/"file2.txt", wd/'file3, wd/'this)
 
-      // `ls.rec` does the same thing recursively
+      // `os.walk` does the same thing recursively
       os.walk(deep) ==> Seq(deep/'deeeep, deep/'deeeep/"file.txt")
 
-      // You can move files or folders with `mv` and remove them with `rm!`
+      // You can move files or folders with `os.move` and remove them with `os.remove`
       os.list(deep)  ==> Seq(deep/'deeeep)
       os.move(deep/'deeeep, deep/'renamed_deeeep)
       os.list(deep)  ==> Seq(deep/'renamed_deeeep)
 
-      // `mv.into` lets you move a file into a
+      // `os.move.into` lets you move a file into a
       // particular folder, rather than to particular path
       os.move.into(deep/'renamed_deeeep/"file.txt", deep)
       os.list(deep/'renamed_deeeep) ==> Seq()
       os.list(deep)  ==> Seq(deep/"file.txt", deep/'renamed_deeeep)
 
-      // `mv.over` lets you move a file to a particular path, but
+      // `os.move.over` lets you move a file to a particular path, but
       // if something was there before it stomps over it
       os.move.over(deep/"file.txt", deep/'renamed_deeeep)
       os.list(deep)  ==> Seq(deep/'renamed_deeeep)
       os.read(deep/'renamed_deeeep) ==> "I am cow" // contents from file.txt
 
-      // `rm!` behaves the same as `rm -rf` in Bash, and deletes anything:
-      // file, folder, even a folder filled with contents
+      // `os.remove` can delete individual files or folders
+      os.remove(deep/'renamed_deeeep)
+
+      // while `os.remove.all` behaves the same as `rm -rf` in Bash, and deletes
+      // anything: file, folder, even a folder filled with contents.
       os.remove.all(deep/'renamed_deeeep)
-      os.remove.all(deep/"file.txt")
       os.list(deep)  ==> Seq()
 
       // You can stat paths to find out information about any file or
@@ -104,15 +120,46 @@ object ExampleTests extends TestSuite{
       info.size   ==> 20
       info.name   ==> "file1.txt"
 
-      // Ammonite provides an implicit conversion from `Path` to
-      // `stat`, so you can use these attributes directly
-      os.size(wd/"file1.txt") ==> 20
+      // Apart from `os.stat`, there are also methods to provide the individual
+      // bits of information you want
+      os.isDir(wd/"file1.txt")  ==> false
+      os.isFile(wd/"file1.txt") ==> true
+      os.size(wd/"file1.txt")   ==> 20
 
-      // You can also use `stat.full` which provides more information
+      // You can also use `os.stat.full` which provides more information
       val fullInfo = os.stat.full(wd/"file1.txt")
       fullInfo.ctime: FileTime
       fullInfo.atime: FileTime
       fullInfo.group: GroupPrincipal
+
+      // `os.getPerms`/`os.setPerms` can be used to modify the filesystem
+      // permissions of a file or folder, by passing in a permissions string:
+      os.setPerms(wd/"file1.txt", "rwxrwxrwx")
+      os.getPerms(wd/"file1.txt").toString() ==> "rwxrwxrwx"
+
+      // or a permissions integer
+      os.setPerms(wd/"file1.txt", Integer.parseInt("777", 8))
+      os.getPerms(wd/"file1.txt").toInt() ==> Integer.parseInt("777", 8)
+
+      // `os.getOwner`/`os.setOwner`/`os.getGroup`/`os.setGroup` let you
+      // inspect and modify ownership of files and folders
+      val owner = os.getOwner(wd/"file1.txt")
+      os.setOwner(wd/"file1.txt", owner)
+      val group = os.getGroup(wd/"file1.txt")
+      os.setGroup(wd/"file1.txt", group)
+
+      // `os.proc.call()` cal be used to spawn subprocesses, by passing in
+      // a sequence of strings making up the subprocess command:
+      val res = os.proc('echo, "abc").call()
+      val listed = res.out.string
+      assert(listed == "abc\n")
+
+      // You can also pass in specific files you wish to invoke in the
+      // subprocess, and customize it's environment, working directory, etc.
+      val res2 = os.proc(os.root/'bin/'bash, "-c", "echo 'Hello'$ENV_ARG")
+        .call(env = Map("ENV_ARG" -> "123"))
+
+      assert(res2.out.string.trim == "Hello123")
       ()
     }
     'longExample{
@@ -125,7 +172,7 @@ object ExampleTests extends TestSuite{
       os.remove.all(wd)
 
       // Make a folder named "folder"
-      os.makeDirs(wd/'folder)
+      os.makeDir.all(wd/'folder)
 
       // Copy a file or folder to a particular path
       os.copy(wd/'folder, wd/'folder1)

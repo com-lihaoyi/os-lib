@@ -95,7 +95,7 @@ object OpTests extends TestSuite{
     'Mutating{
       val test = os.pwd/'out/'scratch/'test
       os.remove.all(test)
-      os.makeDirs(test)
+      os.makeDir.all(test)
       'cp{
         val d = test/'copying
         'basic{
@@ -103,7 +103,7 @@ object OpTests extends TestSuite{
             !os.exists(d/'folder),
             !os.exists(d/'file)
           )
-          os.makeDirs(d/'folder)
+          os.makeDir.all(d/'folder)
           os.write(d/'file, "omg")
           assert(
             os.exists(d/'folder),
@@ -131,7 +131,7 @@ object OpTests extends TestSuite{
       'mv{
         'basic{
           val d = test/'moving
-          os.makeDirs(d/'folder)
+          os.makeDir.all(d/'folder)
           assert(os.list(d) == Seq(d/'folder))
           os.move(d/'folder, d/'folder2)
           assert(os.list(d) == Seq(d/'folder2))
@@ -206,14 +206,14 @@ object OpTests extends TestSuite{
       'mkdirRm{
         'singleFolder{
           val single = test/'single
-          os.makeDirs(single/'inner)
+          os.makeDir.all(single/'inner)
           assert(os.list(single) == Seq(single/'inner))
           os.remove(single/'inner)
           assert(os.list(single) == Seq())
         }
         'nestedFolders{
           val nested = test/'nested
-          os.makeDirs(nested/'inner/'innerer/'innerest)
+          os.makeDir.all(nested/'inner/'innerer/'innerest)
           assert(
             os.list(nested) == Seq(nested/'inner),
             os.list(nested/'inner) == Seq(nested/'inner/'innerer),
@@ -226,7 +226,7 @@ object OpTests extends TestSuite{
 
       'readWrite{
         val d = test/'readWrite
-        os.makeDirs(d)
+        os.makeDir.all(d)
         'simple{
           os.write(d/'file, "i am a cow")
           assert(os.read(d/'file) == "i am a cow")
@@ -261,7 +261,7 @@ object OpTests extends TestSuite{
 
       'Failures{
         val d = test/'failures
-        os.makeDirs(d)
+        os.makeDir.all(d)
         'nonexistant{
           * - intercept[nio.NoSuchFileException](os.list(d/'nonexistent))
           * - intercept[nio.NoSuchFileException](os.read(d/'nonexistent))
@@ -270,7 +270,7 @@ object OpTests extends TestSuite{
           * - intercept[nio.NoSuchFileException](os.move(d/'nonexistent, d/'yolo))
         }
         'collisions{
-          os.makeDirs(d/'folder)
+          os.makeDir.all(d/'folder)
           os.write(d/'file, "lolol")
           * - intercept[nio.FileAlreadyExistsException](os.move(d/'file, d/'folder))
           * - intercept[nio.FileAlreadyExistsException](os.copy(d/'file, d/'folder))

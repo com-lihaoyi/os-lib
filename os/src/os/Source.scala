@@ -26,7 +26,7 @@ object Source extends WritableLowPri{
   }
 
   implicit def StringSource(s: String) = new Source{
-    def getHandle() = Left(new ByteArrayInputStream(s.getBytes()))
+    def getHandle() = Left(new ByteArrayInputStream(s.getBytes("UTF-8")))
   }
   implicit def BytesSource(a: Array[Byte]): Source = new Source{
     def getHandle() = Left(new ByteArrayInputStream(a))
@@ -55,3 +55,8 @@ trait SeekableSource extends Source{
   def getChannel() = getHandle.right.get
 }
 
+object SeekableSource{
+  implicit class ChannelSource(cn: SeekableByteChannel) extends Source{
+    def getHandle() = Right(cn)
+  }
+}

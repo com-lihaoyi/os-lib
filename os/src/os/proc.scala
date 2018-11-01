@@ -1,8 +1,6 @@
 package os
 
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, InputStream}
-import java.nio.charset.{Charset, StandardCharsets}
-import java.util.concurrent.{ArrayBlockingQueue, BlockingQueue, TimeUnit}
+import java.util.concurrent.{ArrayBlockingQueue, TimeUnit}
 
 import scala.annotation.tailrec
 

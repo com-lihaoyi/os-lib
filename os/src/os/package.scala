@@ -1,6 +1,8 @@
 import scala.collection.Seq
 
 package object os{
+  type Generator[+T] = geny.Generator[T]
+  val Generator = geny.Generator
   implicit def RegexContextMaker(s: StringContext): RegexContext = new RegexContext(s)
 
   object RegexContext{

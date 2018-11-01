@@ -11,32 +11,36 @@ import java.nio.file.attribute.{FileAttribute, PosixFilePermission, PosixFilePer
 
 import scala.util.Try
 
-/**
- * Makes directories up to the specified path. Equivalent
- * to `mkdir -p` in bash
- */
-object makeDirs extends Function1[Path, Unit]{
-  def apply(path: Path) = Files.createDirectories(path.toNIO)
-  def apply(path: Path, permSet: PermSet) = {
-    import collection.JavaConverters._
-    Files.createDirectories(
-      path.toNIO,
-      PosixFilePermissions.asFileAttribute(permSet.value.asJava)
-    )
-  }
-}
+
 /**
  * Makes directories up to the specified path. Equivalent
  * to `mkdir -p` in bash
  */
 object makeDir extends Function1[Path, Unit]{
-  def apply(path: Path) = Files.createDirectory(path.toNIO)
-  def apply(path: Path, permSet: PermSet) = {
+  def apply(path: Path): Unit = Files.createDirectory(path.toNIO)
+  def apply(path: Path, perms: PermSet): Unit = {
     import collection.JavaConverters._
     Files.createDirectory(
       path.toNIO,
-      PosixFilePermissions.asFileAttribute(permSet.value.asJava)
+      PosixFilePermissions.asFileAttribute(perms.value.asJava)
     )
+  }
+  /**
+    * Makes directories up to the specified path. Equivalent
+    * to `mkdir -p` in bash
+    */
+  object all extends Function1[Path, Unit]{
+    def apply(path: Path): Unit = Files.createDirectories(path.toNIO)
+    def apply(path: Path, perms: PermSet): Unit = {
+      if (perms == null) apply(path)
+      else {
+        import collection.JavaConverters._
+        Files.createDirectories(
+          path.toNIO,
+          PosixFilePermissions.asFileAttribute(perms.value.asJava)
+        )
+      }
+    }
   }
 }
 
@@ -71,7 +75,7 @@ trait CopyMove extends Function2[Path, Path, Unit]{
  * Creates any necessary directories
  */
 object move extends Function2[Path, Path, Unit] with Internals.Mover with CopyMove{
-  def apply(from: Path, to: Path) = {
+  def apply(from: Path, to: Path): Unit = {
     require(
       !to.startsWith(from),
       s"Can't move a directory into itself: $to is inside $from"
@@ -114,7 +118,7 @@ object copy extends Function2[Path, Path, Unit] with CopyMove{
  * does nothing if there aren't any
  */
 object remove extends Function1[Path, Unit]{
-  def apply(target: Path) = Files.delete(target.toNIO)
+  def apply(target: Path): Unit = Files.delete(target.toNIO)
 
   object all extends Function1[Path, Unit]{
     def apply(target: Path) = {
@@ -131,12 +135,21 @@ object remove extends Function1[Path, Unit]{
   }
 }
 
-
+/**
+  * Checks if a file or folder exists at the given path.
+  */
+object exists extends Function1[Path, Boolean]{
+  def apply(p: Path): Boolean = Files.exists(p.toNIO)
+  def apply(p: Path, followLinks: Boolean = true): Boolean = {
+    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+    Files.exists(p.toNIO, opts:_*)
+  }
+}
 
 /**
   * Creates a hardlink between two paths
   */
-object hardlink extends Function2[Path, Path, Unit]{
+object hardlink {
   def apply(src: Path, dest: Path) = {
     Files.createLink(dest.toNIO, src.toNIO)
   }
@@ -145,9 +158,14 @@ object hardlink extends Function2[Path, Path, Unit]{
 /**
   * Creates a symbolic link between two paths
   */
-object symlink extends Function2[Path, Path, Unit]{
-  def apply(src: Path, dest: Path) = {
-    Files.createSymbolicLink(dest.toNIO, src.toNIO)
+object symlink {
+  def apply(src: Path, dest: Path, perms: PermSet = null): Unit = {
+    import collection.JavaConverters._
+    val permArray =
+      if (perms == null) Array[FileAttribute[_]]()
+      else Array(PosixFilePermissions.asFileAttribute(perms.value.asJava))
+
+    Files.createSymbolicLink(dest.toNIO, src.toNIO, permArray:_*)
   }
 }
 
@@ -159,7 +177,7 @@ object followLink extends Function1[Path, Option[Path]]{
   /**
     * @return Some(path) or else None if the symlink is invalid or other error.
     */
-  def apply(src: Path) = Try(Path(src.toNIO.toRealPath())).toOption
+  def apply(src: Path): Option[Path] = Try(Path(src.toNIO.toRealPath())).toOption
 }
 
 

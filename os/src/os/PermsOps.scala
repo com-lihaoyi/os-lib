@@ -19,7 +19,7 @@ object getPerms extends Function1[Path, PermSet]{
   * Set the filesystem permissions of the file/folder at the given path
   */
 object setPerms {
-  def apply(p: Path, arg2: PermSet) = {
+  def apply(p: Path, arg2: PermSet): Unit = {
     import collection.JavaConverters._
     Files.setPosixFilePermissions(p.toNIO, arg2.value.asJava)
   }

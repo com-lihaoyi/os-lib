@@ -28,7 +28,7 @@ object Internals{
     def *(t: PartialFunction[Path, Path])(from: Path) = {
       if (check || t.isDefinedAt(from)) {
         val dest = t(from)
-        makeDirs(dest/RelPath.up)
+        makeDir.all(dest/RelPath.up)
         Files.move(from.toNIO, t(from).toNIO)
       }
     }

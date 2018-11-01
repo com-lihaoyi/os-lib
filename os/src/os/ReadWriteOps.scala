@@ -49,9 +49,12 @@ object write{
     }
     finally if (out != null) out.close()
   }
-  def apply(target: Path, data: Source, permSet: PermSet = null) = {
-    makeDirs(target/RelPath.up)
-    write(target, data, Seq(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE), permSet, 0)
+  def apply(target: Path,
+            data: Source,
+            perms: PermSet = null,
+            createFolders: Boolean = true): Unit = {
+    if (createFolders) makeDir.all(target/RelPath.up, perms)
+    write(target, data, Seq(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE), perms, 0)
   }
 
   /**
@@ -59,12 +62,15 @@ object write{
     * appends to the file instead of error-ing out
     */
   object append{
-    def apply(target: Path, data: Source, permSet: PermSet = null) = {
-      makeDirs(target/RelPath.up)
+    def apply(target: Path,
+              data: Source,
+              perms: PermSet = null,
+              createFolders: Boolean = true): Unit = {
+      if (createFolders) makeDir.all(target/RelPath.up, perms)
       write(
         target, data,
         Seq(StandardOpenOption.CREATE, StandardOpenOption.APPEND, StandardOpenOption.WRITE),
-        permSet,
+        perms,
         0
       )
     }
@@ -76,17 +82,18 @@ object write{
   object over{
     def apply(target: Path,
               data: Source,
-              permSet: PermSet = null,
-              offset: Long = 0) = {
-      makeDirs(target/RelPath.up)
+              perms: PermSet = null,
+              offset: Long = 0,
+              createFolders: Boolean = true,
+              truncate: Boolean = true): Unit = {
+      if (createFolders) makeDir.all(target/RelPath.up, perms)
       write(
         target, data,
         Seq(
           StandardOpenOption.CREATE,
-          StandardOpenOption.TRUNCATE_EXISTING,
           StandardOpenOption.WRITE
-        ),
-        permSet,
+        ) ++ (if (truncate) Seq(StandardOpenOption.TRUNCATE_EXISTING) else Nil),
+        perms,
         offset
       )
     }
@@ -101,14 +108,14 @@ object write{
 object read extends Function1[Source, String]{
   def getInputStream(p: Source) = p.getInputStream()
 
-  def apply(arg: Source) = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
-  def apply(arg: Source, charSet: Codec) = {
+  def apply(arg: Source): String = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
+  def apply(arg: Source, charSet: Codec): String = {
     new String(read.bytes(arg), charSet.charSet)
   }
   def apply(arg: SeekableSource,
+            charSet: Codec = java.nio.charset.StandardCharsets.UTF_8,
             offset: Long = 0,
-            count: Int = Int.MaxValue,
-            charSet: Codec = java.nio.charset.StandardCharsets.UTF_8) = {
+            count: Int = Int.MaxValue): String = {
     new String(read.bytes(arg, offset, count), charSet.charSet)
   }
 
@@ -150,16 +157,17 @@ object read extends Function1[Source, String]{
       }
     }
 
-    def apply(arg: Source, charSet: Codec) = materialize(arg, iter(arg, charSet))
+    def apply(arg: Source, charSet: Codec): IndexedSeq[String] =
+      materialize(arg, iter(arg, charSet))
   }
 
   object bytes extends Function1[Source, Array[Byte]]{
-    def apply(arg: Source) = {
+    def apply(arg: Source): Array[Byte] = {
       val out = new java.io.ByteArrayOutputStream()
       Internals.transfer(arg.getInputStream(), out)
       out.toByteArray
     }
-    def apply(arg: SeekableSource, offset: Long, count: Int) = {
+    def apply(arg: SeekableSource, offset: Long, count: Int): Array[Byte] = {
       val arr = new Array[Byte](count)
       val buf = ByteBuffer.wrap(arr)
       val channel = arg.getChannel()

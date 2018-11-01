@@ -10,15 +10,15 @@ import scala.util.Try
   * Checks whether the given path is a symbolic link
   */
 object isLink extends Function1[Path, Boolean]{
-  def apply(p: Path) = Files.isSymbolicLink(p.toNIO)
+  def apply(p: Path): Boolean = Files.isSymbolicLink(p.toNIO)
 }
 
 /**
   * Checks whether the given path is a regular file
   */
 object isFile extends Function1[Path, Boolean]{
-  def apply(p: Path) = Files.isRegularFile(p.toNIO)
-  def apply(p: Path, followLinks: Boolean = true) = {
+  def apply(p: Path): Boolean = Files.isRegularFile(p.toNIO)
+  def apply(p: Path, followLinks: Boolean = true): Boolean = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
     Files.isRegularFile(p.toNIO, opts:_*)
   }
@@ -29,8 +29,8 @@ object isFile extends Function1[Path, Boolean]{
   * Checks whether the given path is a directory
   */
 object isDir extends Function1[Path, Boolean]{
-  def apply(p: Path) = Files.isDirectory(p.toNIO)
-  def apply(p: Path, followLinks: Boolean = true) = {
+  def apply(p: Path): Boolean = Files.isDirectory(p.toNIO)
+  def apply(p: Path, followLinks: Boolean = true): Boolean = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
     Files.isDirectory(p.toNIO, opts:_*)
   }
@@ -40,24 +40,24 @@ object isDir extends Function1[Path, Boolean]{
   * Gets the size of the given file
   */
 object size extends Function1[Path, Long]{
-  def apply(p: Path) = Files.size(p.toNIO)
+  def apply(p: Path): Long = Files.size(p.toNIO)
 }
 
 /**
   * Gets the mtime of the given file
   */
 object mtime extends Function1[Path, Long]{
-  def apply(p: Path) = Files.getLastModifiedTime(p.toNIO).toMillis
-  def apply(p: Path, followLinks: Boolean = true) = {
+  def apply(p: Path): Long = Files.getLastModifiedTime(p.toNIO).toMillis
+  def apply(p: Path, followLinks: Boolean = true): Long = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
     Files.getLastModifiedTime(p.toNIO, opts:_*).toMillis
   }
 }
 
 
-object stat extends Function1[os.Path, os.stat]{
-  def apply(p: os.Path) = apply(p, followLinks = true)
-  def apply(p: os.Path, followLinks: Boolean = true) = {
+object stat extends Function1[os.Path, os.StatInfo]{
+  def apply(p: os.Path): os.StatInfo = apply(p, followLinks = true)
+  def apply(p: os.Path, followLinks: Boolean = true): os.StatInfo = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
     os.stat.make(
       // Don't blow up if we stat `root`
@@ -76,7 +76,7 @@ object stat extends Function1[os.Path, os.stat]{
   }
   def make(name: String, attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
     import collection.JavaConverters._
-    new stat(
+    new StatInfo(
       name,
       attrs.size(),
       attrs.lastModifiedTime(),
@@ -89,9 +89,9 @@ object stat extends Function1[os.Path, os.stat]{
       else ???
     )
   }
-  object full extends Function1[os.Path, os.stat.full] {
-    def apply(p: os.Path) = apply(p, followLinks = true)
-    def apply(p: os.Path, followLinks: Boolean = true) = {
+  object full extends Function1[os.Path, os.FullStatInfo] {
+    def apply(p: os.Path): os.FullStatInfo = apply(p, followLinks = true)
+    def apply(p: os.Path, followLinks: Boolean = true): os.FullStatInfo = {
       val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
       os.stat.full.make(
         p.segments.lastOption.getOrElse("/"),
@@ -109,7 +109,7 @@ object stat extends Function1[os.Path, os.stat]{
     }
     def make(name: String, attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
       import collection.JavaConverters._
-      new full(
+      new os.FullStatInfo(
         name,
         attrs.size(),
         attrs.lastModifiedTime(),
@@ -127,41 +127,5 @@ object stat extends Function1[os.Path, os.stat]{
     }
   }
 
-  /**
-    * A richer, more informative version of the [[stat]] object.
-    *
-    * Created using `stat.full! filePath`
-    */
-  case class full(name: String,
-                  size: Long,
-                  mtime: FileTime,
-                  ctime: FileTime,
-                  atime: FileTime,
-                  group: GroupPrincipal,
-                  owner: UserPrincipal,
-                  permissions: PermSet,
-                  fileType: FileType){
-    override def productPrefix = "stat.full"
-    def isDir = fileType == FileType.Dir
-    def isSymLink = fileType == FileType.SymLink
-    def isFile = fileType == FileType.File
-  }
-}
 
-/**
-  * The result from doing an system `stat` on a particular path.
-  *
-  * Created via `stat! filePath`.
-  *
-  * If you want more information, use `stat.full`
-  */
-case class stat(name: String,
-                size: Long,
-                mtime: FileTime,
-                owner: UserPrincipal,
-                permissions: PermSet,
-                fileType: FileType){
-  def isDir = fileType == FileType.Dir
-  def isSymLink = fileType == FileType.SymLink
-  def isFile = fileType == FileType.File
 }

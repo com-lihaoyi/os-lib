@@ -211,11 +211,11 @@ object RelPath {
     new RelPath(segments0.toArray, ups)
   }
 
-  implicit def SeqPath[T](s: Seq[T])(implicit conv: T => RelPath): RelPath = {
+  implicit def IterablePath[T](s: Iterable[T])(implicit conv: T => RelPath): RelPath = {
     s.foldLeft(rel){_ / _}
   }
 
-  implicit def ArrayPath[T](s: Array[T])(implicit conv: T => RelPath): RelPath = SeqPath(s)
+  implicit def ArrayPath[T](s: Array[T])(implicit conv: T => RelPath): RelPath = IterablePath(s)
 
   implicit val relPathOrdering: Ordering[RelPath] =
     Ordering.by((rp: RelPath) => (rp.ups, rp.segments.length, rp.segments.toIterable))

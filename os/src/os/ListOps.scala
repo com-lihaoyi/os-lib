@@ -200,14 +200,3 @@ object walk {
     }
   }
 }
-
-/**
-  * Checks if a file or folder exists at the given path.
-  */
-object exists extends Function1[Path, Boolean]{
-  def apply(p: Path) = Files.exists(p.toNIO)
-  def apply(p: Path, followLinks: Boolean = true) = {
-    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
-    Files.exists(p.toNIO, opts:_*)
-  }
-}
