@@ -3,7 +3,9 @@ package os
 import java.nio.file.{Files, LinkOption}
 import java.nio.file.attribute.{GroupPrincipal, PosixFileAttributeView, UserPrincipal}
 
-
+/**
+  * Get the filesystem permissions of the file/folder at the given path
+  */
 object getPerms {
   def apply(p: Path): PermSet = apply(p, followLinks = true)
   def apply(p: Path, followLinks: Boolean = true): PermSet = {
@@ -13,6 +15,9 @@ object getPerms {
   }
 }
 
+/**
+  * Set the filesystem permissions of the file/folder at the given path
+  */
 object setPerms {
   def apply(p: Path, arg2: PermSet) = {
     import collection.JavaConverters._
@@ -20,6 +25,9 @@ object setPerms {
   }
 }
 
+/**
+  * Get the owner of the file/folder at the given path
+  */
 object getOwner {
   def apply(p: Path): UserPrincipal = apply(p, followLinks = true)
   def apply(p: Path, followLinks: Boolean = true): UserPrincipal = {
@@ -28,6 +36,9 @@ object getOwner {
   }
 }
 
+/**
+  * Set the owner of the file/folder at the given path
+  */
 object setOwner {
   def apply(arg1: Path, arg2: UserPrincipal): Unit = Files.setOwner(arg1.toNIO, arg2)
   def apply(arg1: Path, arg2: String): Unit = {
@@ -38,6 +49,9 @@ object setOwner {
   }
 }
 
+/**
+  * Get the owning group of the file/folder at the given path
+  */
 object getGroup {
   def apply(p: Path): GroupPrincipal = apply(p, followLinks = true)
   def apply(p: Path, followLinks: Boolean = true): GroupPrincipal = {
@@ -50,6 +64,9 @@ object getGroup {
   }
 }
 
+/**
+  * Set the owning group of the file/folder at the given path
+  */
 object setGroup {
   def apply(arg1: Path, arg2: GroupPrincipal): Unit = {
     Files.getFileAttributeView(

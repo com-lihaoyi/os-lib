@@ -42,7 +42,7 @@ object SubprocessTests extends TestSuite{
         assert(result.out.string.contains("Hello, " + stuff.mkString(" ") + " hear me roar"))
       }
       'failures{
-        val ex = intercept[ShelloutException]{ proc('ls, "does-not-exist").call(check = true) }
+        val ex = intercept[os.SubprocessException]{ proc('ls, "does-not-exist").call(check = true) }
         val res: CommandResult = ex.result
         assert(
           res.exitCode != 0,

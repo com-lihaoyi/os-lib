@@ -27,16 +27,14 @@ case class proc(command: Shellable*) {
   def call(cwd: Path = null,
            env: Map[String, String] = null,
            stdin: Source = Array[Byte](),
-           stdout: ProcessBuilder.Redirect = ProcessBuilder.Redirect.PIPE,
-           stderr: ProcessBuilder.Redirect = ProcessBuilder.Redirect.PIPE,
+           stdout: Redirect = Pipe,
+           stderr: Redirect = Pipe,
            mergeErrIntoOut: Boolean = false,
            timeout: Long = Long.MaxValue,
            check: Boolean = false,
            propagateEnv: Boolean = true)
             : CommandResult = {
-    val out = new ByteArrayOutputStream()
 
-    val err = new ByteArrayOutputStream()
     val chunks = collection.mutable.Buffer.empty[Either[Bytes, Bytes]]
     val exitCode = stream(
       cwd, env, stdin,
@@ -50,8 +48,7 @@ case class proc(command: Shellable*) {
     )
     val res = CommandResult(exitCode, chunks)
     if (exitCode == 0 || !check) res
-    else throw ShelloutException(res)
-
+    else throw SubprocessException(res)
   }
 
   def stream(cwd: Path = null,
@@ -59,13 +56,13 @@ case class proc(command: Shellable*) {
              stdin: Source = Array[Byte](),
              onOut: (Array[Byte], Int) => Unit,
              onErr: (Array[Byte], Int) => Unit,
-             stdout: ProcessBuilder.Redirect = ProcessBuilder.Redirect.PIPE,
-             stderr: ProcessBuilder.Redirect = ProcessBuilder.Redirect.PIPE,
+             stdout: Redirect = Pipe,
+             stderr: Redirect = Pipe,
              mergeErrIntoOut: Boolean = false,
              timeout: Long = Long.MaxValue,
              propagateEnv: Boolean = true): Int = {
     val process = spawn(
-      cwd, env, ProcessBuilder.Redirect.PIPE, stdout, stderr, mergeErrIntoOut, propagateEnv
+      cwd, env, Pipe, stdout, stderr, mergeErrIntoOut, propagateEnv
     )
 
     // While reading from the subprocess takes place on separate threads, we end
@@ -134,9 +131,9 @@ case class proc(command: Shellable*) {
 
   def spawn(cwd: Path = null,
             env: Map[String, String] = null,
-            stdin: ProcessBuilder.Redirect = ProcessBuilder.Redirect.PIPE,
-            stdout: ProcessBuilder.Redirect = ProcessBuilder.Redirect.PIPE,
-            stderr: ProcessBuilder.Redirect = ProcessBuilder.Redirect.PIPE,
+            stdin: Redirect = Pipe,
+            stdout: Redirect = Pipe,
+            stderr: Redirect = Pipe,
             mergeErrIntoOut: Boolean = false,
             propagateEnv: Boolean = true): java.lang.Process = {
     val builder = new java.lang.ProcessBuilder()
@@ -152,9 +149,9 @@ case class proc(command: Shellable*) {
 
     builder
       .command(command.flatMap(_.s):_*)
-      .redirectInput(stdin)
-      .redirectOutput(stdout)
-      .redirectError(stderr)
+      .redirectInput(stdin.toRedirectFrom)
+      .redirectOutput(stdout.toRedirectTo)
+      .redirectError(stderr.toRedirectTo)
       .redirectErrorStream(mergeErrIntoOut)
       .start()
   }

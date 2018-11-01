@@ -6,14 +6,7 @@
  */
 package os
 
-import java.io._
-import java.nio.file
 import java.nio.file._
-import java.nio.file.attribute._
-
-import geny.Generator
-
-import scala.io.Codec
 import scala.util.Try
 
 /**
