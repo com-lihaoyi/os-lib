@@ -119,10 +119,12 @@ object read extends Function1[Source, String]{
     new String(read.bytes(arg, offset, count), charSet.charSet)
   }
 
-  object lines extends Internals.StreamableOp1[Source, String, IndexedSeq[String]]{
-    def materialize(src: Source, i: geny.Generator[String]) = i.toArray[String]
+  object lines extends Function1[Source, IndexedSeq[String]]{
+    def apply(src: Source) = iter(src).toArray[String]
+    def apply(arg: Source, charSet: Codec): IndexedSeq[String] =
+      iter(arg, charSet).toArray[String]
 
-    object iter extends (Source => geny.Generator[String]){
+    object iter extends Function1[Source, geny.Generator[String]]{
       def apply(arg: Source) = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
 
       def apply(arg: Source, charSet: Codec) = {
@@ -156,9 +158,6 @@ object read extends Function1[Source, String]{
         }
       }
     }
-
-    def apply(arg: Source, charSet: Codec): IndexedSeq[String] =
-      materialize(arg, iter(arg, charSet))
   }
 
   object bytes extends Function1[Source, Array[Byte]]{

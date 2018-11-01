@@ -11,10 +11,10 @@ import geny.Generator
   * List the files and folders in a directory. Can be called with [[list.iter]]
   * to return an iterator. To list files recursively, use [[walk]]
   */
-object list extends Internals.StreamableOp1[Path, Path, IndexedSeq[Path]] {
-  def materialize(src: Path, i: geny.Generator[Path]) = i.toArray[Path].sorted
+object list extends Function1[Path, IndexedSeq[Path]] {
+  def apply(src: Path) = iter(src).toArray[Path].sorted
 
-  object iter extends (Path => geny.Generator[Path]){
+  object iter extends Function1[Path, geny.Generator[Path]]{
     def apply(arg: Path) = geny.Generator.selfClosing{
       try {
         val dirStream = Files.newDirectoryStream(arg.toNIO)

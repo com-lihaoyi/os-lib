@@ -34,18 +34,4 @@ object Internals{
     }
   }
 
-  /**
-    * An [[Function1]] that returns a Seq[R], but can also do so
-    * lazily (Iterator[R]) via `op.iter! arg`. You can then use
-    * the iterator however you wish
-    */
-  trait StreamableOp1[T1, R, C <: Seq[R]] extends Function1[T1, C]{
-    def materialize(src: T1, i: geny.Generator[R]): C
-    def apply(arg: T1) = materialize(arg, iter(arg))
-
-    /**
-      * Returns a lazy [[Iterator]] instead of an eager sequence of results.
-      */
-    val iter: T1 => geny.Generator[R]
-  }
 }
