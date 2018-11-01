@@ -54,7 +54,12 @@ object mtime extends Function1[Path, Long]{
   }
 }
 
-
+/**
+  * Reads in the basic filesystem metadata for the given file. By default follows
+  * symbolic links to read the metadata of whatever the link is pointing at; set
+  * `followLinks = false` to disable that and instead read the metadata of the
+  * symbolic link itself.
+  */
 object stat extends Function1[os.Path, os.StatInfo]{
   def apply(p: os.Path): os.StatInfo = apply(p, followLinks = true)
   def apply(p: os.Path, followLinks: Boolean = true): os.StatInfo = {
@@ -89,6 +94,13 @@ object stat extends Function1[os.Path, os.StatInfo]{
       else ???
     )
   }
+
+  /**
+    * Reads in the full filesystem metadata for the given file. By default follows
+    * symbolic links to read the metadata of whatever the link is pointing at; set
+    * `followLinks = false` to disable that and instead read the metadata of the
+    * symbolic link itself.
+    */
   object full extends Function1[os.Path, os.FullStatInfo] {
     def apply(p: os.Path): os.FullStatInfo = apply(p, followLinks = true)
     def apply(p: os.Path, followLinks: Boolean = true): os.FullStatInfo = {

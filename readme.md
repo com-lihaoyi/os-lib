@@ -357,7 +357,7 @@ os.write(target: Path,
 
 Writes data from the given file or [os.Source](#ossource) to a file at the
 target [os.Path](#ospath). You can specify the filesystem permissions of the
-newly created file by passing in a [PermSet](#ospermset).
+newly created file by passing in a [os.PermSet](#ospermset).
 
 This throws an exception if the file already exists. To over-write or append to
 an existing file, see [os.write.over](#oswriteover) or
@@ -403,7 +403,9 @@ os.list(p: Path): IndexedSeq[Path]
 ```
 
 Returns all the files and folders directly within the given folder. If the given
-path is not a folder, raises an error.
+path is not a folder, raises an error. Can be called via
+[os.list.iter](#oslistiter) to stream the results. To list files recursively,
+use [os.walk](#oswalk).
 
 #### os.list.iter
 
@@ -557,7 +559,7 @@ os.makeDir(path: Path, perms: PermSet): Unit
 ```
 
 Create a single directory at the specified path. Optionally takes in a
-[PermSet](#ospermset) to specify the filesystem permissions of the created
+[os.PermSet](#ospermset) to specify the filesystem permissions of the created
 directory.
 
 Errors out if the directory already exists, or if the parent directory of the
@@ -609,7 +611,7 @@ os.symlink(src: Path, dest: Path, perms: PermSet = null): Unit
 ```
 
 Create a symbolic from the source path to the destination path. Optionally takes
-a [PermSet](#ospermset) to customize the filesystem permissions of the symbolic
+a [os.PermSet](#ospermset) to customize the filesystem permissions of the symbolic
 link.
 
 #### os.followLink
@@ -620,7 +622,7 @@ os.followLink(src: Path): Option[Path]
 
 Attempts to any symbolic links in the given path and return the canonical path.
 Returns `None` if the path cannot be resolved (i.e. some symbolic link in the
-current path is broken)
+given path is broken)
 
 #### os.temp
 
@@ -635,7 +637,7 @@ os.temp(contents: os.Source = null,
 
 Creates a temporary file. You can optionally provide a `dir` to specify where
 this file lives, file-`prefix` and file-`suffix` to customize what it looks
-like, and a [PermSet](#ospermset) to customize its filesystem permissions.
+like, and a [os.PermSet](#ospermset) to customize its filesystem permissions.
 
 Passing in a [os.Source](#ossource) will initialize the contents of that file to
 the provided data; otherwise it is created empty.
@@ -656,7 +658,7 @@ os.temp.dir(dir: Path = null,
 
 Creates a temporary directory. You can optionally provide a `dir` to specify
 where this file lives, a `prefix` to customize what it looks like, and a
-[PermSet](#ospermset) to customize its filesystem permissions.
+[os.PermSet](#ospermset) to customize its filesystem permissions.
 
 By default, temporary directories are deleted on JVM exit. You can disable that
 behavior by setting `deleteOnExit = false`
@@ -739,7 +741,7 @@ os.getPerms(p: Path, followLinks: Boolean = true): PermSet
 ```
 
 Reads the filesystem permissions of the given file or folder, as a
-[PermSet](#ospermset).
+[os.PermSet](#ospermset).
 
 #### os.setPerms
 
@@ -748,7 +750,7 @@ os.setPerms(p: Path, arg2: PermSet): Unit
 ```
 
 Sets the filesystem permissions of the given file or folder, as a
-[PermSet](#ospermset).
+[os.PermSet](#ospermset).
 
 #### os.getOwner
 

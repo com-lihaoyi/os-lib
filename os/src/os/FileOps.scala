@@ -13,8 +13,13 @@ import scala.util.Try
 
 
 /**
- * Makes directories up to the specified path. Equivalent
- * to `mkdir -p` in bash
+ * Create a single directory at the specified path. Optionally takes in a
+  * [[PermSet]] to specify the filesystem permissions of the created
+  * directory.
+  *
+  * Errors out if the directory already exists, or if the parent directory of the
+  * specified path does not exist. To automatically create enclosing directories and
+  * ignore the destination if it already exists, using [[os.makeDir.all]]
  */
 object makeDir extends Function1[Path, Unit]{
   def apply(path: Path): Unit = Files.createDirectory(path.toNIO)
@@ -26,8 +31,9 @@ object makeDir extends Function1[Path, Unit]{
     )
   }
   /**
-    * Makes directories up to the specified path. Equivalent
-    * to `mkdir -p` in bash
+    * Similar to [[os.makeDir]], but automatically creates any necessary
+    * enclosing directories if they do not exist, and does not raise an error if the
+    * destination path already containts a directory
     */
   object all extends Function1[Path, Unit]{
     def apply(path: Path): Unit = Files.createDirectories(path.toNIO)
@@ -70,9 +76,8 @@ trait CopyMove extends Function2[Path, Path, Unit]{
 }
 
 /**
- * Moves a file or folder from one place to another.
- *
- * Creates any necessary directories
+  * Moves a file or folder from one path to another. Errors out if the destination
+  * path already exists, or is within the source path.
  */
 object move extends Function2[Path, Path, Unit] with Internals.Mover with CopyMove{
   def apply(from: Path, to: Path): Unit = {
@@ -92,9 +97,9 @@ object move extends Function2[Path, Path, Unit] with Internals.Mover with CopyMo
 }
 
 /**
- * Copies a file or folder from one place to another.
- * Creates any necessary directories, and copies folders
- * recursively.
+  * Copy a file or folder from one path to another. Recursively copies folders with
+  * all their contents. Errors out if the destination path already exists, or is
+  * within the source path.
  */
 object copy extends Function2[Path, Path, Unit] with CopyMove{
   def apply(from: Path, to: Path) = {
@@ -171,12 +176,11 @@ object symlink {
 
 
 /**
-  * Obtain the final path to a file by resolving symlinks if any.
+  * Attempts to any symbolic links in the given path and return the canonical path.
+  * Returns `None` if the path cannot be resolved (i.e. some symbolic link in the
+  * given path is broken)
   */
 object followLink extends Function1[Path, Option[Path]]{
-  /**
-    * @return Some(path) or else None if the symlink is invalid or other error.
-    */
   def apply(src: Path): Option[Path] = Try(Path(src.toNIO.toRealPath())).toOption
 }
 
@@ -188,7 +192,12 @@ object followLink extends Function1[Path, Option[Path]]{
   */
 object temp{
   /**
-    * Creates a temporary directory
+    * Creates a temporary directory. You can optionally provide a `dir` to specify
+    * where this file lives, a `prefix` to customize what it looks like, and a
+    * [[PermSet]] to customize its filesystem permissions.
+    *
+    * By default, temporary directories are deleted on JVM exit. You can disable that
+    * behavior by setting `deleteOnExit = false`
     */
   def dir(dir: Path = null,
           prefix: String = null,
@@ -209,7 +218,15 @@ object temp{
   }
 
   /**
-    * Creates a temporary file with the provided contents
+    * Creates a temporary file. You can optionally provide a `dir` to specify where
+    * this file lives, file-`prefix` and file-`suffix` to customize what it looks
+    * like, and a [[PermSet]] to customize its filesystem permissions.
+    *
+    * Passing in a [[os.Source]] will initialize the contents of that file to
+    * the provided data; otherwise it is created empty.
+    *
+    * By default, temporary files are deleted on JVM exit. You can disable that
+    * behavior by setting `deleteOnExit = false`
     */
   def apply(contents: Source = null,
             dir: Path = null,

@@ -8,12 +8,18 @@ import java.nio.file.attribute.BasicFileAttributes
 import geny.Generator
 
 /**
-  * List the files and folders in a directory. Can be called with [[list.iter]]
+  * Returns all the files and folders directly within the given folder. If the given
+  * path is not a folder, raises an error. Can be called with [[list.iter]]
   * to return an iterator. To list files recursively, use [[walk]]
   */
 object list extends Function1[Path, IndexedSeq[Path]] {
   def apply(src: Path) = iter(src).toArray[Path].sorted
 
+  /**
+    * Similar to [[os.list]]], except provides a [os.Generator](../../../readme.md#osgenerator) of
+    * results rather than accumulating all of them in memory. Useful if the result set
+    * is large.
+    */
   object iter extends Function1[Path, geny.Generator[Path]]{
     def apply(arg: Path) = geny.Generator.selfClosing{
       try {
@@ -28,7 +34,21 @@ object list extends Function1[Path, IndexedSeq[Path]] {
 }
 
 /**
-  * Walks a directory recursively and returns a [[IndexedSeq]] of all its contents.
+  * Recursively walks the given folder and returns the paths of every file or folder
+  * within.
+  *
+  * You can pass in a `skip` callback to skip files or folders you are not
+  * interested in. This can avoid walking entire parts of the folder hierarchy,
+  * saving time as compared to filtering them after the fact.
+  *
+  * By default, the paths are returned as a pre-order traversal: the enclosing
+  * folder is occurs first before any of it's contents. You can pass in `preOrder =
+  * false` to turn it into a post-order traversal, such that the enclosing folder
+  * occurs last after all it's contents.
+  *
+  * `os.walk` returns but does not follow symlinks; pass in `followLinks = true` to
+  * override that behavior. You can also specify a maximum depth you wish to walk
+  * via the `maxDepth` parameter.
   */
 object walk {
   /**

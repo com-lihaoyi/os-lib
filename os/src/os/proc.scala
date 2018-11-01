@@ -22,6 +22,29 @@ import scala.annotation.tailrec
   *   want
   */
 case class proc(command: Shellable*) {
+  /**
+    * Invokes the given subprocess like a function, passing in input and returning a
+    * [[CommandResult]]. You can then call `result.exitCode` to see how it exited, or
+    * `result.out.bytes` or `result.err.string` to access the aggregated stdout and
+    * stderr of the subprocess in a number of convenient ways.
+    *
+    * `call` provides a number of parameters that let you configure how the subprocess
+    * is run:
+    *
+    * @param cwd             the working directory of the subprocess
+    * @param env             any additional environment variables you wish to set in the subprocess
+    * @param stdin           any data you wish to pass to the subprocess's standard input
+    * @param stdout          [[os.Redirect]] that lets you configure how the
+    *                        process's output stream is configured.
+    * @param stderr          [[os.Redirect]] that lets you configure how the
+    *                        process's error stream is configured.
+    * @param mergeErrIntoOut merges the subprocess's stderr stream into it's stdout
+    * @param timeout         how long to wait for the subprocess to complete
+    * @param check           enable this to throw an exception if the subprocess fails with a
+    *                        non-zero exit code
+    * @param propagateEnv    disable this to avoid passing in this parent process's
+    *                        environment variables to the subprocess
+    */
   def call(cwd: Path = null,
            env: Map[String, String] = null,
            stdin: Source = Array[Byte](),
@@ -49,6 +72,13 @@ case class proc(command: Shellable*) {
     else throw SubprocessException(res)
   }
 
+  /**
+    * Similar to [[os.proc.call]], but instead of aggregating the process's
+    * standard output/error streams for you, you pass in `onOut`/`onErr` callbacks to
+    * receive the data as it is generated.
+    *
+    * Returns the exit code of the subprocess once it terminates
+    */
   def stream(cwd: Path = null,
              env: Map[String, String] = null,
              stdin: Source = Array[Byte](),
@@ -127,6 +157,11 @@ case class proc(command: Shellable*) {
     run()
   }
 
+  /**
+    * The most flexible of the [[os.proc]] calls, `os.proc.spawn` simply configures
+    * and starts a subprocess, and returns it as a `java.lang.Process` for you to
+    * interact with however you like.
+    */
   def spawn(cwd: Path = null,
             env: Map[String, String] = null,
             stdin: Redirect = Pipe,
