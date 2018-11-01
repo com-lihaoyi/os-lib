@@ -6,7 +6,7 @@ import java.nio.file.attribute.{GroupPrincipal, PosixFileAttributeView, UserPrin
 /**
   * Get the filesystem permissions of the file/folder at the given path
   */
-object getPerms {
+object getPerms extends Function1[Path, PermSet]{
   def apply(p: Path): PermSet = apply(p, followLinks = true)
   def apply(p: Path, followLinks: Boolean = true): PermSet = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
@@ -28,7 +28,7 @@ object setPerms {
 /**
   * Get the owner of the file/folder at the given path
   */
-object getOwner {
+object getOwner extends Function1[Path, UserPrincipal] {
   def apply(p: Path): UserPrincipal = apply(p, followLinks = true)
   def apply(p: Path, followLinks: Boolean = true): UserPrincipal = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
@@ -52,7 +52,7 @@ object setOwner {
 /**
   * Get the owning group of the file/folder at the given path
   */
-object getGroup {
+object getGroup extends Function1[Path, GroupPrincipal] {
   def apply(p: Path): GroupPrincipal = apply(p, followLinks = true)
   def apply(p: Path, followLinks: Boolean = true): GroupPrincipal = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)

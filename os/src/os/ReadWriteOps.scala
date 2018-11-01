@@ -42,7 +42,7 @@ object write{
     )
     out.position(offset)
     try {
-      data.getChannel().collect{case fcn: FileChannel => fcn} match{
+      data.getHandle().right.toOption.collect{case fcn: FileChannel => fcn} match{
         case Some(fcn) => fcn.transferTo(0, Long.MaxValue, out)
         case None => Internals.transfer(data.getInputStream(), Channels.newOutputStream(out))
       }
@@ -162,7 +162,7 @@ object read extends Function1[Source, String]{
     def apply(arg: SeekableSource, offset: Long, count: Int) = {
       val arr = new Array[Byte](count)
       val buf = ByteBuffer.wrap(arr)
-      val channel = arg.getChannel().get
+      val channel = arg.getChannel()
       channel.position(offset)
       val finalCount = channel.read(buf)
       if (finalCount == arr.length) arr

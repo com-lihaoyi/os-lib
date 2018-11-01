@@ -252,8 +252,7 @@ object Path {
 class Path private[os](val root: java.nio.file.Path, segments0: Array[String])
   extends FilePath with BasePathImpl with SeekableSource{
   val segments: IndexedSeq[String] = segments0
-  def getInputStream = java.nio.file.Files.newInputStream(toNIO)
-  override def getChannel() = Some(java.nio.file.Files.newByteChannel(toNIO))
+  def getHandle() = Right(java.nio.file.Files.newByteChannel(toNIO))
   type ThisType = Path
 
   def toNIO = root.resolve(segments0.mkString(root.getFileSystem.getSeparator))

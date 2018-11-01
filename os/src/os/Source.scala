@@ -5,31 +5,31 @@ import java.nio.channels.{Channels, FileChannel, ReadableByteChannel, SeekableBy
 
 
 /**
-  * A path that can be read from, either a [[Path]] or a [[ResourcePath]].
-  * Encapsulates the logic of how to read from it in various ways.
+  * A source of bytes; must provide either an [[InputStream]] or a
+  * [[SeekableByteChannel]] to read from. Can be constructed implicitly from
+  * strings, byte arrays, inputstreams, channels or file paths
   */
 trait Source{
-  def getInputStream(): java.io.InputStream
-  def getChannel(): Option[SeekableByteChannel]
+  def getInputStream(): java.io.InputStream = getHandle match{
+    case Left(is) => is
+    case Right(bc) => Channels.newInputStream(bc)
+  }
+  def getHandle(): Either[java.io.InputStream, SeekableByteChannel]
 }
 
 object Source extends WritableLowPri{
   implicit class ChannelSource(cn: SeekableByteChannel) extends Source{
-    def getInputStream() = Channels.newInputStream(cn)
-    override def getChannel() = Some(cn)
+    def getHandle() = Right(cn)
   }
   implicit class InputStreamSource(is: InputStream) extends Source{
-    def getInputStream() = is
-    def getChannel() = None
+    def getHandle() = Left(is)
   }
 
   implicit def StringSource(s: String) = new Source{
-    def getInputStream() = new ByteArrayInputStream(s.getBytes())
-    def getChannel() = None
+    def getHandle() = Left(new ByteArrayInputStream(s.getBytes()))
   }
   implicit def BytesSource(a: Array[Byte]): Source = new Source{
-    def getInputStream() = new ByteArrayInputStream(a)
-    def getChannel() = None
+    def getHandle() = Left(new ByteArrayInputStream(a))
   }
 }
 trait WritableLowPri {
@@ -37,11 +37,8 @@ trait WritableLowPri {
                                          (implicit f: T => Source,
                                           g: M[T] => TraversableOnce[T]) = {
     new Source {
-      def getChannel() = None
-      def getInputStream() = {
+      def getHandle() = Left{
         import collection.JavaConverters._
-
-
         new SequenceInputStream(
           g(a).map(i => (f(i).getInputStream())).toIterator.asJavaEnumeration
         )
@@ -54,7 +51,7 @@ trait WritableLowPri {
   * A source which is guaranteeds to provide a [[SeekableByteChannel]]
   */
 trait SeekableSource extends Source{
-  def getInputStream(): java.io.InputStream
-  override def getChannel(): Some[SeekableByteChannel]
+  def getHandle(): Right[java.io.InputStream, SeekableByteChannel]
+  def getChannel() = getHandle.right.get
 }
 

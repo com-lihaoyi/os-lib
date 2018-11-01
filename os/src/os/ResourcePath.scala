@@ -10,6 +10,8 @@ object ResourcePath{
 }
 
 /**
+  * Represents path to a resource on the java classpath.
+  *
   * Classloaders are tricky: http://stackoverflow.com/questions/12292926
   */
 class ResourcePath private[os](val resRoot: ResourceRoot, segments0: Array[String])
@@ -17,8 +19,7 @@ class ResourcePath private[os](val resRoot: ResourceRoot, segments0: Array[Strin
   val segments: IndexedSeq[String] = segments0
   type ThisType = ResourcePath
   override def toString = resRoot.errorName + "/" + segments0.mkString("/")
-  def getChannel() = None
-  def getInputStream = {
+  def getHandle = Left{
     resRoot.getResourceAsStream(segments.mkString("/")) match{
       case null => throw ResourceNotFoundException(this)
       case stream => stream
