@@ -1,6 +1,8 @@
 package os
 
 import java.io.{BufferedReader, InputStreamReader}
+import java.nio.channels.{Channels, FileChannel}
+import java.nio.file.attribute.{FileAttribute, PosixFilePermission, PosixFilePermissions}
 import java.nio.file.{Files, StandardOpenOption}
 
 import geny.Generator
@@ -15,41 +17,69 @@ import scala.io.Codec
   * or [[write.append]] if you want to over-write it or add to what's already
   * there.
   */
-object write extends Function2[Path, Source, Unit]{
+object write{
   /**
     * Performs the actual opening and writing to a file. Basically cribbed
     * from `java.nio.file.Files.write` so we could re-use it properly for
     * different combinations of flags and all sorts of [[Source]]s
     */
-  def write(target: Path, data: Source, flags: StandardOpenOption*) = {
+  def write(target: Path,
+            data: Source,
+            flags: Seq[StandardOpenOption],
+            perms: PermSet) = {
 
-    val out = Files.newOutputStream(target.toNIO, flags:_*)
-    try Internals.transfer(data.getInputStream(), out)
+    import collection.JavaConverters._
+    val permArray =
+      if (perms == null) Array[FileAttribute[PosixFilePermission]]()
+      else Array(PosixFilePermissions.asFileAttribute(perms.value.asJava))
+
+    val out = Files.newByteChannel(
+      target.toNIO,
+      flags.toSet.asJava,
+      permArray:_*
+    )
+    try {
+      data.getChannel().collect{case fcn: FileChannel => fcn} match{
+        case Some(fcn) => fcn.transferTo(0, Long.MaxValue, out)
+        case None => Internals.transfer(data.getInputStream(), Channels.newOutputStream(out))
+      }
+    }
     finally if (out != null) out.close()
   }
-  def apply(target: Path, data: Source) = {
+  def apply(target: Path, data: Source, permSet: PermSet = null) = {
     makeDirs(target/RelPath.up)
-    write(target, data, StandardOpenOption.CREATE_NEW)
+    write(target, data, Seq(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE), permSet)
   }
 
   /**
     * Identical to [[write]], except if the file already exists,
     * appends to the file instead of error-ing out
     */
-  object append extends Function2[Path, Source, Unit]{
-    def apply(target: Path, data: Source) = {
+  object append{
+    def apply(target: Path, data: Source, permSet: PermSet = null) = {
       makeDirs(target/RelPath.up)
-      write(target, data, StandardOpenOption.CREATE, StandardOpenOption.APPEND)
+      write(
+        target, data,
+        Seq(StandardOpenOption.CREATE, StandardOpenOption.APPEND, StandardOpenOption.WRITE),
+        permSet
+      )
     }
   }
   /**
     * Identical to [[write]], except if the file already exists,
     * replaces the file instead of error-ing out
     */
-  object over extends Function2[Path, Source, Unit]{
-    def apply(target: Path, data: Source) = {
+  object over{
+    def apply(target: Path, data: Source, permSet: PermSet = null) = {
       makeDirs(target/RelPath.up)
-      write(target, data, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+      write(target, data,
+        Seq(
+          StandardOpenOption.CREATE,
+          StandardOpenOption.TRUNCATE_EXISTING,
+          StandardOpenOption.WRITE
+        ),
+        permSet
+      )
     }
   }
 }

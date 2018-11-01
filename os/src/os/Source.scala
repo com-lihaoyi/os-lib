@@ -1,6 +1,7 @@
 package os
 
 import java.io.{ByteArrayInputStream, InputStream, OutputStream, SequenceInputStream}
+import java.nio.channels.{Channels, FileChannel, ReadableByteChannel}
 
 
 /**
@@ -9,9 +10,14 @@ import java.io.{ByteArrayInputStream, InputStream, OutputStream, SequenceInputSt
   */
 trait Source{
   def getInputStream(): java.io.InputStream
+  def getChannel(): Option[ReadableByteChannel] = None
 }
 
 object Source extends WritableLowPri{
+  implicit class ChannelSource(cn: ReadableByteChannel) extends Source{
+    def getInputStream() = Channels.newInputStream(cn)
+    override def getChannel() = Some(cn)
+  }
   implicit class InputStreamSource(is: InputStream) extends Source{
     def getInputStream() = is
   }

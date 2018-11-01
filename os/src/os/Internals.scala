@@ -1,6 +1,8 @@
 package os
 
 import java.io.{InputStream, OutputStream}
+import java.nio.ByteBuffer
+import java.nio.channels.{ByteChannel, Channel, Channels}
 import java.nio.file.Files
 
 object Internals{
