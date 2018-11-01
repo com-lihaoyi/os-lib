@@ -136,15 +136,19 @@ class Bytes(val array: Array[Byte]){
 case class CommandResult(exitCode: Int,
                          chunks: Seq[Either[Bytes, Bytes]]) {
   /**
-    * The standard output of the executed command, exposed in a number of ways
-    * for convenient access
+    * The standard output and error of the executed command, exposed in a
+    * number of ways for convenient access
     */
-  val out = StreamValue(chunks.collect{case Left(s) => s})
-  /**
-    * The standard error of the executed command, exposed in a number of ways
-    * for convenient access
-    */
-  val err = StreamValue(chunks.collect{case Right(s) => s})
+  val (out, err) = {
+    val outChunks = collection.mutable.Buffer.empty[Bytes]
+    val errChunks = collection.mutable.Buffer.empty[Bytes]
+    chunks.foreach{
+      case Left(s) => outChunks.append(s)
+      case Right(s) => errChunks.append(s)
+    }
+    (StreamValue(outChunks), StreamValue(errChunks))
+  }
+
   override def toString() = {
     s"CommandResult $exitCode\n" +
       chunks.iterator
@@ -163,8 +167,6 @@ case class CommandResult(exitCode: Int,
   */
 case class ShelloutException(result: CommandResult) extends Exception(result.toString)
 
-case class InteractiveShelloutException() extends Exception()
-
 /**
   * Encapsulates one of the output streams from a subprocess and provides
   * convenience methods for accessing it in a variety of forms
@@ -172,13 +174,13 @@ case class InteractiveShelloutException() extends Exception()
 case class StreamValue(chunks: Seq[Bytes]){
   def bytes = chunks.iterator.map(_.array).toArray.flatten
 
-  lazy val string: String = string(StandardCharsets.UTF_8)
+  def string: String = string(StandardCharsets.UTF_8)
   def string(codec: Codec): String = new String(bytes, codec.charSet)
 
-  lazy val trim: String = string.trim
+  def trim: String = string.trim
   def trim(codec: Codec): String = string(codec).trim
 
-  lazy val lines: Vector[String] = string.lines.toVector
+  def lines: Vector[String] = string.lines.toVector
   def lines(codec: Codec): Vector[String] = string(codec).lines.toVector
 }
 /**
@@ -188,10 +190,14 @@ case class StreamValue(chunks: Seq[Bytes]){
 case class Shellable(s: Seq[String])
 object Shellable{
   implicit def StringShellable(s: String): Shellable = Shellable(Seq(s))
-  implicit def SeqShellable(s: Seq[String]): Shellable = Shellable(s)
-  implicit def OptShellable(s: Option[String]): Shellable = Shellable(s.toSeq)
+
   implicit def SymbolShellable(s: Symbol): Shellable = Shellable(Seq(s.name))
   implicit def BasePathShellable(s: BasePath): Shellable = Shellable(Seq(s.toString))
   implicit def NumericShellable[T: Numeric](s: T): Shellable = Shellable(Seq(s.toString))
+
+  implicit def OptShellable[T](s: Option[T])(implicit f: T => Shellable): Shellable =
+    Shellable(s.toSeq.flatMap(f(_).s))
+  implicit def SeqShellable[T](s: Seq[T])(implicit f: T => Shellable): Shellable =
+    Shellable(s.flatMap(f(_).s))
 }
 
