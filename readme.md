@@ -44,7 +44,7 @@ underlying operating system APIs.
     - [os.read](#osread)
     - [os.read.bytes](#osreadbytes)
     - [os.read.lines](#osreadlines)
-    - [os.read.lines.stream](#osreadlinesiter)
+    - [os.read.lines.stream](#osreadlinesstream)
     - [os.write](#oswrite)
     - [os.write.append](#oswriteappend)
     - [os.write.over](#oswriteover)
@@ -52,11 +52,11 @@ underlying operating system APIs.
     Listing & Walking Files
 
     - [os.list](#oslist)
-    - [os.list.stream](#oslistiter)
+    - [os.list.stream](#osliststream)
     - [os.walk](#oswalk)
     - [os.walk.attrs](#oswalkattrs)
-    - [os.walk.stream](#oswalkiter)
-    - [os.walk.stream.attrs](#oswalkiterattrs)
+    - [os.walk.stream](#oswalkstream)
+    - [os.walk.stream.attrs](#oswalkstreamattrs)
 
     Manipulating Files & Folders
 
@@ -404,7 +404,7 @@ os.list(p: Path): IndexedSeq[Path]
 
 Returns all the files and folders directly within the given folder. If the given
 path is not a folder, raises an error. Can be called via
-[os.list.stream](#oslistiter) to stream the results. To list files recursively,
+[os.list.stream](#osliststream) to stream the results. To list files recursively,
 use [os.walk](#oswalk).
 
 #### os.list.stream
@@ -483,7 +483,7 @@ os.walk.stream.attrs(path: Path,
                    maxDepth: Int = Int.MaxValue): os.Generator[Path]
 ```
 
-Similar to [os.walk.stream](#oswalkiter), except it also provides the filesystem
+Similar to [os.walk.stream](#oswalkstream), except it also provides the filesystem
 metadata of every path that it returns. Can save time by allowing you to avoid
 querying the filesystem for metadata later.
 

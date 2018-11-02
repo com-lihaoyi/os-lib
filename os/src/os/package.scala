@@ -3,9 +3,9 @@ import scala.collection.Seq
 package object os{
   type Generator[+T] = geny.Generator[T]
   val Generator = geny.Generator
-  implicit def RegexContextMaker(s: StringContext): RegexContext = new RegexContext(s)
+  implicit def GlobContextMaker(s: StringContext): GlobContext = new GlobContext(s)
 
-  object RegexContext{
+  object GlobContext{
     class Interped(parts: Seq[String]){
       def unapplySeq(s: String) = {
         val Seq(head, tail@_*) = parts.map(java.util.regex.Pattern.quote)
@@ -13,15 +13,15 @@ package object os{
         val regex = head + tail.map("(.*)" + _).mkString
         regex.r.unapplySeq(s)
       }
-      def apply(s: Any*) = new StringContext(parts:_*).s(s:_*)
     }
   }
 
   /**
     * Lets you pattern match strings with interpolated glob-variables
     */
-  class RegexContext(sc: StringContext) {
-    def r = new RegexContext.Interped(sc.parts)
+  class GlobContext(sc: StringContext) {
+    def g(parts: Any*) = new StringContext(sc.parts:_*).s(parts:_*)
+    def g = new GlobContext.Interped(sc.parts)
   }
   /**
    * The root of the filesystem
