@@ -28,6 +28,9 @@ case class proc(command: Shellable*) {
     * `result.out.bytes` or `result.err.string` to access the aggregated stdout and
     * stderr of the subprocess in a number of convenient ways.
     *
+    * If you want to spawn an interactive subprocess, such as `vim`, `less`, or a
+    * `python` shell, set all of `stdin`/`stdout`/`stderr` to [[os.Inherit]]
+    *
     * `call` provides a number of parameters that let you configure how the subprocess
     * is run:
     *
@@ -47,7 +50,8 @@ case class proc(command: Shellable*) {
     */
   def call(cwd: Path = null,
            env: Map[String, String] = null,
-           stdin: Source = Array[Byte](),
+           data: Source = Array[Byte](),
+           stdin: Redirect = Pipe,
            stdout: Redirect = Pipe,
            stderr: Redirect = Pipe,
            mergeErrIntoOut: Boolean = false,
@@ -58,9 +62,10 @@ case class proc(command: Shellable*) {
 
     val chunks = collection.mutable.Buffer.empty[Either[Bytes, Bytes]]
     val exitCode = stream(
-      cwd, env, stdin,
+      cwd, env, data,
       (arr, i) => chunks.append(Left(new Bytes(arr.take(i)))),
       (arr, i) => chunks.append(Right(new Bytes(arr.take(i)))),
+      stdin,
       stdout,
       stderr,
       mergeErrIntoOut,
@@ -81,16 +86,17 @@ case class proc(command: Shellable*) {
     */
   def stream(cwd: Path = null,
              env: Map[String, String] = null,
-             stdin: Source = Array[Byte](),
+             data: Source = Array[Byte](),
              onOut: (Array[Byte], Int) => Unit,
              onErr: (Array[Byte], Int) => Unit,
+             stdin: Redirect = Pipe,
              stdout: Redirect = Pipe,
              stderr: Redirect = Pipe,
              mergeErrIntoOut: Boolean = false,
              timeout: Long = Long.MaxValue,
              propagateEnv: Boolean = true): Int = {
     val process = spawn(
-      cwd, env, Pipe, stdout, stderr, mergeErrIntoOut, propagateEnv
+      cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv
     )
 
     // While reading from the subprocess takes place on separate threads, we end
@@ -101,7 +107,7 @@ case class proc(command: Shellable*) {
 
     val inWriter = new Thread(new Runnable {
       def run() = {
-        Internals.transfer(stdin.getInputStream(), process.getOutputStream)
+        Internals.transfer(data.getInputStream(), process.getOutputStream)
       }
     })
     val outReader = new Thread(new Runnable {

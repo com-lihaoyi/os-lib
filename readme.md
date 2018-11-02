@@ -740,7 +740,7 @@ Returns the last-modified timestamp of the given file, in milliseconds
 os.getPerms(p: Path, followLinks: Boolean = true): PermSet
 ```
 
-Reads the filesystem permissions of the given file or folder, as a
+Reads the filesystem permissions of the given file or folder, as an
 [os.PermSet](#ospermset).
 
 #### os.setPerms
@@ -749,8 +749,14 @@ Reads the filesystem permissions of the given file or folder, as a
 os.setPerms(p: Path, arg2: PermSet): Unit
 ```
 
-Sets the filesystem permissions of the given file or folder, as a
+Sets the filesystem permissions of the given file or folder, as an
 [os.PermSet](#ospermset).
+
+Note that if you want to create a file or folder with a given set of
+permissions, you can pass in an [os.PermSet](#ospermset) to [os.write](#oswrite)
+or [os.makeDir](#osmakedir). That will ensure the file or folder is created
+atomically with the given permissions, rather than being created with the
+default set of permissions and having `os.setPerms` over-write them later
 
 #### os.getOwner
 
@@ -859,6 +865,13 @@ is run:
   non-zero exit code
 - `propagateEnv`: disable this to avoid passing in this parent process's
   environment variables to the subprocess
+
+If you want to spawn an interactive subprocess, such as `vim`, `less`, or a
+`python` shell, set all of `stdin`/`stdout`/`stderr` to `os.Inherit`:
+
+```scala
+os.proc("vim").call(stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit)
+```
 
 #### os.proc.stream
 

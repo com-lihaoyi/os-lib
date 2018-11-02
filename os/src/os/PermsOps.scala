@@ -17,6 +17,12 @@ object getPerms extends Function1[Path, PermSet]{
 
 /**
   * Set the filesystem permissions of the file/folder at the given path
+  *
+  * Note that if you want to create a file or folder with a given set of
+  * permissions, you can pass in an [[os.PermSet]] to [[os.write]]
+  * or [[os.makeDir]]. That will ensure the file or folder is created
+  * atomically with the given permissions, rather than being created with the
+  * default set of permissions and having `os.setPerms` over-write them later
   */
 object setPerms {
   def apply(p: Path, arg2: PermSet): Unit = {
