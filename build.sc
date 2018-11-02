@@ -17,9 +17,9 @@ class OsModule(val crossScalaVersion: String) extends CrossScalaModule with Publ
     )
   )
 
-//  def compileIvyDeps = Agg(ivy"com.lihaoyi::acyclic:0.1.7")
-//  def scalacOptions = Seq("-P:acyclic:force")
-//  def scalacPluginIvyDeps = Agg(ivy"com.lihaoyi::acyclic:0.1.7")
+  def compileIvyDeps = Agg(ivy"com.lihaoyi::acyclic:0.1.7")
+  def scalacOptions = Seq("-P:acyclic:force")
+  def scalacPluginIvyDeps = Agg(ivy"com.lihaoyi::acyclic:0.1.7")
 
   def ivyDeps = Agg(ivy"com.lihaoyi::geny:0.1.3")
 
