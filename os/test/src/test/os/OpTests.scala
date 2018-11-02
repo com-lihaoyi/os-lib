@@ -9,38 +9,35 @@ import os.{GlobContextMaker, /}
 object OpTests extends TestSuite{
 
   val tests = Tests {
-    val res = os.pwd/'os/'test/'resources/'testdata
+    val res = os.pwd/'os/'test/'resources/'test
     'ls - assert(
-      os.list(res).toSet == Set(res/'folder1, res/'folder2, res/"File.txt"),
+      os.list(res).toSet == Set(
+        res/'folder1,
+        res/'folder2,
+        res/'misc,
+        res/'os,
+        res/"File.txt",
+        res/"Multi Line File.txt"
+      ),
       os.list(res/'folder2).toSet == Set(
-        res/'folder2/'folder2a,
-        res/'folder2/'folder2b
+        res/'folder2/'nestedA,
+        res/'folder2/'nestedB
       )
     )
     'lsR{
       os.walk(res).foreach(println)
       intercept[java.nio.file.NoSuchFileException](os.walk(os.pwd/'out/'scratch/'nonexistent))
-      val xxx = os.walk(res)
       assert(
-        os.walk(res/'folder2/'folder2b) == Seq(res/'folder2/'folder2b/"b.txt"),
+        os.walk(res/'folder2/'nestedB) == Seq(res/'folder2/'nestedB/"b.txt"),
         os.walk(res/'folder2) == Seq(
-          res/'folder2/'folder2b,
-          res/'folder2/'folder2b/"b.txt",
-          res/'folder2/'folder2a,
-          res/'folder2/'folder2a/"I am.txt"
-        ),
-        xxx == Seq(
-          res/"File.txt",
-          res/'folder2,
-          res/'folder2/'folder2b,
-          res/'folder2/'folder2b/"b.txt",
-          res/'folder2/'folder2a,
-          res/'folder2/'folder2a/"I am.txt",
-          res/'folder1,
-          res/'folder1/"Yoghurt Curds Cream Cheese.txt"
+          res/'folder2/'nestedA,
+          res/'folder2/'nestedA/"a.txt",
+          res/'folder2/'nestedB,
+          res/'folder2/'nestedB/"b.txt"
         )
       )
     }
+
     'lsRecPermissions{
       if(Unix()){
         assert(os.walk(os.root/'var/'run).nonEmpty)

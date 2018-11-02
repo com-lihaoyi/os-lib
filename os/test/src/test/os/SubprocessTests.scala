@@ -4,21 +4,29 @@ import os._
 import utest._
 
 object SubprocessTests extends TestSuite{
-  val scriptFolder = pwd/'os/'test/'resources/'scripts
+  val scriptFolder = pwd/'os/'test/'resources/'test
 
   val tests = Tests {
     'implicitWd{
       'lines{
-        val res = proc('ls, "os/test/resources/testdata").call()
-        assert(res.out.lines == Seq("File.txt", "folder1", "folder2"))
+        val res = proc('ls, "os/test/resources/test").call()
+        assert(
+          res.out.lines.contains("File.txt"),
+          res.out.lines.contains("folder1"),
+          res.out.lines.contains("folder2")
+        )
       }
       'string{
-        val res = proc('ls, "os/test/resources/testdata").call()
-        assert(res.out.string == "File.txt\nfolder1\nfolder2\n")
+        val res = proc('ls, "os/test/resources/test").call()
+        assert(
+          res.out.string.contains("File.txt"),
+          res.out.string.contains("folder1"),
+          res.out.string.contains("folder2")
+        )
       }
       'bytes{
         if(Unix()){
-          val res = proc('echo, "abc").call()
+          val res = proc(scriptFolder / 'misc / 'echo, "abc").call()
           val listed = res.out.bytes
           //        assert(listed == "File.txt\nfolder\nfolder2\nFile.txt".getBytes)
           listed.toSeq
@@ -52,7 +60,7 @@ object SubprocessTests extends TestSuite{
 
       'filebased{
         if(Unix()){
-          assert(proc(scriptFolder/'echo, 'HELLO).call().out.lines.mkString == "HELLO")
+          assert(proc(scriptFolder/'misc/'echo, 'HELLO).call().out.lines.mkString == "HELLO")
 
           val res: CommandResult =
             proc(root/'bin/'bash, "-c", "echo 'Hello'$ENV_ARG").call(
@@ -98,9 +106,10 @@ object SubprocessTests extends TestSuite{
       // or implicitly
       val res2 = proc("ls").call()
     }
+
     'fileCustomWorkingDir - {
       if(Unix()){
-        val output = proc(scriptFolder/'echo_with_wd, 'HELLO).call(cwd = root/'usr)
+        val output = proc(scriptFolder/'misc/'echo_with_wd, 'HELLO).call(cwd = root/'usr)
         assert(output.out.lines == Seq("HELLO /usr"))
       }
     }

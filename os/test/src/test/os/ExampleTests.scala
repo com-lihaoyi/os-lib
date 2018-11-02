@@ -22,6 +22,7 @@ object ExampleTests extends TestSuite{
       val invoked = os.proc("cat", wd/"file.txt", wd/"copied.txt").call(cwd = wd)
       invoked.out.trim ==> "hellohello"
     }
+
     'reference{
       // Let's pick our working directory
       val wd = os.pwd/'out/'example3
@@ -339,7 +340,7 @@ object ExampleTests extends TestSuite{
     }}
     'findWc{
       import os._
-      val wd = pwd/'os/'test/'resources/'testdata
+      val wd = pwd/'os/'test/'resources/'test
 
       // find . -name '*.txt' | xargs wc -l
       val lines = os.walk(wd)
@@ -348,7 +349,7 @@ object ExampleTests extends TestSuite{
         .map(_.length)
         .sum
 
-      assert(lines == 20)
+      assert(lines == 9)
     }
     'addUpScalaSize{
       os.walk(os.pwd).filter(_.ext == "scala").map(os.size).reduce(_ + _)
