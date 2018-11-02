@@ -151,16 +151,16 @@ object read extends Function1[Source, String]{
     * can override by specifying a `charSet`.
     */
   object lines extends Function1[Source, IndexedSeq[String]]{
-    def apply(src: Source) = iter(src).toArray[String]
+    def apply(src: Source) = stream(src).toArray[String]
     def apply(arg: Source, charSet: Codec): IndexedSeq[String] =
-      iter(arg, charSet).toArray[String]
+      stream(arg, charSet).toArray[String]
 
     /**
       * Identical to [[os.read.lines]], but streams the results back to you
       * in a [[os.Generator]] rather than accumulating them in memory. Useful
       * if the file is large.
       */
-    object iter extends Function1[Source, geny.Generator[String]]{
+    object stream extends Function1[Source, geny.Generator[String]]{
       def apply(arg: Source) = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
 
       def apply(arg: Source, charSet: Codec) = {

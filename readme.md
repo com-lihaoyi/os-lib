@@ -44,7 +44,7 @@ underlying operating system APIs.
     - [os.read](#osread)
     - [os.read.bytes](#osreadbytes)
     - [os.read.lines](#osreadlines)
-    - [os.read.lines.iter](#osreadlinesiter)
+    - [os.read.lines.stream](#osreadlinesiter)
     - [os.write](#oswrite)
     - [os.write.append](#oswriteappend)
     - [os.write.over](#oswriteover)
@@ -52,11 +52,11 @@ underlying operating system APIs.
     Listing & Walking Files
 
     - [os.list](#oslist)
-    - [os.list.iter](#oslistiter)
+    - [os.list.stream](#oslistiter)
     - [os.walk](#oswalk)
     - [os.walk.attrs](#oswalkattrs)
-    - [os.walk.iter](#oswalkiter)
-    - [os.walk.iter.attrs](#oswalkiterattrs)
+    - [os.walk.stream](#oswalkiter)
+    - [os.walk.stream.attrs](#oswalkiterattrs)
 
     Manipulating Files & Folders
 
@@ -335,7 +335,7 @@ Reads the given [os.Path](#ospath) or other [os.Source](#ossource) as a string
 and splits it into lines; defaults to reading as UTF-8, which you can override
 by specifying a `charSet`.
 
-#### os.read.lines.iter
+#### os.read.lines.stream
 
 ```scala
 os.read.lines(arg: os.Source): os.Generator[String]
@@ -404,13 +404,13 @@ os.list(p: Path): IndexedSeq[Path]
 
 Returns all the files and folders directly within the given folder. If the given
 path is not a folder, raises an error. Can be called via
-[os.list.iter](#oslistiter) to stream the results. To list files recursively,
+[os.list.stream](#oslistiter) to stream the results. To list files recursively,
 use [os.walk](#oswalk).
 
-#### os.list.iter
+#### os.list.stream
 
 ```scala
-os.list.iter(p: Path): os.Generator[Path]
+os.list.stream(p: Path): os.Generator[Path]
 ```
 
 Similar to [os.list](#oslist), except provides a [os.Generator](#osgenerator) of
@@ -457,10 +457,10 @@ Similar to [os.walk](#oswalk), except it also provides the filesystem metadata
 of every path that it returns. Can save time by allowing you to avoid querying
 the filesystem for metadata later.
 
-#### os.walk.iter
+#### os.walk.stream
 
 ```scala
-os.walk.iter(path: Path,
+os.walk.stream(path: Path,
             skip: Path => Boolean = _ => false,
             preOrder: Boolean = true,
             followLinks: Boolean = false,
@@ -473,17 +473,17 @@ the results rather than accumulating them in memory. Useful if you are walking
 very large folder hierarchies, or if you wish to begin processing the output
 even before the walk has completed.
 
-#### os.walk.iter.attrs
+#### os.walk.stream.attrs
 
 ```scala
-os.walk.iter.attrs(path: Path,
+os.walk.stream.attrs(path: Path,
                    skip: Path => Boolean = _ => false,
                    preOrder: Boolean = true,
                    followLinks: Boolean = false,
                    maxDepth: Int = Int.MaxValue): os.Generator[Path]
 ```
 
-Similar to [os.walk.iter](#oswalkiter), except it also provides the filesystem
+Similar to [os.walk.stream](#oswalkiter), except it also provides the filesystem
 metadata of every path that it returns. Can save time by allowing you to avoid
 querying the filesystem for metadata later.
 

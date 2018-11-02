@@ -9,18 +9,18 @@ import geny.Generator
 
 /**
   * Returns all the files and folders directly within the given folder. If the given
-  * path is not a folder, raises an error. Can be called with [[list.iter]]
+  * path is not a folder, raises an error. Can be called with [[list.stream]]
   * to return an iterator. To list files recursively, use [[walk]]
   */
 object list extends Function1[Path, IndexedSeq[Path]] {
-  def apply(src: Path) = iter(src).toArray[Path].sorted
+  def apply(src: Path) = stream(src).toArray[Path].sorted
 
   /**
     * Similar to [[os.list]]], except provides a [os.Generator](../../../readme.md#osgenerator) of
     * results rather than accumulating all of them in memory. Useful if the result set
     * is large.
     */
-  object iter extends Function1[Path, geny.Generator[Path]]{
+  object stream extends Function1[Path, geny.Generator[Path]]{
     def apply(arg: Path) = os.walk(arg, maxDepth = 1, followLinks = true)
   }
 }
@@ -66,7 +66,7 @@ object walk {
             preOrder: Boolean = true,
             followLinks: Boolean = false,
             maxDepth: Int = Int.MaxValue): IndexedSeq[Path] = {
-    iter(path, skip, preOrder, followLinks, maxDepth).toArray[Path]
+    stream(path, skip, preOrder, followLinks, maxDepth).toArray[Path]
   }
 
   /**
@@ -92,10 +92,10 @@ object walk {
             preOrder: Boolean = true,
             followLinks: Boolean = false,
             maxDepth: Int = Int.MaxValue): IndexedSeq[(Path, BasicFileAttributes)] = {
-    iter.attrs(path, skip, preOrder, followLinks, maxDepth).toArray[(Path, BasicFileAttributes)]
+    stream.attrs(path, skip, preOrder, followLinks, maxDepth).toArray[(Path, BasicFileAttributes)]
   }
 
-  object iter {
+  object stream {
 
     /**
       * @param path the root path whose contents you wish to walk
