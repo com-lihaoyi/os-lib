@@ -59,7 +59,7 @@ object getGroup extends Function1[Path, GroupPrincipal] {
     Files.getFileAttributeView(
       p.toNIO,
       classOf[PosixFileAttributeView],
-      LinkOption.NOFOLLOW_LINKS
+      opts:_*
     ).readAttributes().group()
   }
 }
