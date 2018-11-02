@@ -99,16 +99,28 @@ case class proc(command: Shellable*) {
     // function being visible to the user (and possibly causing multithreading bugs!)
     val callbackQueue = new ArrayBlockingQueue[(Boolean, Array[Byte], Int)](1)
 
-    val inWriter = new Thread(() =>
-      Internals.transfer(stdin.getInputStream(), process.getOutputStream)
-    )
-    val outReader = new Thread(() =>
-      Internals.transfer0(process.getInputStream, (arr, n) => callbackQueue.add((true, arr, n)))
-    )
+    val inWriter = new Thread(new Runnable {
+      def run() = {
+        Internals.transfer(stdin.getInputStream(), process.getOutputStream)
+      }
+    })
+    val outReader = new Thread(new Runnable {
+      def run() = {
+        Internals.transfer0(
+          process.getInputStream,
+          (arr, n) => callbackQueue.add((true, arr, n))
+        )
+      }
+    })
 
-    val errReader = new Thread(() =>
-      Internals.transfer0(process.getErrorStream, (arr, n) => callbackQueue.add((false, arr, n)))
-    )
+    val errReader = new Thread(new Runnable {
+      def run() = {
+        Internals.transfer0(
+          process.getErrorStream,
+          (arr, n) => callbackQueue.add((false, arr, n))
+        )
+      }
+    })
     inWriter.start()
     outReader.start()
     errReader.start()

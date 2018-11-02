@@ -21,15 +21,7 @@ object list extends Function1[Path, IndexedSeq[Path]] {
     * is large.
     */
   object iter extends Function1[Path, geny.Generator[Path]]{
-    def apply(arg: Path) = geny.Generator.selfClosing{
-      try {
-        val dirStream = Files.newDirectoryStream(arg.toNIO)
-        import collection.JavaConverters._
-        (dirStream.iterator().asScala.map(Path(_)), () => dirStream.close())
-      } catch {
-        case _: AccessDeniedException => (Iterator[Path](), () => ())
-      }
-    }
+    def apply(arg: Path) = os.walk(arg, maxDepth = 1, followLinks = true)
   }
 }
 
