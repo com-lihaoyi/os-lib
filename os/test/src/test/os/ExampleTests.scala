@@ -191,7 +191,7 @@ object ExampleTests extends TestSuite{
       os.write(wd/'dir2/"file2.scala", "package example\nclass Bar{}\n")
 
       // Rename all .scala files inside the folder d into .java files
-      os.list(wd/'dir2).map(os.move{case r"$x.scala" => s"$x.java"})
+      os.list(wd/'dir2).map(os.move{case p/r"$x.scala" => p/s"$x.java"})
 
       // List files in a folder
       val renamed = os.list(wd/'dir2)
@@ -225,7 +225,7 @@ object ExampleTests extends TestSuite{
       // Chains
 
       // Move all files inside the "py" folder out of it
-      os.list(wd/"py").map(os.move.all*{case d/"py"/x => d/x })
+      os.list(wd/"py").map(os.move{case p/"py"/x => p/x })
 
       // Find all dot-files in the current folder
       val dots = os.list(wd).filter(_.last(0) == '.')

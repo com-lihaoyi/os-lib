@@ -501,10 +501,24 @@ Checks if a file or folder exists at the specified path
 
 ```scala
 os.move(from: Path, to: Path): Unit
+os.move(from: Path, to: Path, createFolders: Boolean): Unit
 ```
 
 Moves a file or folder from one path to another. Errors out if the destination
 path already exists, or is within the source path.
+
+`os.move` can also be used as a transformer:
+
+```scala
+os.move(t: PartialFunction[Path, Path]): PartialFunction[Path, Unit]
+```
+
+This lets you use `.map` or `.collect` on a list of paths, and move all of them
+at once:
+
+```scala
+paths.map(os.move{case p/"scala"/file => p/"java"/file})
+```
 
 #### os.move.into
 
@@ -527,12 +541,25 @@ folder than may already be present at that path
 
 ```scala
 os.copy(from: Path, to: Path): Unit
+os.copy(from: Path, to: Path, createFolders: Boolean): Unit
 ```
 
 Copy a file or folder from one path to another. Recursively copies folders with
 all their contents. Errors out if the destination path already exists, or is
 within the source path.
 
+`os.copy` can also be used as a transformer:
+
+```scala
+os.copy(t: PartialFunction[Path, Path]): PartialFunction[Path, Unit]
+```
+
+This lets you use `.map` or `.collect` on a list of paths, and copy all of them
+at once:
+
+```scala
+paths.map(os.copy{case p/"scala"/file => p/"java"/file})
+```
 
 #### os.copy.into
 

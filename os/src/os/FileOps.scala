@@ -52,14 +52,28 @@ object makeDir extends Function1[Path, Unit]{
 
 
 trait CopyMove extends Function2[Path, Path, Unit]{
+  def apply(from: Path, to: Path, createFolders: Boolean): Unit = {
+    if (createFolders) makeDir.all(to/up)
+    apply(from, to)
+  }
 
+  def apply(t: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
+    new PartialFunction[Path, Unit] {
+      def isDefinedAt(x: Path) = t.isDefinedAt(x)
+      def apply(from: Path) = {
+        val dest = t(from)
+        makeDir.all(dest/up)
+        CopyMove.this.apply(from, dest, createFolders = true)
+      }
+    }
+  }
   /**
     * Copy or move a file into a particular folder, rather
     * than into a particular path
     */
   object into extends Function2[Path, Path, Unit]{
     def apply(from: Path, to: Path) = {
-      CopyMove.this(from, to/from.last)
+      CopyMove.this.apply(from, to/from.last)
     }
   }
 
@@ -70,7 +84,7 @@ trait CopyMove extends Function2[Path, Path, Unit]{
   object over extends Function2[Path, Path, Unit]{
     def apply(from: Path, to: Path) = {
       remove(to)
-      CopyMove.this(from, to)
+      CopyMove.this.apply(from, to)
     }
   }
 }
@@ -79,7 +93,7 @@ trait CopyMove extends Function2[Path, Path, Unit]{
   * Moves a file or folder from one path to another. Errors out if the destination
   * path already exists, or is within the source path.
  */
-object move extends Function2[Path, Path, Unit] with Internals.Mover with CopyMove{
+object move extends Function2[Path, Path, Unit] with CopyMove{
   def apply(from: Path, to: Path): Unit = {
     require(
       !to.startsWith(from),
@@ -89,11 +103,6 @@ object move extends Function2[Path, Path, Unit] with Internals.Mover with CopyMo
   }
 
 
-  def check = false
-
-  object all extends Internals.Mover{
-    def check = true
-  }
 }
 
 /**
