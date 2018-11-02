@@ -191,7 +191,7 @@ object ExampleTests extends TestSuite{
       os.write(wd/'dir2/"file2.scala", "package example\nclass Bar{}\n")
 
       // Rename all .scala files inside the folder d into .java files
-      os.list(wd/'dir2).map(os.move{case p/r"$x.scala" => p/s"$x.java"})
+      os.list(wd/'dir2).map(os.move{case p/r"$x.scala" => p/r"$x.java"})
 
       // List files in a folder
       val renamed = os.list(wd/'dir2)

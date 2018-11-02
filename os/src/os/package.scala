@@ -13,6 +13,7 @@ package object os{
         val regex = head + tail.map("(.*)" + _).mkString
         regex.r.unapplySeq(s)
       }
+      def apply(s: Any*) = new StringContext(parts:_*).s(s:_*)
     }
   }
 

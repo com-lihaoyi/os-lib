@@ -145,15 +145,15 @@ object OpTests extends TestSuite{
           def fileSet = os.list(d).map(_.last).toSet
           assert(fileSet == Set("A.scala", "B.scala", "A.py", "B.py"))
           'partialMoves{
-            os.list(d).collect(os.move{case p/r"$x.scala" => p/s"$x.java"})
+            os.list(d).collect(os.move{case p/r"$x.scala" => p/r"$x.java"})
             assert(fileSet == Set("A.java", "B.java", "A.py", "B.py"))
-            os.list(d).collect(os.move{case p/r"A.$x" => p/s"C.$x"})
+            os.list(d).collect(os.move{case p/r"A.$x" => p/r"C.$x"})
             assert(fileSet == Set("C.java", "B.java", "C.py", "B.py"))
           }
           'fullMoves{
-            os.list(d).map(os.move{case p/r"$x.$y" => p/s"$y.$x"})
+            os.list(d).map(os.move{case p/r"$x.$y" => p/r"$y.$x"})
             assert(fileSet == Set("scala.A", "scala.B", "py.A", "py.B"))
-            def die = os.list(d).map(os.move{case p/r"A.$x" => p/s"C.$x"})
+            def die = os.list(d).map(os.move{case p/r"A.$x" => p/r"C.$x"})
             intercept[MatchError]{ die }
           }
         }
