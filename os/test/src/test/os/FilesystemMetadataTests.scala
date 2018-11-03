@@ -7,36 +7,64 @@ object FilesystemMetadataTests extends TestSuite {
   def tests = Tests{
     'stat - {
       * - prep{ wd =>
-
+        os.stat(wd / "File.txt").size ==> 8
+        os.stat(wd / "Multi Line.txt").size ==> 81
+        os.stat(wd / "folder1").fileType ==> os.FileType.Dir
       }
       'full - {
         * - prep{ wd =>
-
+          os.stat.full(wd / "File.txt").size ==> 8
+          os.stat.full(wd / "Multi Line.txt").size ==> 81
+          os.stat.full(wd / "folder1").fileType ==> os.FileType.Dir
         }
       }
     }
     'isFile - {
       * - prep{ wd =>
+        os.isFile(wd / "File.txt") ==> true
+        os.isFile(wd / "folder1") ==> false
 
+        os.isFile(wd / "misc" / "file-symlink") ==> true
+        os.isFile(wd / "misc" / "folder-symlink") ==> false
+        os.isFile(wd / "misc" / "file-symlink", followLinks = false) ==> false
       }
     }
     'isDir - {
       * - prep{ wd =>
+        os.isDir(wd / "File.txt") ==> false
+        os.isDir(wd / "folder1") ==> true
 
+        os.isDir(wd / "misc" / "file-symlink") ==> false
+        os.isDir(wd / "misc" / "folder-symlink") ==> true
+        os.isDir(wd / "misc" / "folder-symlink", followLinks = false) ==> false
       }
     }
     'isLink- {
       * - prep{ wd =>
-
+        os.isLink(wd / "misc" / "file-symlink") ==> true
+        os.isLink(wd / "misc" / "folder-symlink") ==> true
+        os.isLink(wd / "folder1") ==> false
       }
     }
     'size  {
       * - prep{ wd =>
-
+        os.size(wd / "File.txt") ==> 8
+        os.size(wd / "Multi Line.txt") ==> 81
       }
     }
     'mtime - {
       * - prep{ wd =>
+        os.mtime.set(wd / "File.txt", 0)
+        os.mtime(wd / "File.txt") ==> 0
+
+        os.mtime.set(wd / "File.txt", 90000)
+        os.mtime(wd / "File.txt") ==> 90000
+        os.mtime(wd / "misc" / "file-symlink") ==> 90000
+
+        os.mtime.set(wd / "misc" / "file-symlink", 70000)
+        os.mtime(wd / "File.txt") ==> 70000
+        os.mtime(wd / "misc" / "file-symlink") ==> 70000
+        assert(os.mtime(wd / "misc" / "file-symlink", followLinks = false) != 40000)
 
       }
     }

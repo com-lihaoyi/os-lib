@@ -52,6 +52,20 @@ object mtime extends Function1[Path, Long]{
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
     Files.getLastModifiedTime(p.toNIO, opts:_*).toMillis
   }
+
+  /**
+    * Sets the mtime of the given file.
+    *
+    * Note that this always follows links to set the mtime of the referred-to file.
+    * Unfortunately there is no Java API to set the mtime of the link itself:
+    *
+    * https://stackoverflow.com/questions/17308363/symlink-lastmodifiedtime-in-java-1-7
+    */
+  object set {
+    def apply(p: Path, millis: Long) = {
+      Files.setLastModifiedTime(p.toNIO, FileTime.fromMillis(millis))
+    }
+  }
 }
 
 /**
