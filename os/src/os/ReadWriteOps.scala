@@ -76,8 +76,10 @@ object write{
     }
   }
   /**
-    * Identical to [[write]], except if the file already exists,
-    * replaces the file instead of error-ing out
+    * Similar to [[os.write]], except if the file already exists this
+    * over-writes the existing file contents. You can also pass in `truncate = false`
+    * to avoid truncating the file if the new contents is shorter than the old
+    * contents, and an `offset` to the file you want to write to.
     */
   object over{
     def apply(target: Path,

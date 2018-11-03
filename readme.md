@@ -26,20 +26,9 @@ complete replacement for the `java.nio.file.Files`/`java.nio.file.Paths` and
 while also providing you all the power, flexibility and performance of the
 underlying operating system APIs.
 
-- [Getting Started](#getting-started)
-  - [Reading & Writing](#reading--writing)
-  - [Reading Resources](#reading-resources)
-  - [Appending & Over-writing](#appending--over-writing)
-  - [Making Folders](#making-folders)
-  - [Moving Things Around](#moving-things-around)
-  - [Listing & Walking](#listing--walking)
-  - [Reading Metadata](#reading-metadata)
-  - [Working with Permissions](#working-with-permissions)
-  - [Subprocess](#subprocesses)
-
 - [Operations](#operations)
 
-    Reading & Writing Files
+    Reading & Writing
 
     - [os.read](#osread)
     - [os.read.bytes](#osreadbytes)
@@ -49,7 +38,7 @@ underlying operating system APIs.
     - [os.write.append](#oswriteappend)
     - [os.write.over](#oswriteover)
 
-    Listing & Walking Files
+    Listing & Walking
 
     - [os.list](#oslist)
     - [os.list.stream](#osliststream)
@@ -77,7 +66,7 @@ underlying operating system APIs.
     - [os.temp](#ostemp)
     - [os.temp.dir](#ostempdir)
 
-    Reading Filesystem Metadata
+    Filesystem Metadata
 
     - [os.stat](#osstat)
     - [os.stat.full](#osstatfull)
@@ -295,7 +284,7 @@ assert(res2.out.string.trim == "Hello123")
 
 ## Operations
 
-### Reading & Writing Files
+### Reading & Writing
 
 #### os.read
 
@@ -390,11 +379,11 @@ os.write.over(target: Path,
 ```
 
 Similar to [os.write](#oswrite), except if the file already exists this
-over-writes the existing file contents. You can also pass in an `offset` to the
-file you want to write to, and `truncate = false` to avoid truncating the
-non-overwritten portion of the file.
+over-writes the existing file contents. You can also pass in `truncate = false`
+to avoid truncating the file if the new contents is shorter than the old
+contents, and an `offset` to the file you want to write to.
 
-### Listing & Walking Files
+### Listing & Walking
 
 #### os.list
 
@@ -690,7 +679,7 @@ where this file lives, a `prefix` to customize what it looks like, and a
 By default, temporary directories are deleted on JVM exit. You can disable that
 behavior by setting `deleteOnExit = false`
 
-### Reading Filesystem Metadata
+### Filesystem Metadata
 
 #### os.stat
 
