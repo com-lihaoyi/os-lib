@@ -114,7 +114,7 @@ case class proc(command: Shellable*) {
       def run() = {
         Internals.transfer0(
           process.getInputStream,
-          (arr, n) => callbackQueue.add((true, arr, n))
+          (arr, n) => callbackQueue.put((true, arr, n))
         )
       }
     })
@@ -123,7 +123,7 @@ case class proc(command: Shellable*) {
       def run() = {
         Internals.transfer0(
           process.getErrorStream,
-          (arr, n) => callbackQueue.add((false, arr, n))
+          (arr, n) => callbackQueue.put((false, arr, n))
         )
       }
     })

@@ -51,65 +51,75 @@ object makeDir extends Function1[Path, Unit]{
 }
 
 
-trait CopyMove {
-
-  def doAction(from: Path, to: Path, followLinks: Boolean): Unit
-
-  def apply(from: Path,
-            to: Path,
-            createFolders: Boolean = false,
-            followLinks: Boolean = true): Unit = {
-    if (createFolders) makeDir.all(to/up)
-    doAction(from, to, followLinks)
-  }
-
-  def apply(t: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
-    new PartialFunction[Path, Unit] {
-      def isDefinedAt(x: Path) = t.isDefinedAt(x)
-      def apply(from: Path) = {
-        val dest = t(from)
-        makeDir.all(dest/up)
-        CopyMove.this.apply(from, dest, createFolders = true)
-      }
-    }
-  }
-  /**
-    * Copy or move a file into a particular folder, rather
-    * than into a particular path
-    */
-  object into {
-    def apply(from: Path, to: Path, createFolders: Boolean = false, followLinks: Boolean = true) = {
-      CopyMove.this.apply(from, to/from.last, createFolders, followLinks)
-    }
-  }
-
-  /**
-    * Copy or move a file, stomping over anything
-    * that may have been there before
-    */
-  object over {
-    def apply(from: Path, to: Path, createFolders: Boolean = false, followLinks: Boolean = true) = {
-      remove(to)
-      CopyMove.this.apply(from, to, createFolders, followLinks)
-    }
-  }
-}
-
 /**
   * Moves a file or folder from one path to another. Errors out if the destination
   * path already exists, or is within the source path.
  */
-object move extends CopyMove{
-  def doAction(from: Path, to: Path, followLinks: Boolean): Unit = {
-    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+object move {
+  def matching(replaceExisting: Boolean = false,
+               atomicMove: Boolean = false,
+               createFolders: Boolean = false)
+              (partialFunction: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
+    new PartialFunction[Path, Unit] {
+      def isDefinedAt(x: Path) = partialFunction.isDefinedAt(x)
+      def apply(from: Path) = {
+        val dest = partialFunction(from)
+        makeDir.all(dest/up)
+        os.move(from, dest, replaceExisting, atomicMove, createFolders)
+      }
+    }
+
+  }
+  def matching(partialFunction: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
+    matching()(partialFunction)
+  }
+  def apply(from: Path,
+            to: Path,
+            replaceExisting: Boolean = false,
+            atomicMove: Boolean = false,
+            createFolders: Boolean = false): Unit = {
+    if (createFolders) makeDir.all(to/up)
+    val opts1 =
+      if (replaceExisting) Array[CopyOption](StandardCopyOption.REPLACE_EXISTING)
+      else Array[CopyOption]()
+    val opts2 =
+      if (atomicMove) Array[CopyOption](StandardCopyOption.ATOMIC_MOVE)
+      else Array[CopyOption]()
     require(
       !to.startsWith(from),
       s"Can't move a directory into itself: $to is inside $from"
     )
-    java.nio.file.Files.move(from.toNIO, to.toNIO)
+    java.nio.file.Files.move(from.toNIO, to.toNIO, opts1 ++ opts2:_*)
   }
 
+  /**
+    * Move a file into a particular folder, rather
+    * than into a particular path
+    */
+  object into {
+    def apply(from: Path,
+              to: Path,
+              replaceExisting: Boolean = false,
+              atomicMove: Boolean = false,
+              createFolders: Boolean = false): Unit = {
+      move.apply(from, to/from.last, replaceExisting, atomicMove, createFolders)
+    }
+  }
 
+  /**
+    * Move a file into a particular folder, rather
+    * than into a particular path
+    */
+  object over {
+    def apply(from: Path,
+              to: Path,
+              replaceExisting: Boolean = false,
+              atomicMove: Boolean = false,
+              createFolders: Boolean = false): Unit = {
+      os.remove.all(to)
+      move.apply(from, to, replaceExisting, atomicMove, createFolders)
+    }
+  }
 }
 
 /**
@@ -117,21 +127,83 @@ object move extends CopyMove{
   * all their contents. Errors out if the destination path already exists, or is
   * within the source path.
  */
-object copy extends CopyMove{
-  def doAction(from: Path, to: Path, followLinks: Boolean): Unit = {
-    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+object copy {
+  def matching(followLinks: Boolean = true,
+               replaceExisting: Boolean = false,
+               copyAttributes: Boolean = false,
+               createFolders: Boolean = false)
+              (partialFunction: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
+    new PartialFunction[Path, Unit] {
+      def isDefinedAt(x: Path) = partialFunction.isDefinedAt(x)
+      def apply(from: Path) = {
+        val dest = partialFunction(from)
+        makeDir.all(dest/up)
+        os.copy(from, dest, followLinks, replaceExisting, copyAttributes, createFolders)
+      }
+    }
+
+  }
+  def matching(partialFunction: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
+    matching()(partialFunction)
+  }
+  def apply(from: Path,
+            to: Path,
+            followLinks: Boolean = true,
+            replaceExisting: Boolean = false,
+            copyAttributes: Boolean = false,
+            createFolders: Boolean = false): Unit = {
+    if (createFolders) makeDir.all(to/up)
+    val opts1 =
+      if (followLinks) Array[CopyOption]()
+      else Array[CopyOption](LinkOption.NOFOLLOW_LINKS)
+    val opts2 =
+      if (replaceExisting) Array[CopyOption](StandardCopyOption.REPLACE_EXISTING)
+      else Array[CopyOption]()
+    val opts3 =
+      if (copyAttributes) Array[CopyOption](StandardCopyOption.COPY_ATTRIBUTES)
+      else Array[CopyOption]()
     require(
       !to.startsWith(from),
       s"Can't copy a directory into itself: $to is inside $from"
     )
     def copyOne(p: Path) = {
-      Files.copy(p.toNIO, (to/(p relativeTo from)).toNIO)
+      Files.copy(p.toNIO, (to/(p relativeTo from)).toNIO, opts1 ++ opts2 ++ opts3:_*)
     }
 
     copyOne(from)
     if (stat(from).isDir) walk(from).map(copyOne)
   }
 
+  /**
+    * Copy a file into a particular folder, rather
+    * than into a particular path
+    */
+  object into {
+    def apply(from: Path,
+              to: Path,
+              followLinks: Boolean = true,
+              replaceExisting: Boolean = false,
+              copyAttributes: Boolean = false,
+              createFolders: Boolean = false): Unit = {
+      os.copy(from, to/from.last, followLinks, replaceExisting, copyAttributes, createFolders)
+    }
+  }
+
+  /**
+    * Copy a file into a particular folder, rather
+    * than into a particular path
+    */
+  object over{
+    def apply(from: Path,
+              to: Path,
+              followLinks: Boolean = true,
+              replaceExisting: Boolean = false,
+              copyAttributes: Boolean = false,
+              createFolders: Boolean = false): Unit = {
+      os.remove.all(to)
+      os.copy(from, to, followLinks, replaceExisting, copyAttributes, createFolders)
+    }
+  }
 }
 
 /**

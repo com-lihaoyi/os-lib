@@ -142,15 +142,15 @@ object OpTests extends TestSuite{
           def fileSet = os.list(d).map(_.last).toSet
           assert(fileSet == Set("A.scala", "B.scala", "A.py", "B.py"))
           'partialMoves{
-            os.list(d).collect(os.move{case p/g"$x.scala" => p/g"$x.java"})
+            os.list(d).collect(os.move.matching{case p/g"$x.scala" => p/g"$x.java"})
             assert(fileSet == Set("A.java", "B.java", "A.py", "B.py"))
-            os.list(d).collect(os.move{case p/g"A.$x" => p/g"C.$x"})
+            os.list(d).collect(os.move.matching{case p/g"A.$x" => p/g"C.$x"})
             assert(fileSet == Set("C.java", "B.java", "C.py", "B.py"))
           }
           'fullMoves{
-            os.list(d).map(os.move{case p/g"$x.$y" => p/g"$y.$x"})
+            os.list(d).map(os.move.matching{case p/g"$x.$y" => p/g"$y.$x"})
             assert(fileSet == Set("scala.A", "scala.B", "py.A", "py.B"))
-            def die = os.list(d).map(os.move{case p/g"A.$x" => p/g"C.$x"})
+            def die = os.list(d).map(os.move.matching{case p/g"A.$x" => p/g"C.$x"})
             intercept[MatchError]{ die }
           }
         }
@@ -161,7 +161,7 @@ object OpTests extends TestSuite{
           os.write(d/'py/'A, "APy")
           os.write(d/'py/'B, "BPy")
           'partialMoves{
-            os.walk(d).collect(os.move{case d/"py"/x => d/x })
+            os.walk(d).collect(os.move.matching{case d/"py"/x => d/x })
             assert(
               os.walk(d).toSet == Set(
                 d/'py,
@@ -174,10 +174,10 @@ object OpTests extends TestSuite{
             )
           }
           'fullMoves{
-            def die = os.walk(d).map(os.move{case d/"py"/x => d/x })
+            def die = os.walk(d).map(os.move.matching{case d/"py"/x => d/x })
             intercept[MatchError]{ die }
 
-            os.walk(d).filter(os.isFile).map(os.move{
+            os.walk(d).filter(os.isFile).map(os.move.matching{
               case d/"py"/x => d/'scala/'py/x
               case d/"scala"/x => d/'py/'scala/x
               case d => println("NOT FOUND " + d); d
