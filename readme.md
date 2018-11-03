@@ -110,9 +110,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.0.1"
+"com.lihaoyi" %% "os-lib" % "0.1.0"
 // Mill
-ivy"com.lihaoyi::os-lib:0.0.1"
+ivy"com.lihaoyi::os-lib:0.1.0"
 ```
 
 ## Cookbook
@@ -123,7 +123,7 @@ thing to do is to define a `wd` path representing the folder you want to work
 with:
 
 ```scala
-val wd = os.pwd/"out"/"splash"
+val wd = os.pwd/"my-test-folder"
 ```
 
 You can of course multiple base paths, to use in different parts of your program
