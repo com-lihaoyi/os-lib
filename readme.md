@@ -26,6 +26,10 @@ complete replacement for the `java.nio.file.Files`/`java.nio.file.Paths` and
 while also providing you all the power, flexibility and performance of the
 underlying operating system APIs.
 
+OS-Lib draws inspiration from the Python `os`, `sys`, `shutil` and and
+`subprocess` modules, and aims to make working with files and processes in Scala
+as simple as any scripting language.
+
 - [Getting Started](#getting-started)
 - [Cookbook](#cookbook)
     - [Concatenate text files](#concatenate-text-files)
@@ -103,6 +107,8 @@ underlying operating system APIs.
     - [os.Source](#ossource)
     - [os.Generator](#osgenerator)
     - [os.PermSet](#ospermset)
+
+- [Changelog](#changelog)
 
 ## Getting Started
 
@@ -1593,3 +1599,8 @@ string, int or set representations of the `os.PermSet` via:
 - `perms.toString(): String`
 - `perms.value: Set[PosixFilePermission]`
 
+## Changelog
+
+### 0.1.0
+
+- First release
