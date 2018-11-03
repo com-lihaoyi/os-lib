@@ -21,25 +21,27 @@ object FilesystemPermissionsTests extends TestSuite {
     'owner - {
       * - prep { wd =>
         // Only works as root :(
-        //
-        // val originalOwner = os.owner(wd / "File.txt")
-        //
-        // os.owner.set(wd / "File.txt", "nobody")
-        // os.owner(wd / "File.txt").getName ==> "nobody"
-        //
-        // os.owner.set(wd / "File.txt", originalOwner)
+        if(false){
+          val originalOwner = os.owner(wd / "File.txt")
+
+          os.owner.set(wd / "File.txt", "nobody")
+          os.owner(wd / "File.txt").getName ==> "nobody"
+
+          os.owner.set(wd / "File.txt", originalOwner)
+        }
       }
     }
     'group - {
       * - prep { wd =>
         // Only works as root :(
-        //
-        // val originalOwner = os.owner(wd / "File.txt")
-        //
-        // os.owner.set(wd / "File.txt", "nobody")
-        // os.owner(wd / "File.txt").getName ==> "nobody"
-        //
-        // os.owner.set(wd / "File.txt", originalOwner)
+        if (false){
+          val originalOwner = os.owner(wd / "File.txt")
+
+          os.owner.set(wd / "File.txt", "nobody")
+          os.owner(wd / "File.txt").getName ==> "nobody"
+
+          os.owner.set(wd / "File.txt", originalOwner)
+        }
       }
     }
   }

@@ -127,6 +127,15 @@ Reads the contents of a [os.Path](#ospath) or other [os.Source](#ossource) as a
 also select a different `charSet` to use, and provide an `offset`/`count` to
 read from if the source supports seeking.
 
+```scala
+os.read(wd / "File.txt") ==> "I am cow"
+os.read(wd / "folder1" / "one.txt") ==> "Contents of folder one"
+os.read(wd / "Multi Line.txt") ==>
+  """I am cow
+    |Hear me moo
+    |I weigh twice as much as you
+    |And I look good on the barbecue""".stripMargin
+```
 #### os.read.bytes
 
 ```scala
@@ -137,6 +146,11 @@ os.read.bytes(arg: os.SeekableSource, offset: Long, count: Int): Array[Byte]
 Reads the contents of a [os.Path](#ospath) or [os.Source](#ossource) as an
 `Array[Byte]`; you can provide an `offset`/`count` to read from if the source
 supports seeking.
+
+```scala
+os.read.bytes(wd / "File.txt") ==> "I am cow".getBytes
+os.read.bytes(wd / "misc" / "binary.png").length ==> 711
+```
 
 #### os.read.lines
 
@@ -149,6 +163,16 @@ Reads the given [os.Path](#ospath) or other [os.Source](#ossource) as a string
 and splits it into lines; defaults to reading as UTF-8, which you can override
 by specifying a `charSet`.
 
+```scala
+os.read.lines(wd / "File.txt") ==> Seq("I am cow")
+os.read.lines(wd / "Multi Line.txt") ==> Seq(
+  "I am cow",
+  "Hear me moo",
+  "I weigh twice as much as you",
+  "And I look good on the barbecue"
+)
+```
+
 #### os.read.lines.stream
 
 ```scala
@@ -157,8 +181,18 @@ os.read.lines(arg: os.Source, charSet: Codec): os.Generator[String]
 ```
 
 Identical to [os.read.lines](#osreadlines), but streams the results back to you
-in a [os.Generator](#osgenerator) rather than accumulating them in memory. Useful if the file is
-large.
+in a [os.Generator](#osgenerator) rather than accumulating them in memory.
+Useful if the file is large.
+
+```scala
+os.read.lines.stream(wd / "File.txt").count() ==> 1
+os.read.lines.stream(wd / "Multi Line.txt").count() ==> 4
+
+// Streaming the lines to the console
+for(line <- os.read.lines.stream(wd / "Multi Line.txt")){
+  println(line)
+}
+```
 
 #### os.write
 
@@ -180,6 +214,14 @@ an existing file, see [os.write.over](#oswriteover) or
 By default, this creates any necessary enclosing folders; you can disable this
 behavior by setting `createFolders = false`
 
+```scala
+os.write(wd / "New File.txt", "New File Contents")
+os.read(wd / "New File.txt") ==> "New File Contents"
+
+os.write(wd / "NewBinary.bin", Array[Byte](0, 1, 2, 3))
+os.read.bytes(wd / "NewBinary.bin") ==> Array[Byte](0, 1, 2, 3)
+```
+
 #### os.write.append
 
 ```scala
@@ -191,6 +233,21 @@ os.write.append(target: Path,
 
 Similar to [os.write](#oswrite), except if the file already exists this appends
 the written data to the existing file contents.
+
+```scala
+os.read(wd / "File.txt") ==> "I am cow"
+
+os.write.append(wd / "File.txt", ", hear me moo")
+os.read(wd / "File.txt") ==> "I am cow, hear me moo"
+
+os.write.append(wd / "File.txt", ",\nI weigh twice as much as you")
+os.read(wd / "File.txt") ==>
+  "I am cow, hear me moo,\nI weigh twice as much as you"
+
+os.read.bytes(wd / "misc" / "binary.png").length ==> 711
+os.write.append(wd / "misc" / "binary.png", Array[Byte](1, 2, 3))
+os.read.bytes(wd / "misc" / "binary.png").length ==> 714
+```
 
 #### os.write.over
 
@@ -208,6 +265,19 @@ over-writes the existing file contents. You can also pass in `truncate = false`
 to avoid truncating the file if the new contents is shorter than the old
 contents, and an `offset` to the file you want to write to.
 
+```scala
+os.read(wd / "File.txt") ==> "I am cow"
+os.write.over(wd / "File.txt", "You are cow")
+
+os.read(wd / "File.txt") ==> "You are cow"
+
+os.write.over(wd / "File.txt", "We ", truncate = false)
+os.read(wd / "File.txt") ==> "We  are cow"
+
+os.write.over(wd / "File.txt", "s", offset = 8, truncate = false)
+os.read(wd / "File.txt") ==> "We  are sow"
+```
+
 ### Listing & Walking
 
 #### os.list
@@ -221,6 +291,14 @@ path is not a folder, raises an error. Can be called via
 [os.list.stream](#osliststream) to stream the results. To list files recursively,
 use [os.walk](#oswalk).
 
+```scala
+os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.list(wd / "folder2") ==> Seq(
+  wd / "folder2" / "nestedA",
+  wd / "folder2" / "nestedB"
+)
+```
+
 #### os.list.stream
 
 ```scala
@@ -230,6 +308,15 @@ os.list.stream(p: Path): os.Generator[Path]
 Similar to [os.list](#oslist), except provides a [os.Generator](#osgenerator) of
 results rather than accumulating all of them in memory. Useful if the result set
 is large.
+
+```scala
+os.list.stream(wd / "folder2").count() ==> 2
+
+// Streaming the listed files to the console
+for(line <- os.list.stream(wd / "folder2")){
+  println(line)
+}
+```
 
 #### os.walk
 
@@ -257,6 +344,34 @@ occurs last after all it's contents.
 override that behavior. You can also specify a maximum depth you wish to walk
 via the `maxDepth` parameter.
 
+```scala
+os.walk(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+
+os.walk(wd / "folder2") ==> Seq(
+  wd / "folder2" / "nestedA",
+  wd / "folder2" / "nestedA" / "a.txt",
+  wd / "folder2" / "nestedB",
+  wd / "folder2" / "nestedB" / "b.txt"
+)
+
+os.walk(wd / "folder2", preOrder = false) ==> Seq(
+  wd / "folder2" / "nestedA" / "a.txt",
+  wd / "folder2" / "nestedA",
+  wd / "folder2" / "nestedB" / "b.txt",
+  wd / "folder2" / "nestedB"
+)
+
+os.walk(wd / "folder2", maxDepth = 1) ==> Seq(
+  wd / "folder2" / "nestedA",
+  wd / "folder2" / "nestedB"
+)
+
+os.walk(wd / "folder2", skip = _.last == "nestedA") ==> Seq(
+  wd / "folder2" / "nestedB",
+  wd / "folder2" / "nestedB" / "b.txt"
+)
+```
+
 #### os.walk.attrs
 
 ```scala
@@ -270,6 +385,20 @@ os.walk.attrs(path: Path,
 Similar to [os.walk](#oswalk), except it also provides the filesystem metadata
 of every path that it returns. Can save time by allowing you to avoid querying
 the filesystem for metadata later.
+
+```scala
+val filesSortedBySize = os.walk.attrs(wd / "misc", followLinks = true)
+  .sortBy{case (p, attrs) => attrs.size()}
+  .collect{case (p, attrs) if attrs.isRegularFile => p}
+
+filesSortedBySize ==> Seq(
+  wd / "misc" / "echo",
+  wd / "misc" / "file-symlink",
+  wd / "misc" / "echo_with_wd",
+  wd / "misc" / "folder-symlink" / "one.txt",
+  wd / "misc" / "binary.png"
+)
+```
 
 #### os.walk.stream
 
@@ -287,6 +416,14 @@ the results rather than accumulating them in memory. Useful if you are walking
 very large folder hierarchies, or if you wish to begin processing the output
 even before the walk has completed.
 
+```scala
+os.walk.stream(wd / "folder1").count() ==> 1
+
+os.walk.stream(wd / "folder2").count() ==> 4
+
+os.walk.stream(wd / "folder2", skip = _.last == "nestedA").count() ==> 2
+```
+
 #### os.walk.stream.attrs
 
 ```scala
@@ -301,6 +438,14 @@ Similar to [os.walk.stream](#oswalkstream), except it also provides the filesyst
 metadata of every path that it returns. Can save time by allowing you to avoid
 querying the filesystem for metadata later.
 
+```scala
+def totalFileSizes(p: os.Path) = os.walk.stream.attrs(p)
+  .collect{case (p, attrs) if attrs.isRegularFile => attrs.size()}
+  .sum
+
+totalFileSizes(wd / "folder1") ==> 22
+totalFileSizes(wd / "folder2") ==> 40
+```
 ### Manipulating Files & Folders
 
 #### os.exists
@@ -310,6 +455,17 @@ os.exists(p: Path, followLinks: Boolean = true): Boolean
 ```
 
 Checks if a file or folder exists at the specified path
+
+```scala
+os.exists(wd / "File.txt") ==> true
+os.exists(wd / "folder1") ==> true
+os.exists(wd / "doesnt-exist") ==> false
+
+os.exists(wd / "misc" / "file-symlink") ==> true
+os.exists(wd / "misc" / "folder-symlink") ==> true
+os.exists(wd / "misc" / "broken-symlink") ==> false
+os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> true
+```
 
 #### os.move
 
@@ -321,17 +477,35 @@ os.move(from: Path, to: Path, createFolders: Boolean): Unit
 Moves a file or folder from one path to another. Errors out if the destination
 path already exists, or is within the source path.
 
+```scala
+os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.move(wd / "folder1" / "one.txt", wd / "folder1" / "first.txt")
+os.list(wd / "folder1") ==> Seq(wd / "folder1" / "first.txt")
+
+os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.move(wd / "folder2" / "nestedA", wd / "folder2" / "nestedC")
+os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedB", wd / "folder2" / "nestedC")
+
+os.read(wd / "File.txt") ==> "I am cow"
+os.move(wd / "Multi Line.txt", wd / "File.txt", replaceExisting = true)
+os.read(wd / "File.txt") ==>
+  """I am cow
+    |Hear me moo
+    |I weigh twice as much as you
+    |And I look good on the barbecue""".stripMargin
+```
+
 `os.move` can also be used as a transformer:
 
 ```scala
-os.move(t: PartialFunction[Path, Path]): PartialFunction[Path, Unit]
+os.move.matching(t: PartialFunction[Path, Path]): PartialFunction[Path, Unit]
 ```
 
 This lets you use `.map` or `.collect` on a list of paths, and move all of them
 at once:
 
 ```scala
-paths.map(os.move{case p/"scala"/file => p/"java"/file})
+paths.map(os.move.matching{case p/"scala"/file => p/"java"/file})
 ```
 
 #### os.move.into
@@ -342,6 +516,12 @@ os.move.into(from: Path, to: Path): Unit
 
 Move the given file or folder *into* the destination folder
 
+```scala
+os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.move.into(wd / "File.txt", wd / "folder1")
+os.list(wd / "folder1") ==> Seq(wd / "folder1" / "File.txt", wd / "folder1" / "one.txt")
+```
+
 #### os.move.over
 
 ```scala
@@ -350,6 +530,12 @@ os.move.over(from: Path, to: Path): Unit
 
 Move a file or folder from one path to another, and *overwrite* any file or
 folder than may already be present at that path
+
+```scala
+os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.move.over(wd / "folder1", wd / "folder2")
+os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
+```
 
 #### os.copy
 
@@ -362,17 +548,39 @@ Copy a file or folder from one path to another. Recursively copies folders with
 all their contents. Errors out if the destination path already exists, or is
 within the source path.
 
+```scala
+os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.copy(wd / "folder1" / "one.txt", wd / "folder1" / "first.txt")
+os.list(wd / "folder1") ==> Seq(wd / "folder1" / "first.txt", wd / "folder1" / "one.txt")
+
+os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.copy(wd / "folder2" / "nestedA", wd / "folder2" / "nestedC")
+os.list(wd / "folder2") ==> Seq(
+  wd / "folder2" / "nestedA",
+  wd / "folder2" / "nestedB",
+  wd / "folder2" / "nestedC"
+)
+
+os.read(wd / "File.txt") ==> "I am cow"
+os.copy(wd / "Multi Line.txt", wd / "File.txt", replaceExisting = true)
+os.read(wd / "File.txt") ==>
+  """I am cow
+    |Hear me moo
+    |I weigh twice as much as you
+    |And I look good on the barbecue""".stripMargin
+    ```
+    
 `os.copy` can also be used as a transformer:
 
 ```scala
-os.copy(t: PartialFunction[Path, Path]): PartialFunction[Path, Unit]
+os.copy.matching(t: PartialFunction[Path, Path]): PartialFunction[Path, Unit]
 ```
 
 This lets you use `.map` or `.collect` on a list of paths, and copy all of them
 at once:
 
 ```scala
-paths.map(os.copy{case p/"scala"/file => p/"java"/file})
+paths.map(os.copy.matching{case p/"scala"/file => p/"java"/file})
 ```
 
 #### os.copy.into
@@ -383,6 +591,12 @@ os.copy.into(from: Path, to: Path): Unit
 
 Copy the given file or folder *into* the destination folder
 
+```scala
+os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.copy.into(wd / "File.txt", wd / "folder1")
+os.list(wd / "folder1") ==> Seq(wd / "folder1" / "File.txt", wd / "folder1" / "one.txt")
+```
+
 #### os.copy.over
 
 ```scala
@@ -392,6 +606,11 @@ os.copy.over(from: Path, to: Path): Unit
 Similar to [os.copy](#oscopy), but if the destination file already exists then
 overwrite it instead of erroring out.
 
+```scala
+os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.copy.over(wd / "folder1", wd / "folder2")
+os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
+```
 #### os.makeDir
 
 ```scala
@@ -408,6 +627,12 @@ specified path does not exist. To automatically create enclosing directories and
 ignore the destination if it already exists, using
 [os.makeDir.all](#osmakedirall)
 
+```scala
+os.exists(wd / "new_folder") ==> false
+os.makeDir(wd / "new_folder")
+os.exists(wd / "new_folder") ==> true
+```
+
 #### os.makeDir.all
 
 ```scala
@@ -419,6 +644,11 @@ Similar to [os.makeDir](#osmakedir), but automatically creates any necessary
 enclosing directories if they do not exist, and does not raise an error if the
 destination path already containts a directory.
 
+```scala
+os.exists(wd / "new_folder") ==> false
+os.makeDir.all(wd / "new_folder" / "inner" / "deep")
+os.exists(wd / "new_folder" / "inner" / "deep") ==> true
+```
 #### os.remove
 
 ```scala
@@ -428,6 +658,17 @@ os.remove(target: Path): Unit
 Remove the target file or folder. Folders need to be empty to be removed; if you
 want to remove a folder tree recursively, use [os.remove.all](#osremoveall)
 
+```scala
+os.exists(wd / "File.txt") ==> true
+os.remove(wd / "File.txt")
+os.exists(wd / "File.txt") ==> false
+
+os.exists(wd / "folder1" / "one.txt") ==> true
+os.remove(wd / "folder1" / "one.txt")
+os.remove(wd / "folder1")
+os.exists(wd / "folder1" / "one.txt") ==> false
+os.exists(wd / "folder1") ==> false
+```
 #### os.remove.all
 
 ```scala
@@ -435,7 +676,14 @@ os.remove.all(target: Path): Unit
 ```
 
 Remove the target file or folder; if it is a folder and not empty, recursively
-remove all it's contents before deleting it.
+removing all it's contents before deleting it.
+
+```scala
+os.exists(wd / "folder1" / "one.txt") ==> true
+os.remove.all(wd / "folder1")
+os.exists(wd / "folder1" / "one.txt") ==> false
+os.exists(wd / "folder1") ==> false
+```
 
 #### os.hardlink
 
@@ -443,7 +691,14 @@ remove all it's contents before deleting it.
 os.hardlink(src: Path, dest: Path, perms): Unit
 ```
 
-Create a hardlink from the source path to the destination path
+Create a hardlink to the source path from the destination path
+
+```scala
+os.hardlink(wd / "File.txt", wd / "Linked.txt")
+os.exists(wd / "Linked.txt")
+os.read(wd / "Linked.txt") ==> "I am cow"
+os.isLink(wd / "Linked.txt") ==> false
+```
 
 #### os.symlink
 
@@ -451,9 +706,15 @@ Create a hardlink from the source path to the destination path
 os.symlink(src: Path, dest: Path, perms: PermSet = null): Unit
 ```
 
-Create a symbolic from the source path to the destination path. Optionally takes
+Create a symbolic to the source path from the destination path. Optionally takes
 a [os.PermSet](#ospermset) to customize the filesystem permissions of the symbolic
 link.
+```scala
+os.symlink(wd / "File.txt", wd / "Linked.txt")
+os.exists(wd / "Linked.txt")
+os.read(wd / "Linked.txt") ==> "I am cow"
+os.isLink(wd / "Linked.txt") ==> true
+```
 
 #### os.followLink
 
@@ -464,6 +725,12 @@ os.followLink(src: Path): Option[Path]
 Attempts to any symbolic links in the given path and return the canonical path.
 Returns `None` if the path cannot be resolved (i.e. some symbolic link in the
 given path is broken)
+
+```scala
+os.followLink(wd / "misc" / "file-symlink") ==> Some(wd / "File.txt")
+os.followLink(wd / "misc" / "folder-symlink") ==> Some(wd / "folder1")
+os.followLink(wd / "misc" / "broken-symlink") ==> None
+```
 
 #### os.temp
 
@@ -486,6 +753,12 @@ the provided data; otherwise it is created empty.
 By default, temporary files are deleted on JVM exit. You can disable that
 behavior by setting `deleteOnExit = false`
 
+```scala
+val tempOne = os.temp("default content")
+os.read(tempOne) ==> "default content"
+os.write.over(tempOne, "Hello")
+os.read(tempOne) ==> "Hello"
+```
 
 #### os.temp.dir
 
@@ -504,6 +777,13 @@ where this file lives, a `prefix` to customize what it looks like, and a
 By default, temporary directories are deleted on JVM exit. You can disable that
 behavior by setting `deleteOnExit = false`
 
+```scala
+val tempDir = os.temp.dir()
+os.list(tempDir) ==> Nil
+os.write(tempDir / "file", "Hello")
+os.list(tempDir) ==> Seq(tempDir / "file")
+```
+
 ### Filesystem Metadata
 
 #### os.stat
@@ -517,6 +797,11 @@ symbolic links to read the metadata of whatever the link is pointing at; set
 `followLinks = false` to disable that and instead read the metadata of the
 symbolic link itself.
 
+```scala
+os.stat(wd / "File.txt").size ==> 8
+os.stat(wd / "Multi Line.txt").size ==> 81
+os.stat(wd / "folder1").fileType ==> os.FileType.Dir
+```
 #### os.stat.full
 
 ```scala
@@ -528,6 +813,11 @@ symbolic links to read the metadata of whatever the link is pointing at; set
 `followLinks = false` to disable that and instead read the metadata of the
 symbolic link itself.
 
+```
+os.stat.full(wd / "File.txt").size ==> 8
+os.stat.full(wd / "Multi Line.txt").size ==> 81
+os.stat.full(wd / "folder1").fileType ==> os.FileType.Dir
+```
 #### os.isFile
 
 ```scala
@@ -536,6 +826,15 @@ os.isFile(p: Path, followLinks: Boolean = true): Boolean
 
 Returns `true` if the given path is a file. Follows symbolic links by default,
 pass in `followLinks = false` to not do so.
+
+```scala
+os.isFile(wd / "File.txt") ==> true
+os.isFile(wd / "folder1") ==> false
+
+os.isFile(wd / "misc" / "file-symlink") ==> true
+os.isFile(wd / "misc" / "folder-symlink") ==> false
+os.isFile(wd / "misc" / "file-symlink", followLinks = false) ==> false
+```
 
 #### os.isDir
 
@@ -546,6 +845,14 @@ os.isDir(p: Path, followLinks: Boolean = true): Boolean
 Returns `true` if the given path is a folder. Follows symbolic links by default,
 pass in `followLinks = false` to not do so.
 
+```scala
+os.isDir(wd / "File.txt") ==> false
+os.isDir(wd / "folder1") ==> true
+
+os.isDir(wd / "misc" / "file-symlink") ==> false
+os.isDir(wd / "misc" / "folder-symlink") ==> true
+os.isDir(wd / "misc" / "folder-symlink", followLinks = false) ==> false
+```
 #### os.isLink
 
 
@@ -556,7 +863,11 @@ os.isLink(p: Path, followLinks: Boolean = true): Boolean
 Returns `true` if the given path is a symbolic link. Follows symbolic links by
 default, pass in `followLinks = false` to not do so.
 
-
+```scala
+os.isLink(wd / "misc" / "file-symlink") ==> true
+os.isLink(wd / "misc" / "folder-symlink") ==> true
+os.isLink(wd / "folder1") ==> false
+```
 #### os.size
 
 ```scala
@@ -565,14 +876,32 @@ os.size(p: Path): Long
 
 Returns the size of the given file, in bytes
 
+```scala
+os.size(wd / "File.txt") ==> 8
+os.size(wd / "Multi Line.txt") ==> 81
+```
 #### os.mtime
 
 ```scala
 os.mtime(p: Path): Long
+os.mtime.set(p: Path, millis: Long): Unit
 ```
 
-Returns the last-modified timestamp of the given file, in milliseconds
+Gets or sets the last-modified timestamp of the given file, in milliseconds
 
+```scala
+os.mtime.set(wd / "File.txt", 0)
+os.mtime(wd / "File.txt") ==> 0
+
+os.mtime.set(wd / "File.txt", 90000)
+os.mtime(wd / "File.txt") ==> 90000
+os.mtime(wd / "misc" / "file-symlink") ==> 90000
+
+os.mtime.set(wd / "misc" / "file-symlink", 70000)
+os.mtime(wd / "File.txt") ==> 70000
+os.mtime(wd / "misc" / "file-symlink") ==> 70000
+assert(os.mtime(wd / "misc" / "file-symlink", followLinks = false) != 40000)
+```
 ### Filesystem Permissions
 
 #### os.perms
@@ -591,6 +920,18 @@ or [os.makeDir](#osmakedir). That will ensure the file or folder is created
 atomically with the given permissions, rather than being created with the
 default set of permissions and having `os.perms.set` over-write them later
 
+```scala
+os.perms.set(wd / "File.txt", "rwxrwxrwx")
+os.perms(wd / "File.txt").toString() ==> "rwxrwxrwx"
+os.perms(wd / "File.txt").toInt() ==> Integer.parseInt("777", 8)
+
+os.perms.set(wd / "File.txt", Integer.parseInt("755", 8))
+os.perms(wd / "File.txt").toString() ==> "rwxr-xr-x"
+
+os.perms.set(wd / "File.txt", "r-xr-xr-x")
+os.perms.set(wd / "File.txt", Integer.parseInt("555", 8))
+```
+
 #### os.owner
 
 ```scala
@@ -599,7 +940,17 @@ os.owner.set(arg1: Path, arg2: UserPrincipal): Unit
 os.owner.set(arg1: Path, arg2: String): Unit
 ```
 
-Gets or sets the owner of the given file or folder.
+Gets or sets the owner of the given file or folder. Note that your process needs
+to be running as the `root` user in order to do this.
+
+```scala
+val originalOwner = os.owner(wd / "File.txt")
+
+os.owner.set(wd / "File.txt", "nobody")
+os.owner(wd / "File.txt").getName ==> "nobody"
+
+os.owner.set(wd / "File.txt", originalOwner)
+```
 
 
 #### os.group
@@ -608,10 +959,19 @@ Gets or sets the owner of the given file or folder.
 os.group(p: Path, followLinks: Boolean = true): GroupPrincipal
 os.group.set(arg1: Path, arg2: GroupPrincipal): Unit
 os.group.set(arg1: Path, arg2: String): Unit
-
 ```
 
-Gets or sets the owning group of the given file or folder.
+Gets or sets the owning group of the given file or folder. Note that your
+process needs to be running as the `root` user in order to do this.
+
+```scala
+val originalOwner = os.owner(wd / "File.txt")
+
+os.owner.set(wd / "File.txt", "nobody")
+os.owner(wd / "File.txt").getName ==> "nobody"
+
+os.owner.set(wd / "File.txt", originalOwner)
+```
 
 ### Spawning Subprocesses
 
@@ -647,10 +1007,9 @@ parent process, stream them into buffers, or output them to files. The following
   path, reading it's standard input from a file or writing it's standard
   output/error to the file.
 
-Often, if you are only interested in manipulating the standard output of the
-subprocess, you might set `stderr = os.Inherit` so any error messages are sent
-to the console while the main output data is still sent to the parent process
-for it to make use of.
+Often, if you are only interested in capturing the standard output of the
+subprocess but want any errors sent to the console, you might set `stderr =
+os.Inherit` while leaving `stdout = os.Pipe`.
 
 #### os.proc.call
 
@@ -687,6 +1046,38 @@ is run:
 - `propagateEnv`: disable this to avoid passing in this parent process's
   environment variables to the subprocess
 
+
+```scala
+val res = os.proc('ls, wd/"folder2").call()
+
+res.exitCode ==> 0
+
+res.out.string ==>
+  """nestedA
+    |nestedB
+    |""".stripMargin
+
+res.out.trim ==>
+  """nestedA
+    |nestedB""".stripMargin
+
+res.out.lines ==> Seq(
+  "nestedA",
+  "nestedB"
+)
+
+res.out.bytes
+
+
+val fail = os.proc('ls, "doesnt-exist").call(cwd = wd)
+
+fail.exitCode ==> 1
+
+fail.out.string ==> ""
+
+assert(fail.err.string.contains("No such file or directory"))
+```
+
 If you want to spawn an interactive subprocess, such as `vim`, `less`, or a
 `python` shell, set all of `stdin`/`stdout`/`stderr` to `os.Inherit`:
 
@@ -717,6 +1108,15 @@ receive the data as it is generated.
 
 Returns the exit code of the subprocess once it terminates
 
+```scala
+var lineCount = 1
+os.proc('find, ".").stream(
+  cwd = wd,
+  onOut = (buf, len) => lineCount += buf.slice(0, len).count(_ == '\n'),
+  onErr = (buf, len) => () // do nothing
+)
+lineCount ==> 21
+```
 #### os.proc.spawn
 
 ```scala
@@ -732,8 +1132,16 @@ os.proc(command: os.Shellable*)
 
 The most flexible of the `os.proc` calls, `os.proc.spawn` simply configures and
 starts a subprocess, and returns it as a `java.lang.Process` for you to interact
-with however you like.
+with however you like, e.g. by sending commands to it's `stdin` and reading from
+it's `stdout`.
 
+```scala
+val sub = os.proc("python", "-c", "print eval(raw_input())").spawn(cwd = wd)
+val out = new BufferedReader(new InputStreamReader(sub.getInputStream))
+sub.getOutputStream.write("1 + 2 + 3\n".getBytes)
+sub.getOutputStream.flush()
+out.readLine() ==> "6"
+```
 
 ## Data Types
 

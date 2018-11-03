@@ -38,6 +38,10 @@ object SpawningSubprocessesTests extends TestSuite {
           fail.out.string ==> ""
 
           assert(fail.err.string.contains("No such file or directory"))
+
+          if (false){
+            os.proc("vim").call(stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit)
+          }
         }
       }
       'stream - {
