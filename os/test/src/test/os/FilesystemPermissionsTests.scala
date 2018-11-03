@@ -5,34 +5,34 @@ import utest._
 
 object FilesystemPermissionsTests extends TestSuite {
   def tests = Tests{
-    'getPerms - {
+    'perms - {
       * - prep { wd =>
 
       }
+      'set - {
+        * - prep { wd =>
+
+        }
+      }
     }
-    'setPerms - {
+    'owner - {
       * - prep { wd =>
 
       }
+      'set - {
+        * - prep { wd =>
+
+        }
+      }
     }
-    'getOwner - {
+    'group - {
       * - prep { wd =>
 
       }
-    }
-    'setOwner - {
-      * - prep { wd =>
+      'set - {
+        * - prep { wd =>
 
-      }
-    }
-    'getGroup - {
-      * - prep { wd =>
-
-      }
-    }
-    'setGroup - {
-      * - prep { wd =>
-
+        }
       }
     }
   }

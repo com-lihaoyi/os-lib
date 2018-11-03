@@ -78,12 +78,9 @@ underlying operating system APIs.
 
     Filesystem Permissions
 
-    - [os.getPerms](#osgetperms)
-    - [os.setPerms](#ossetperms)
-    - [os.getOwner](#osgetowner)
-    - [os.setOwner](#ossetowner)
-    - [os.getGroup](#osgetgroup)
-    - [os.setGroup](#ossetgroup)
+    - [os.perms](#osperms)
+    - [os.owner](#osowner)
+    - [os.group](#osgroup)
 
     Spawning Subprocesses
 
@@ -109,178 +106,6 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 // Mill
 ivy"com.lihaoyi::os-lib:0.0.1"
 ```
-
-Once you've added os-lib to your project, you can then begin using it in your
-project. All functionality is under the top-level `os` package and can be used
-without imports. Here is a quick tour of some of the most commonly-used
-functionality:
-
-```scala
-// Let's pick our working directory
-val wd = os.pwd/'out/'example3
-
-// And make sure it's empty
-os.remove.all(wd)
-os.makeDir.all(wd)
-```
-
-### Reading & Writing
-
-```scala
-// Reading and writing to files is done through the `os.read` and
-// `os.write` You can write `Strings`, `Traversable[String]`s or `Array[Byte]`s
-os.write(wd/"file1.txt", "I am cow")
-os.write(wd/"file2.txt", Seq("I am cow\n", "hear me moo"))
-os.write(wd/'file3, "I weigh twice as much as you".getBytes)
-
-// When reading, you can either `os.read` a `String`, `os.read.lines` to
-// get a `Vector[String]` or `os.read.bytes` to get an `Array[Byte]`
-os.read(wd/"file1.txt")        ==> "I am cow"
-os.read(wd/"file2.txt")        ==> "I am cow\nhear me moo"
-os.read.lines(wd/"file2.txt")  ==> Vector("I am cow", "hear me moo")
-os.read.bytes(wd/"file3")      ==> "I weigh twice as much as you".getBytes
-```
-
-### Reading Resources
-
-```scala
-// These operations are mirrored in `read.resource`,
-// `read.resource.lines` and `read.resource.bytes` to conveniently read
-// files from your classpath:
-val resourcePath = os.resource/'test/'os/'folder/"file.txt"
-os.read(resourcePath).length        ==> 18
-os.read.bytes(resourcePath).length  ==> 18
-os.read.lines(resourcePath).length  ==> 1
-
-// You can read resources relative to any particular class, including
-// the "current" class by passing in `getClass`
-val relResourcePath = os.resource(getClass)/'folder/"file.txt"
-os.read(relResourcePath).length        ==> 18
-os.read.bytes(relResourcePath).length  ==> 18
-os.read.lines(relResourcePath).length  ==> 1
-
-// You can also read `InputStream`s
-val inputStream = new java.io.ByteArrayInputStream(
-  Array[Byte](104, 101, 108, 108, 111)
-)
-os.read(inputStream)           ==> "hello"
-```
-### Appending & Over-writing
-```scala
-// By default, `os.write` fails if there is already a file in place. Use
-// `write.append` or `write.over` if you want to append-to/overwrite
-// any existing files
-os.write.append(wd/"file1.txt", "\nI eat grass")
-os.write.over(wd/"file2.txt", "I am cow\nHere I stand")
-
-os.read(wd/"file1.txt")        ==> "I am cow\nI eat grass"
-os.read(wd/"file2.txt")        ==> "I am cow\nHere I stand"
-
-```
-### Making Folders
-```scala
-// You can create folders through `os.makeDir.all`. This behaves the same as
-// `mkdir -p` in Bash, and creates and parents necessary
-val deep = wd/'this/'is/'very/'deep
-os.makeDir.all(deep)
-// Writing to a file also creates necessary parents
-os.write(deep/'deeeep/"file.txt", "I am cow")
-```
-### Listing & Walking
-```scala
-// `os.list` provides a listing of every direct child of the given folder.
-// Both files and folders are included
-os.list(wd)    ==> Seq(wd/"file1.txt", wd/"file2.txt", wd/'file3, wd/'this)
-
-// `os.walk` does the same thing recursively
-os.walk(deep) ==> Seq(deep/'deeeep, deep/'deeeep/"file.txt")
-
-// You can move files or folders with `os.move` and remove them with `os.remove`
-os.list(deep)  ==> Seq(deep/'deeeep)
-os.move(deep/'deeeep, deep/'renamed_deeeep)
-os.list(deep)  ==> Seq(deep/'renamed_deeeep)
-
-// `os.move.into` lets you move a file into a
-// particular folder, rather than to particular path
-os.move.into(deep/'renamed_deeeep/"file.txt", deep)
-os.list(deep/'renamed_deeeep) ==> Seq()
-os.list(deep)  ==> Seq(deep/"file.txt", deep/'renamed_deeeep)
-```
-### Moving Things Around
-```scala
-// `os.move.over` lets you move a file to a particular path, but
-// if something was there before it stomps over it
-os.move.over(deep/"file.txt", deep/'renamed_deeeep)
-os.list(deep)  ==> Seq(deep/'renamed_deeeep)
-os.read(deep/'renamed_deeeep) ==> "I am cow" // contents from file.txt
-
-// `os.remove` can delete individual files or folders
-os.remove(deep/'renamed_deeeep)
-
-// while `os.remove.all` behaves the same as `rm -rf` in Bash, and deletes
-// anything: file, folder, even a folder filled with contents.
-os.remove.all(deep/'renamed_deeeep)
-os.list(deep)  ==> Seq()
-```
-
-### Reading Metadata
-```scala
-// You can stat paths to find out information about any file or
-// folder that exists there
-val info = os.stat(wd/"file1.txt")
-info.isDir  ==> false
-info.isFile ==> true
-info.size   ==> 20
-info.name   ==> "file1.txt"
-
-// Apart from `os.stat`, there are also methods to provide the individual
-// bits of information you want
-os.isDir(wd/"file1.txt")  ==> false
-os.isFile(wd/"file1.txt") ==> true
-os.size(wd/"file1.txt")   ==> 20
-
-// You can also use `os.stat.full` which provides more information
-val fullInfo = os.stat.full(wd/"file1.txt")
-fullInfo.ctime: FileTime
-fullInfo.atime: FileTime
-fullInfo.group: GroupPrincipal
-```
-
-### Working with Permissions
-```scala
-// `os.getPerms`/`os.setPerms` can be used to modify the filesystem
-// permissions of a file or folder, by passing in a permissions string:
-os.setPerms(wd/"file1.txt", "rwxrwxrwx")
-os.getPerms(wd/"file1.txt").toString() ==> "rwxrwxrwx"
-
-// or a permissions integer
-os.setPerms(wd/"file1.txt", Integer.parseInt("777", 8))
-os.getPerms(wd/"file1.txt").toInt() ==> Integer.parseInt("777", 8)
-
-// `os.getOwner`/`os.setOwner`/`os.getGroup`/`os.setGroup` let you
-// inspect and modify ownership of files and folders
-val owner = os.getOwner(wd/"file1.txt")
-os.setOwner(wd/"file1.txt", owner)
-val group = os.getGroup(wd/"file1.txt")
-os.setGroup(wd/"file1.txt", group)
-```
-
-### Subprocesses
-```scala
-// `os.proc.call()` cal be used to spawn subprocesses, by passing in
-// a sequence of strings making up the subprocess command:
-val res = os.proc('echo, "abc").call()
-val listed = res.out.string
-assert(listed == "abc\n")
-
-// You can also pass in specific files you wish to invoke in the
-// subprocess, and customize it's environment, working directory, etc.
-val res2 = os.proc(os.root/'bin/'bash, "-c", "echo 'Hello'$ENV_ARG")
-             .call(env = Map("ENV_ARG" -> "123"))
-
-assert(res2.out.string.trim == "Hello123")
-```
-
 
 ## Operations
 
@@ -750,19 +575,19 @@ Returns the last-modified timestamp of the given file, in milliseconds
 
 ### Filesystem Permissions
 
-#### os.getPerms
+#### os.perms
 
 ```scala
-os.getPerms(p: Path, followLinks: Boolean = true): PermSet
+os.perms(p: Path, followLinks: Boolean = true): PermSet
 ```
 
 Reads the filesystem permissions of the given file or folder, as an
 [os.PermSet](#ospermset).
 
-#### os.setPerms
+#### os.perms.set
 
 ```scala
-os.setPerms(p: Path, arg2: PermSet): Unit
+os.perms.set(p: Path, arg2: PermSet): Unit
 ```
 
 Sets the filesystem permissions of the given file or folder, as an
@@ -772,38 +597,38 @@ Note that if you want to create a file or folder with a given set of
 permissions, you can pass in an [os.PermSet](#ospermset) to [os.write](#oswrite)
 or [os.makeDir](#osmakedir). That will ensure the file or folder is created
 atomically with the given permissions, rather than being created with the
-default set of permissions and having `os.setPerms` over-write them later
+default set of permissions and having `os.perms.set` over-write them later
 
-#### os.getOwner
+#### os.owner
 
 ```scala
-os.getOwner(p: Path, followLinks: Boolean = true): UserPrincipal
+os.owner(p: Path, followLinks: Boolean = true): UserPrincipal
 ```
 
 Reads the owner of the given file or folder.
 
-#### os.setOwner
+#### os.owner.set
 
 ```scala
-os.setOwner(arg1: Path, arg2: UserPrincipal): Unit
-os.setOwner(arg1: Path, arg2: String): Unit
+os.owner.set(arg1: Path, arg2: UserPrincipal): Unit
+os.owner.set(arg1: Path, arg2: String): Unit
 ```
 
 Sets the owner of the given file or folder.
 
-#### os.getGroup
+#### os.group
 
 ```scala
-os.getGroup(p: Path, followLinks: Boolean = true): GroupPrincipal
+os.group(p: Path, followLinks: Boolean = true): GroupPrincipal
 ```
 
 Reads the owning group of the given file or folder.
 
-#### os.setGroup
+#### os.group.set
 
 ```scala
-os.setGroup(arg1: Path, arg2: GroupPrincipal): Unit
-os.setGroup(arg1: Path, arg2: String): Unit
+os.group.set(arg1: Path, arg2: GroupPrincipal): Unit
+os.group.set(arg1: Path, arg2: String): Unit
 ```
 
 Sets the owning group of the given file or folder.

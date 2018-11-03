@@ -133,21 +133,21 @@ object ExampleTests extends TestSuite{
       fullInfo.atime: FileTime
       fullInfo.group: GroupPrincipal
 
-      // `os.getPerms`/`os.setPerms` can be used to modify the filesystem
+      // `os.perms`/`os.perms.set` can be used to modify the filesystem
       // permissions of a file or folder, by passing in a permissions string:
-      os.setPerms(wd/"file1.txt", "rwxrwxrwx")
-      os.getPerms(wd/"file1.txt").toString() ==> "rwxrwxrwx"
+      os.perms.set(wd/"file1.txt", "rwxrwxrwx")
+      os.perms(wd/"file1.txt").toString() ==> "rwxrwxrwx"
 
       // or a permissions integer
-      os.setPerms(wd/"file1.txt", Integer.parseInt("777", 8))
-      os.getPerms(wd/"file1.txt").toInt() ==> Integer.parseInt("777", 8)
+      os.perms.set(wd/"file1.txt", Integer.parseInt("777", 8))
+      os.perms(wd/"file1.txt").toInt() ==> Integer.parseInt("777", 8)
 
-      // `os.getOwner`/`os.setOwner`/`os.getGroup`/`os.setGroup` let you
+      // `os.owner`/`os.owner.set`/`os.group`/`os.group.set` let you
       // inspect and modify ownership of files and folders
-      val owner = os.getOwner(wd/"file1.txt")
-      os.setOwner(wd/"file1.txt", owner)
-      val group = os.getGroup(wd/"file1.txt")
-      os.setGroup(wd/"file1.txt", group)
+      val owner = os.owner(wd/"file1.txt")
+      os.owner.set(wd/"file1.txt", owner)
+      val group = os.group(wd/"file1.txt")
+      os.group.set(wd/"file1.txt", group)
 
       // `os.proc.call()` cal be used to spawn subprocesses, by passing in
       // a sequence of strings making up the subprocess command:
