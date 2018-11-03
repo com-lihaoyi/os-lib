@@ -33,7 +33,7 @@ object SpawningSubprocessesTests extends TestSuite {
 
           val fail = os.proc('ls, "doesnt-exist").call(cwd = wd)
 
-          fail.exitCode ==> 1
+          assert(fail.exitCode != 0)
 
           fail.out.string ==> ""
 

@@ -11,7 +11,7 @@ object TestUtil {
     val segments = Seq("out", "scratch") ++ fn.value.split('.').drop(2) ++ tp.value
 
     val directory = Paths.get(segments.mkString("/"))
-    if (!Files.exists(directory)) Files.createDirectories(directory)
+    if (!Files.exists(directory)) Files.createDirectories(directory.getParent)
     else Files.walkFileTree(directory, new SimpleFileVisitor[Path]() {
       override def visitFile(file: Path, attrs: BasicFileAttributes) = {
         Files.delete(file)
