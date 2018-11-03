@@ -21,7 +21,7 @@ object list extends Function1[Path, IndexedSeq[Path]] {
     * is large.
     */
   object stream extends Function1[Path, geny.Generator[Path]]{
-    def apply(arg: Path) = os.walk(arg, maxDepth = 1, followLinks = true)
+    def apply(arg: Path) = os.walk(arg, maxDepth = 1)
   }
 }
 
@@ -151,9 +151,9 @@ object walk {
       val opts0 = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
       val opts = new java.util.HashSet[FileVisitOption]
       if (followLinks) opts.add(FileVisitOption.FOLLOW_LINKS)
-      val pNio = path.wrapped
-      if (!Files.exists(pNio, opts0:_*)){
-        throw new java.nio.file.NoSuchFileException(pNio.toString)
+      val pathNIO = path.wrapped
+      if (!Files.exists(pathNIO, opts0:_*)){
+        throw new java.nio.file.NoSuchFileException(pathNIO.toString)
       }
       new geny.Generator[(Path, BasicFileAttributes)]{
         def generate(handleItem: ((Path, BasicFileAttributes)) => Generator.Action) = {
@@ -166,46 +166,57 @@ object walk {
               FileVisitResult.TERMINATE
 
           }
-          Files.walkFileTree(
-            pNio,
-            opts,
-            maxDepth,
-            new FileVisitor[java.nio.file.Path]{
-              def preVisitDirectory(dir: file.Path, attrs: BasicFileAttributes) = {
-                val dirP = Path(dir.toAbsolutePath)
-                if (skip(dirP)) FileVisitResult.SKIP_SUBTREE
-                else actionToResult(
-                  if (preOrder && dirP != path) handleItem((dirP, attrs))
-                  else {
-                    attrsStack.append(attrs)
-                    currentAction
-                  }
-                )
-              }
+          // Use `newDirectoryStream` to do the first-level traversal,
+          // rather than relying on `walkFileTree`, because `walkFileTree`
+          // does the unintuitive thing when the `path` being walked is a
+          // symlink to a directory (it just returns the symlink path and
+          // does not walking)
+          val ds = Files.newDirectoryStream(pathNIO)
+          val iter = ds.iterator()
+          try {
+            while (iter.hasNext) Files.walkFileTree(
+              iter.next(),
+              opts,
+              maxDepth - 1,
+              new FileVisitor[java.nio.file.Path] {
+                def preVisitDirectory(dir: file.Path, attrs: BasicFileAttributes) = {
+                  val dirP = Path(dir.toAbsolutePath)
+                  if (skip(dirP)) FileVisitResult.SKIP_SUBTREE
+                  else actionToResult(
+                    if (preOrder && dirP != path) handleItem((dirP, attrs))
+                    else {
+                      attrsStack.append(attrs)
+                      currentAction
+                    }
+                  )
+                }
 
-              def visitFile(file: java.nio.file.Path, attrs: BasicFileAttributes) = {
-                val fileP = Path(file.toAbsolutePath)
-                actionToResult(
-                  if (skip(fileP)) currentAction
-                  else handleItem((fileP, attrs))
-                )
-              }
+                def visitFile(file: java.nio.file.Path, attrs: BasicFileAttributes) = {
+                  val fileP = Path(file.toAbsolutePath)
+                  actionToResult(
+                    if (skip(fileP)) currentAction
+                    else handleItem((fileP, attrs))
+                  )
+                }
 
-              def visitFileFailed(file: java.nio.file.Path, exc: IOException) =
-                actionToResult(currentAction)
+                def visitFileFailed(file: java.nio.file.Path, exc: IOException) =
+                  actionToResult(currentAction)
 
-              def postVisitDirectory(dir: java.nio.file.Path, exc: IOException) = {
-                actionToResult(
-                  if (preOrder) currentAction
-                  else {
-                    val dirP = Path(dir.toAbsolutePath)
-                    if (dirP != path) handleItem((dirP, attrsStack.remove(attrsStack.length - 1)))
-                    else currentAction
-                  }
-                )
+                def postVisitDirectory(dir: java.nio.file.Path, exc: IOException) = {
+                  actionToResult(
+                    if (preOrder) currentAction
+                    else {
+                      val dirP = Path(dir.toAbsolutePath)
+                      if (dirP != path) handleItem((dirP, attrsStack.remove(attrsStack.length - 1)))
+                      else currentAction
+                    }
+                  )
+                }
               }
-            }
-          )
+            )
+          }finally{
+            ds.close()
+          }
           currentAction
         }
       }

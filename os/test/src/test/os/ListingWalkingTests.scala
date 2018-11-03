@@ -12,6 +12,10 @@ object ListingWalkingTests extends TestSuite {
           wd / "folder2" / "nestedA",
           wd / "folder2" / "nestedB"
         )
+
+        os.list(wd / "misc" / "folder-symlink") ==> Seq(
+          wd / "misc" / "folder-symlink" / "one.txt"
+        )
       }
       'stream - {
         * - prep{ wd =>
@@ -50,6 +54,10 @@ object ListingWalkingTests extends TestSuite {
         os.walk(wd / "folder2", skip = _.last == "nestedA") ==> Seq(
           wd / "folder2" / "nestedB",
           wd / "folder2" / "nestedB" / "b.txt"
+        )
+
+        os.walk(wd / "misc" / "folder-symlink") ==> Seq(
+          wd / "misc" / "folder-symlink" / "one.txt"
         )
       }
       'attrs - {
