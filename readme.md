@@ -26,6 +26,14 @@ complete replacement for the `java.nio.file.Files`/`java.nio.file.Paths` and
 while also providing you all the power, flexibility and performance of the
 underlying operating system APIs.
 
+- [Getting Started](#getting-started)
+- [Cookbook](#cookbook)
+    - [Concatenate text files](#concatenate-text-files)
+    - [Recursive line count](#recursive-line-count)
+    - [Largest three files](#largest-three-files)
+    - [Moving files out of folder](#moving-files-out-of-folder)
+    - [Calculate word frequencies](#calculate-word-frequencies)
+
 - [Operations](#operations)
 
     Reading & Writing
@@ -107,7 +115,7 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 ivy"com.lihaoyi::os-lib:0.0.1"
 ```
 
-## Operations
+## Cookbook
 
 Most operation in OS-Lib take place on [os.Path](#ospath)s, which are
 constructed from a base path or working directory `wd`. Most often, the first
@@ -121,6 +129,67 @@ val wd = os.pwd/"out"/"splash"
 You can of course multiple base paths, to use in different parts of your program
 where convenient, or simply work with one of the pre-defined paths `os.pwd`,
 `os.root`, or `os.home`.
+
+### Concatenate text files
+```scala
+// Find and concatenate all .txt files directly in the working directory
+os.write(
+  wd/"all.txt",
+  os.list(wd).filter(_.ext == "txt").map(os.read)
+)
+
+os.read(wd/"all.txt") ==>
+  """I am cowI am cow
+    |Hear me moo
+    |I weigh twice as much as you
+    |And I look good on the barbecue""".stripMargin
+```
+
+### Recursive line count
+```scala
+// Line-count of all .txt files recursively in wd
+val lineCount = os.walk(wd)
+  .filter(_.ext == "txt")
+  .map(os.read.lines)
+  .map(_.size)
+  .sum
+
+lineCount ==> 9
+```
+
+### Largest Three Files
+
+```scala
+// Find the largest three files in the given folder tree
+val largestThree = os.walk(wd)
+  .filter(os.isFile(_, followLinks = false))
+  .map(x => os.size(x) -> x).sortBy(-_._1)
+  .take(3)
+
+largestThree ==> Seq(
+  (711, wd / "misc" / "binary.png"),
+  (81, wd / "Multi Line.txt"),
+  (22, wd / "folder1" / "one.txt")
+)
+```
+
+### Moving files out of folder
+```scala
+// Move all files inside the "misc" folder out of it
+os.list(wd/"misc").map(os.move.matching{case p/"misc"/x => p/x })
+```
+
+### Calculate word frequencies
+
+```scala
+// Calculate the word frequency of all the text files in the folder tree
+def txt = os.walk(wd).filter(_.ext == "txt").map(os.read)
+def freq(s: Seq[String]) = s groupBy (x => x) mapValues (_.length) toSeq
+val map = freq(txt.flatMap(_.split("[^a-zA-Z0-9_]"))).sortBy(-_._2)
+map
+```
+
+## Operations
 
 ### Reading & Writing
 
@@ -508,17 +577,33 @@ os.read(wd / "File.txt") ==>
     |And I look good on the barbecue""".stripMargin
 ```
 
-`os.move` can also be used as a transformer:
+#### os.move.matching
 
 ```scala
 os.move.matching(t: PartialFunction[Path, Path]): PartialFunction[Path, Unit]
 ```
 
-This lets you use `.map` or `.collect` on a list of paths, and move all of them
-at once:
+`os.move` can also be used as a transformer, via `os.move.matching`. This lets
+you use `.map` or `.collect` on a list of paths, and move all of them at once,
+e.g. to rename all `.txt` files within a folder tree to `.data`:
 
 ```scala
-paths.map(os.move.matching{case p/"scala"/file => p/"java"/file})
+import os.{GlobSyntax, /}
+os.walk(wd / "folder2") ==> Seq(
+  wd / "folder2" / "nestedA",
+  wd / "folder2" / "nestedA" / "a.txt",
+  wd / "folder2" / "nestedB",
+  wd / "folder2" / "nestedB" / "b.txt"
+)
+
+os.walk(wd/'folder2).collect(os.move.matching{case p/g"$x.txt" => p/g"$x.data"})
+
+os.walk(wd / "folder2") ==> Seq(
+  wd / "folder2" / "nestedA",
+  wd / "folder2" / "nestedA" / "a.data",
+  wd / "folder2" / "nestedB",
+  wd / "folder2" / "nestedB" / "b.data"
+)
 ```
 
 #### os.move.into

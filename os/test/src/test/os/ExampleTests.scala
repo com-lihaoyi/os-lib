@@ -7,7 +7,7 @@ import os.{GlobSyntax, /}
 object ExampleTests extends TestSuite{
 
   val tests = Tests {
-    'splash{
+    'splash - TestUtil.prep{wd =>
       // Make sure working directory exists and is empty
       val wd = os.pwd/"out"/"splash"
       os.remove.all(wd)
@@ -23,227 +23,56 @@ object ExampleTests extends TestSuite{
       invoked.out.trim ==> "hellohello"
     }
 
-    'reference{
-      // Let's pick our working directory
-      val wd = os.pwd/'out/'example3
-
-      // And make sure it's empty
-      os.remove.all(wd)
-      os.makeDir.all(wd)
-
-      // Reading and writing to files is done through the `os.read` and
-      // `os.write` You can write `Strings`, `Traversable[String]`s or `Array[Byte]`s
-      os.write(wd/"file1.txt", "I am cow")
-      os.write(wd/"file2.txt", Seq("I am cow\n", "hear me moo"))
-      os.write(wd/'file3, "I weigh twice as much as you".getBytes)
-
-      // When reading, you can either `os.read` a `String`, `os.read.lines` to
-      // get a `Vector[String]` or `os.read.bytes` to get an `Array[Byte]`
-      os.read(wd/"file1.txt")        ==> "I am cow"
-      os.read(wd/"file2.txt")        ==> "I am cow\nhear me moo"
-      os.read.lines(wd/"file2.txt")  ==> Vector("I am cow", "hear me moo")
-      os.read.bytes(wd/"file3")      ==> "I weigh twice as much as you".getBytes
-
-      // These operations are mirrored in `read.resource`,
-      // `read.resource.lines` and `read.resource.bytes` to conveniently read
-      // files from your classpath:
-      val resourcePath = os.resource/'test/'os/'folder/"file.txt"
-      os.read(resourcePath).length        ==> 18
-      os.read.bytes(resourcePath).length  ==> 18
-      os.read.lines(resourcePath).length  ==> 1
-
-      // You can read resources relative to any particular class, including
-      // the "current" class by passing in `getClass`
-      val relResourcePath = os.resource(getClass)/'folder/"file.txt"
-      os.read(relResourcePath).length        ==> 18
-      os.read.bytes(relResourcePath).length  ==> 18
-      os.read.lines(relResourcePath).length  ==> 1
-
-      // You can also read `InputStream`s
-      val inputStream = new java.io.ByteArrayInputStream(
-        Array[Byte](104, 101, 108, 108, 111)
+    'concatTxt - TestUtil.prep{wd =>
+      // Find and concatenate all .txt files directly in the working directory
+      os.write(
+        wd/"all.txt",
+        os.list(wd).filter(_.ext == "txt").map(os.read)
       )
-      os.read(inputStream)           ==> "hello"
 
-      // By default, `os.write` fails if there is already a file in place. Use
-      // `write.append` or `write.over` if you want to append-to/overwrite
-      // any existing files
-      os.write.append(wd/"file1.txt", "\nI eat grass")
-      os.write.over(wd/"file2.txt", "I am cow\nHere I stand")
-
-      os.read(wd/"file1.txt")        ==> "I am cow\nI eat grass"
-      os.read(wd/"file2.txt")        ==> "I am cow\nHere I stand"
-
-      // You can create folders through `os.makeDir.all`. This behaves the same as
-      // `mkdir -p` in Bash, and creates and parents necessary
-      val deep = wd/'this/'is/'very/'deep
-      os.makeDir.all(deep)
-      // Writing to a file also creates necessary parents
-      os.write(deep/'deeeep/"file.txt", "I am cow")
-
-      // `os.list` provides a listing of every direct child of the given folder.
-      // Both files and folders are included
-      os.list(wd)    ==> Seq(wd/"file1.txt", wd/"file2.txt", wd/'file3, wd/'this)
-
-      // `os.walk` does the same thing recursively
-      os.walk(deep) ==> Seq(deep/'deeeep, deep/'deeeep/"file.txt")
-
-      // You can move files or folders with `os.move` and remove them with `os.remove`
-      os.list(deep)  ==> Seq(deep/'deeeep)
-      os.move(deep/'deeeep, deep/'renamed_deeeep)
-      os.list(deep)  ==> Seq(deep/'renamed_deeeep)
-
-      // `os.move.into` lets you move a file into a
-      // particular folder, rather than to particular path
-      os.move.into(deep/'renamed_deeeep/"file.txt", deep)
-      os.list(deep/'renamed_deeeep) ==> Seq()
-      os.list(deep)  ==> Seq(deep/"file.txt", deep/'renamed_deeeep)
-
-      // `os.move.over` lets you move a file to a particular path, but
-      // if something was there before it stomps over it
-      os.move.over(deep/"file.txt", deep/'renamed_deeeep)
-      os.list(deep)  ==> Seq(deep/'renamed_deeeep)
-      os.read(deep/'renamed_deeeep) ==> "I am cow" // contents from file.txt
-
-      // `os.remove` can delete individual files or folders
-      os.remove(deep/'renamed_deeeep)
-
-      // while `os.remove.all` behaves the same as `rm -rf` in Bash, and deletes
-      // anything: file, folder, even a folder filled with contents.
-      os.remove.all(deep/'renamed_deeeep)
-      os.list(deep)  ==> Seq()
-
-      // You can stat paths to find out information about any file or
-      // folder that exists there
-      val info = os.stat(wd/"file1.txt")
-      info.isDir  ==> false
-      info.isFile ==> true
-      info.size   ==> 20
-      info.name   ==> "file1.txt"
-
-      // Apart from `os.stat`, there are also methods to provide the individual
-      // bits of information you want
-      os.isDir(wd/"file1.txt")  ==> false
-      os.isFile(wd/"file1.txt") ==> true
-      os.size(wd/"file1.txt")   ==> 20
-
-      // You can also use `os.stat.full` which provides more information
-      val fullInfo = os.stat.full(wd/"file1.txt")
-      fullInfo.ctime: FileTime
-      fullInfo.atime: FileTime
-      fullInfo.group: GroupPrincipal
-
-      // `os.perms`/`os.perms.set` can be used to modify the filesystem
-      // permissions of a file or folder, by passing in a permissions string:
-      os.perms.set(wd/"file1.txt", "rwxrwxrwx")
-      os.perms(wd/"file1.txt").toString() ==> "rwxrwxrwx"
-
-      // or a permissions integer
-      os.perms.set(wd/"file1.txt", Integer.parseInt("777", 8))
-      os.perms(wd/"file1.txt").toInt() ==> Integer.parseInt("777", 8)
-
-      // `os.owner`/`os.owner.set`/`os.group`/`os.group.set` let you
-      // inspect and modify ownership of files and folders
-      val owner = os.owner(wd/"file1.txt")
-      os.owner.set(wd/"file1.txt", owner)
-      val group = os.group(wd/"file1.txt")
-      os.group.set(wd/"file1.txt", group)
-
-      // `os.proc.call()` cal be used to spawn subprocesses, by passing in
-      // a sequence of strings making up the subprocess command:
-      val res = os.proc('echo, "abc").call()
-      val listed = res.out.string
-      assert(listed == "abc\n")
-
-      // You can also pass in specific files you wish to invoke in the
-      // subprocess, and customize it's environment, working directory, etc.
-      val res2 = os.proc(os.root/'bin/'bash, "-c", "echo 'Hello'$ENV_ARG")
-        .call(env = Map("ENV_ARG" -> "123"))
-
-      assert(res2.out.string.trim == "Hello123")
-      ()
+      os.read(wd/"all.txt") ==>
+        """I am cowI am cow
+          |Hear me moo
+          |I weigh twice as much as you
+          |And I look good on the barbecue""".stripMargin
     }
-    'longExample{
 
-      // Pick the directory you want to work with,
-      // relative to the process working dir
-      val wd = os.pwd/'out/'example2
-
-      // Delete a file or folder, if it exists
-      os.remove.all(wd)
-
-      // Make a folder named "folder"
-      os.makeDir.all(wd/'folder)
-
-      // Copy a file or folder to a particular path
-      os.copy(wd/'folder, wd/'folder1)
-      // Copy a file or folder *into* another folder at a particular path
-      // There's also `cp.over` which copies it to a path and stomps over
-      // anything that was there before.
-      os.copy.into(wd/'folder, wd/'folder1)
-
-
-      // List the current directory
-      val listed = os.list(wd)
-
-      // Write to a file without pain! Necessary
-      // enclosing directories are created automatically
-      os.write(wd/'dir2/"file1.scala", "package example\nclass Foo{}\n")
-      os.write(wd/'dir2/"file2.scala", "package example\nclass Bar{}\n")
-
-      // Rename all .scala files inside the folder d into .java files
-      os.list(wd/'dir2).map(os.move.matching{case p/g"$x.scala" => p/g"$x.java"})
-
-      // List files in a folder
-      val renamed = os.list(wd/'dir2)
-
-      // Line-count of all .java files recursively in wd
+    'lineCount - TestUtil.prep{wd =>
+      // Line-count of all .txt files recursively in wd
       val lineCount = os.walk(wd)
-        .filter(_.ext == "java")
+        .filter(_.ext == "txt")
         .map(os.read.lines)
         .map(_.size)
         .sum
 
-      // Find and concatenate all .java files directly in the working directory
-      os.write(
-        wd/'out/'scratch/"bundled.java",
-        os.list(wd/'dir2).filter(_.ext == "java").map(os.read)
+      lineCount ==> 9
+    }
+
+    'largestThree - TestUtil.prep{ wd =>
+      // Find the largest three files in the given folder tree
+      val largestThree = os.walk(wd)
+        .filter(os.isFile(_, followLinks = false))
+        .map(x => os.size(x) -> x).sortBy(-_._1)
+        .take(3)
+
+      largestThree ==> Seq(
+        (711, wd / "misc" / "binary.png"),
+        (81, wd / "Multi Line.txt"),
+        (22, wd / "folder1" / "one.txt")
       )
+    }
 
+    'moveOut - TestUtil.prep{ wd =>
+      // Move all files inside the "misc" folder out of it
+      os.list(wd/"misc").map(os.move.matching{case p/"misc"/x => p/x })
+    }
 
-      assert(
-        listed == Seq(wd/'folder, wd/'folder1),
-        os.list(wd/'folder1) == Seq(wd/'folder1/'folder),
-        lineCount == 4,
-        renamed == Seq(wd/'dir2/"file1.java", wd/'dir2/"file2.java"),
-        os.read(wd/'out/'scratch/"bundled.java") ==
-        "package example\nclass Foo{}\npackage example\nclass Bar{}\n"
-      )
-
-
-      os.write(wd/'py/"cow.scala", "Hello World")
-      os.write(wd/".file", "Hello")
-      // Chains
-
-      // Move all files inside the "py" folder out of it
-      os.list(wd/"py").map(os.move.matching{case p/"py"/x => p/x })
-
-      // Find all dot-files in the current folder
-      val dots = os.list(wd).filter(_.last(0) == '.')
-
-      // Find the names of the 10 largest files in the current working directory
-      os.walk(wd).map(x => os.size(x) -> x).sortBy(-_._1).take(10)
-
-      // Sorted list of the most common words in your .scala source files
-      def txt = os.walk(wd).filter(_.ext == "scala").map(os.read)
+    'frequency - TestUtil.prep{ wd =>
+      // Calculate the word frequency of all the text files in the folder tree
+      def txt = os.walk(wd).filter(_.ext == "txt").map(os.read)
       def freq(s: Seq[String]) = s groupBy (x => x) mapValues (_.length) toSeq
       val map = freq(txt.flatMap(_.split("[^a-zA-Z0-9_]"))).sortBy(-_._2)
-
-      assert(
-        os.list(wd).toSeq.contains(wd/"cow.scala"),
-        dots == Seq(wd/".file"),
-        map == Seq("Hello" -> 1, "World" -> 1)
-      )
+      map
     }
     'comparison{
       import os._

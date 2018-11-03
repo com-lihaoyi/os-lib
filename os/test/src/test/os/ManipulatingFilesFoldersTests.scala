@@ -35,6 +35,26 @@ object ManipulatingFilesFoldersTests extends TestSuite {
             |I weigh twice as much as you
             |And I look good on the barbecue""".stripMargin
       }
+      'matching - {
+        * - prep{ wd =>
+          import os.{GlobSyntax, /}
+          os.walk(wd / "folder2") ==> Seq(
+            wd / "folder2" / "nestedA",
+            wd / "folder2" / "nestedA" / "a.txt",
+            wd / "folder2" / "nestedB",
+            wd / "folder2" / "nestedB" / "b.txt"
+          )
+
+          os.walk(wd/'folder2).collect(os.move.matching{case p/g"$x.txt" => p/g"$x.data"})
+
+          os.walk(wd / "folder2") ==> Seq(
+            wd / "folder2" / "nestedA",
+            wd / "folder2" / "nestedA" / "a.data",
+            wd / "folder2" / "nestedB",
+            wd / "folder2" / "nestedB" / "b.data"
+          )
+        }
+      }
       'into - {
         * - prep{ wd =>
           os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
