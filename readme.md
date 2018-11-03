@@ -117,9 +117,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.1.0"
+"com.lihaoyi" %% "os-lib" % "0.1.2"
 // Mill
-ivy"com.lihaoyi::os-lib:0.1.0"
+ivy"com.lihaoyi::os-lib:0.1.2"
 ```
 
 ## Cookbook
@@ -204,9 +204,9 @@ map
 #### os.read
 
 ```scala
-os.read(arg: os.Source): String
-os.read(arg: os.Source, charSet: Codec): String
-os.read(arg: os.SeekableSource,
+os.read(arg: os.ReadablePath): String
+os.read(arg: os.ReadablePath, charSet: Codec): String
+os.read(arg: os.Path,
         offset: Long = 0,
         count: Int = Int.MaxValue,
         charSet: Codec = java.nio.charset.StandardCharsets.UTF_8): String
@@ -229,8 +229,8 @@ os.read(wd / "Multi Line.txt") ==>
 #### os.read.bytes
 
 ```scala
-os.read.bytes(arg: os.Source): Array[Byte] 
-os.read.bytes(arg: os.SeekableSource, offset: Long, count: Int): Array[Byte]
+os.read.bytes(arg: os.ReadablePath): Array[Byte] 
+os.read.bytes(arg: os.Path, offset: Long, count: Int): Array[Byte]
 ```
 
 Reads the contents of a [os.Path](#ospath) or [os.Source](#ossource) as an
@@ -245,8 +245,8 @@ os.read.bytes(wd / "misc" / "binary.png").length ==> 711
 #### os.read.lines
 
 ```scala
-os.read.lines(arg: os.Source): IndexedSeq[String]
-os.read.lines(arg: os.Source, charSet: Codec): IndexedSeq[String]
+os.read.lines(arg: os.ReadablePath): IndexedSeq[String]
+os.read.lines(arg: os.ReadablePath, charSet: Codec): IndexedSeq[String]
 ```
 
 Reads the given [os.Path](#ospath) or other [os.Source](#ossource) as a string
@@ -266,8 +266,8 @@ os.read.lines(wd / "Multi Line.txt") ==> Seq(
 #### os.read.lines.stream
 
 ```scala
-os.read.lines(arg: os.Source): os.Generator[String]
-os.read.lines(arg: os.Source, charSet: Codec): os.Generator[String]
+os.read.lines(arg: os.ReadablePath): os.Generator[String]
+os.read.lines(arg: os.ReadablePath, charSet: Codec): os.Generator[String]
 ```
 
 Identical to [os.read.lines](#osreadlines), but streams the results back to you
@@ -1602,6 +1602,6 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
-### 0.1.0
+### 0.1.2
 
 - First release

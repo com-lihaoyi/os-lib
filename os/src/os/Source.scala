@@ -56,7 +56,7 @@ trait SeekableSource extends Source{
 }
 
 object SeekableSource{
-  implicit class ChannelSource(cn: SeekableByteChannel) extends Source{
+  implicit class ChannelSource(cn: SeekableByteChannel) extends SeekableSource {
     def getHandle() = Right(cn)
   }
 }

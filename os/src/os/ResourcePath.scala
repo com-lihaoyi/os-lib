@@ -15,17 +15,17 @@ object ResourcePath{
   * Classloaders are tricky: http://stackoverflow.com/questions/12292926
   */
 class ResourcePath private[os](val resRoot: ResourceRoot, segments0: Array[String])
-  extends BasePathImpl with Source with SegmentedPath {
-  val segments: IndexedSeq[String] = segments0
-  type ThisType = ResourcePath
-  def last = segments0.last
-  override def toString = resRoot.errorName + "/" + segments0.mkString("/")
-  def getHandle = Left{
+  extends BasePathImpl with ReadablePath with SegmentedPath {
+  def toSource = new Source.InputStreamSource(
     resRoot.getResourceAsStream(segments.mkString("/")) match{
       case null => throw ResourceNotFoundException(this)
       case stream => stream
     }
-  }
+  )
+  val segments: IndexedSeq[String] = segments0
+  type ThisType = ResourcePath
+  def last = segments0.last
+  override def toString = resRoot.errorName + "/" + segments0.mkString("/")
   protected[this] def make(p: Seq[String], ups: Int) = {
     if (ups > 0){
       throw PathError.AbsolutePathOutsideRoot

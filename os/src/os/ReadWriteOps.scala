@@ -109,37 +109,33 @@ object write{
   * also select a different `charSet` to use, and provide an `offset`/`count` to
   * read from if the source supports seeking.
   */
-object read extends Function1[Source, String]{
-
-
-  def apply(arg: Source): String = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
-  def apply(arg: Source, charSet: Codec): String = {
+object read extends Function1[ReadablePath, String]{
+  def apply(arg: ReadablePath): String = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
+  def apply(arg: ReadablePath, charSet: Codec): String = {
     new String(read.bytes(arg), charSet.charSet)
   }
-  def apply(arg: SeekableSource,
+  def apply(arg: Path,
             charSet: Codec = java.nio.charset.StandardCharsets.UTF_8,
             offset: Long = 0,
             count: Int = Int.MaxValue): String = {
     new String(read.bytes(arg, offset, count), charSet.charSet)
   }
 
-
-
   /**
     * Reads the contents of a [[os.Path]] or [[os.Source]] as an
     * `Array[Byte]`; you can provide an `offset`/`count` to read from if the source
     * supports seeking.
     */
-  object bytes extends Function1[Source, Array[Byte]]{
-    def apply(arg: Source): Array[Byte] = {
+  object bytes extends Function1[ReadablePath, Array[Byte]]{
+    def apply(arg: ReadablePath): Array[Byte] = {
       val out = new java.io.ByteArrayOutputStream()
-      Internals.transfer(arg.getInputStream(), out)
+      Internals.transfer(arg.toSource.getInputStream(), out)
       out.toByteArray
     }
-    def apply(arg: SeekableSource, offset: Long, count: Int): Array[Byte] = {
+    def apply(arg: Path, offset: Long, count: Int): Array[Byte] = {
       val arr = new Array[Byte](count)
       val buf = ByteBuffer.wrap(arr)
-      val channel = arg.getChannel()
+      val channel = arg.toSource.getChannel()
       channel.position(offset)
       val finalCount = channel.read(buf)
       if (finalCount == arr.length) arr
@@ -152,9 +148,9 @@ object read extends Function1[Source, String]{
     * and splits it into lines; defaults to reading as UTF-8, which you
     * can override by specifying a `charSet`.
     */
-  object lines extends Function1[Source, IndexedSeq[String]]{
-    def apply(src: Source) = stream(src).toArray[String]
-    def apply(arg: Source, charSet: Codec): IndexedSeq[String] =
+  object lines extends Function1[ReadablePath, IndexedSeq[String]]{
+    def apply(src: ReadablePath) = stream(src).toArray[String]
+    def apply(arg: ReadablePath, charSet: Codec): IndexedSeq[String] =
       stream(arg, charSet).toArray[String]
 
     /**
@@ -162,13 +158,13 @@ object read extends Function1[Source, String]{
       * in a [[os.Generator]] rather than accumulating them in memory. Useful
       * if the file is large.
       */
-    object stream extends Function1[Source, geny.Generator[String]]{
-      def apply(arg: Source) = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
+    object stream extends Function1[ReadablePath, geny.Generator[String]]{
+      def apply(arg: ReadablePath) = apply(arg, java.nio.charset.StandardCharsets.UTF_8)
 
-      def apply(arg: Source, charSet: Codec) = {
+      def apply(arg: ReadablePath, charSet: Codec) = {
         new geny.Generator[String]{
           def generate(handleItem: String => Generator.Action) = {
-            val is = arg.getInputStream()
+            val is = arg.toSource.getInputStream()
             val isr = new InputStreamReader(is)
             val buf = new BufferedReader(isr)
             var currentAction: Generator.Action = Generator.Continue

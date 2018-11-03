@@ -288,17 +288,23 @@ object Path {
 
 }
 
+trait ReadablePath{
+  def toSource: os.Source
+}
+
 /**
   * An absolute path on the filesystem. Note that the path is
   * normalized and cannot contain any empty `""`, `"."` or `".."` segments
   */
 class Path private[os](val wrapped: java.nio.file.Path)
-  extends FilePath with BasePathImpl with SeekableSource{
+  extends FilePath with ReadablePath with BasePathImpl {
+  def toSource: SeekableSource =
+    new SeekableSource.ChannelSource(java.nio.file.Files.newByteChannel(wrapped))
+
   require(wrapped.isAbsolute, wrapped + " is not an absolute path")
   def getSegments(): Iterator[String] = wrapped.iterator().asScala.map(_.toString)
   def getSegment(i: Int): String = wrapped.getName(i).toString
   def segmentCount = wrapped.getNameCount
-  def getHandle() = Right(java.nio.file.Files.newByteChannel(wrapped))
   type ThisType = Path
 
   def last = wrapped.getFileName.toString
