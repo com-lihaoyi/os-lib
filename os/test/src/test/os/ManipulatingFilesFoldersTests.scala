@@ -124,26 +124,40 @@ object ManipulatingFilesFoldersTests extends TestSuite {
     }
     'hardlink - {
       * - prep{ wd =>
-
+        os.hardlink(wd / "File.txt", wd / "Linked.txt")
+        os.exists(wd / "Linked.txt")
+        os.read(wd / "Linked.txt") ==> "I am cow"
+        os.isLink(wd / "Linked.txt") ==> false
       }
     }
     'symlink - {
       * - prep{ wd =>
-
+        os.symlink(wd / "File.txt", wd / "Linked.txt")
+        os.exists(wd / "Linked.txt")
+        os.read(wd / "Linked.txt") ==> "I am cow"
+        os.isLink(wd / "Linked.txt") ==> true
       }
     }
     'followLink - {
       * - prep{ wd =>
-
+        os.followLink(wd / "misc" / "file-symlink") ==> Some(wd / "File.txt")
+        os.followLink(wd / "misc" / "folder-symlink") ==> Some(wd / "folder1")
+        os.followLink(wd / "misc" / "broken-symlink") ==> None
       }
     }
     'temp - {
       * - prep{ wd =>
-
+        val tempOne = os.temp("default content")
+        os.read(tempOne) ==> "default content"
+        os.write.over(tempOne, "Hello")
+        os.read(tempOne) ==> "Hello"
       }
       'dir - {
         * - prep{ wd =>
-
+          val tempDir = os.temp.dir()
+          os.list(tempDir) ==> Nil
+          os.write(tempDir / "file", "Hello")
+          os.list(tempDir) ==> Seq(tempDir / "file")
         }
       }
     }

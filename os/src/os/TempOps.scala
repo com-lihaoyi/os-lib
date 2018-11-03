@@ -10,32 +10,6 @@ import java.nio.file.attribute.{FileAttribute, PosixFilePermission, PosixFilePer
   */
 object temp{
   /**
-    * Creates a temporary directory. You can optionally provide a `dir` to specify
-    * where this file lives, a `prefix` to customize what it looks like, and a
-    * [[PermSet]] to customize its filesystem permissions.
-    *
-    * By default, temporary directories are deleted on JVM exit. You can disable that
-    * behavior by setting `deleteOnExit = false`
-    */
-  def dir(dir: Path = null,
-          prefix: String = null,
-          deleteOnExit: Boolean = true,
-          perms: PermSet = null): Path = {
-    import collection.JavaConverters._
-    val permArray =
-      if (perms == null) Array[FileAttribute[PosixFilePermission]]()
-      else Array(PosixFilePermissions.asFileAttribute(perms.value.asJava))
-
-    val nioPath = dir match{
-      case null => java.nio.file.Files.createTempDirectory(prefix, permArray:_*)
-      case _ => java.nio.file.Files.createTempDirectory(dir.toNIO, prefix, permArray:_*)
-    }
-
-    if (deleteOnExit) nioPath.toFile.deleteOnExit()
-    Path(nioPath)
-  }
-
-  /**
     * Creates a temporary file. You can optionally provide a `dir` to specify where
     * this file lives, file-`prefix` and file-`suffix` to customize what it looks
     * like, and a [[PermSet]] to customize its filesystem permissions.
@@ -66,4 +40,31 @@ object temp{
     if (deleteOnExit) nioPath.toFile.deleteOnExit()
     Path(nioPath)
   }
+
+  /**
+    * Creates a temporary directory. You can optionally provide a `dir` to specify
+    * where this file lives, a `prefix` to customize what it looks like, and a
+    * [[PermSet]] to customize its filesystem permissions.
+    *
+    * By default, temporary directories are deleted on JVM exit. You can disable that
+    * behavior by setting `deleteOnExit = false`
+    */
+  def dir(dir: Path = null,
+          prefix: String = null,
+          deleteOnExit: Boolean = true,
+          perms: PermSet = null): Path = {
+    import collection.JavaConverters._
+    val permArray =
+      if (perms == null) Array[FileAttribute[PosixFilePermission]]()
+      else Array(PosixFilePermissions.asFileAttribute(perms.value.asJava))
+
+    val nioPath = dir match{
+      case null => java.nio.file.Files.createTempDirectory(prefix, permArray:_*)
+      case _ => java.nio.file.Files.createTempDirectory(dir.toNIO, prefix, permArray:_*)
+    }
+
+    if (deleteOnExit) nioPath.toFile.deleteOnExit()
+    Path(nioPath)
+  }
+
 }
