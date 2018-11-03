@@ -109,6 +109,19 @@ ivy"com.lihaoyi::os-lib:0.0.1"
 
 ## Operations
 
+Most operation in OS-Lib take place on [os.Path](#ospath)s, which are
+constructed from a base path or working directory `wd`. Most often, the first
+thing to do is to define a `wd` path representing the folder you want to work
+with:
+
+```scala
+val wd = os.pwd/"out"/"splash"
+```
+
+You can of course multiple base paths, to use in different parts of your program
+where convenient, or simply work with one of the pre-defined paths `os.pwd`,
+`os.root`, or `os.home`.
+
 ### Reading & Writing
 
 #### os.read
