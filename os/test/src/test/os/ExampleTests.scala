@@ -3,7 +3,7 @@ package test.os
 import java.nio.file.attribute.{GroupPrincipal, FileTime}
 
 import utest._
-import os.{GlobContextMaker, /}
+import os.{GlobSyntax, /}
 object ExampleTests extends TestSuite{
 
   val tests = Tests {

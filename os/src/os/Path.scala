@@ -230,6 +230,19 @@ object Path {
     case p: Path => p
   }
 
+  /**
+    * Equivalent to [[os.Path.apply]], but automatically expands a
+    * leading `~/` into the user's home directory, for convenience
+    */
+  def expandUser[T: PathConvertible](f0: T, base: Path = null) = {
+    val f = implicitly[PathConvertible[T]].apply(f0)
+    if (f.subpath(0, 1).toString != "~") if (base == null) Path(f0) else Path(f0, base)
+    else {
+      Path(System.getProperty("user.home"))(PathConvertible.StringConvertible)/
+        RelPath(f.subpath(0, 1).relativize(f))(PathConvertible.NioPathConvertible)
+    }
+  }
+
   def apply[T: PathConvertible](f: T, base: Path): Path = apply(FilePath(f), base)
   def apply[T: PathConvertible](f0: T): Path = {
     val f = implicitly[PathConvertible[T]].apply(f0)

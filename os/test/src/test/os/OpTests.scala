@@ -5,7 +5,7 @@ import java.nio.{file => nio}
 
 
 import utest._
-import os.{GlobContextMaker, /}
+import os.{GlobSyntax, /}
 object OpTests extends TestSuite{
 
   val tests = Tests {

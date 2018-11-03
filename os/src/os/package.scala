@@ -1,28 +1,9 @@
-import scala.collection.Seq
 
 package object os{
   type Generator[+T] = geny.Generator[T]
   val Generator = geny.Generator
-  implicit def GlobContextMaker(s: StringContext): GlobContext = new GlobContext(s)
+  implicit def GlobSyntax(s: StringContext): GlobInterpolator = new GlobInterpolator(s)
 
-  object GlobContext{
-    class Interped(parts: Seq[String]){
-      def unapplySeq(s: String) = {
-        val Seq(head, tail@_*) = parts.map(java.util.regex.Pattern.quote)
-
-        val regex = head + tail.map("(.*)" + _).mkString
-        regex.r.unapplySeq(s)
-      }
-    }
-  }
-
-  /**
-    * Lets you pattern match strings with interpolated glob-variables
-    */
-  class GlobContext(sc: StringContext) {
-    def g(parts: Any*) = new StringContext(sc.parts:_*).s(parts:_*)
-    def g = new GlobContext.Interped(sc.parts)
-  }
   /**
    * The root of the filesystem
    */
@@ -36,8 +17,6 @@ package object os{
    * The user's home directory
    */
   val home = Path(System.getProperty("user.home"))
-
-
 
   /**
    * The current working directory for this process.
@@ -66,17 +45,4 @@ package object os{
       else None
     }
   }
-
-  def expandUser[T: PathConvertible](f0: T) = {
-    val f = implicitly[PathConvertible[T]].apply(f0)
-    if (f.subpath(0, 1).toString != "~") Path(f0)
-    else Path(System.getProperty("user.home"))/RelPath(f.subpath(0, 1).relativize(f))
-  }
-
-  def expandUser[T: PathConvertible](f0: T, base: Path) = {
-    val f = implicitly[PathConvertible[T]].apply(f0)
-    if (f.subpath(0, 1).toString != "~") Path(f0, base)
-    else Path(System.getProperty("user.home"))/RelPath(f.subpath(0, 1).relativize(f))
-  }
-
 }
