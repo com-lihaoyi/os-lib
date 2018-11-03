@@ -22,11 +22,11 @@ import scala.util.Try
   * ignore the destination if it already exists, using [[os.makeDir.all]]
  */
 object makeDir extends Function1[Path, Unit]{
-  def apply(path: Path): Unit = Files.createDirectory(path.toNIO)
+  def apply(path: Path): Unit = Files.createDirectory(path.wrapped)
   def apply(path: Path, perms: PermSet): Unit = {
     import collection.JavaConverters._
     Files.createDirectory(
-      path.toNIO,
+      path.wrapped,
       PosixFilePermissions.asFileAttribute(perms.value.asJava)
     )
   }
@@ -36,13 +36,13 @@ object makeDir extends Function1[Path, Unit]{
     * destination path already containts a directory
     */
   object all extends Function1[Path, Unit]{
-    def apply(path: Path): Unit = Files.createDirectories(path.toNIO)
+    def apply(path: Path): Unit = Files.createDirectories(path.wrapped)
     def apply(path: Path, perms: PermSet): Unit = {
       if (perms == null) apply(path)
       else {
         import collection.JavaConverters._
         Files.createDirectories(
-          path.toNIO,
+          path.wrapped,
           PosixFilePermissions.asFileAttribute(perms.value.asJava)
         )
       }
@@ -89,7 +89,7 @@ object move {
       !to.startsWith(from),
       s"Can't move a directory into itself: $to is inside $from"
     )
-    java.nio.file.Files.move(from.toNIO, to.toNIO, opts1 ++ opts2:_*)
+    java.nio.file.Files.move(from.wrapped, to.wrapped, opts1 ++ opts2:_*)
   }
 
   /**
@@ -167,7 +167,7 @@ object copy {
       s"Can't copy a directory into itself: $to is inside $from"
     )
     def copyOne(p: Path) = {
-      Files.copy(p.toNIO, (to/(p relativeTo from)).toNIO, opts1 ++ opts2 ++ opts3:_*)
+      Files.copy(p.wrapped, (to/(p relativeTo from)).wrapped, opts1 ++ opts2 ++ opts3:_*)
     }
 
     copyOne(from)
@@ -212,13 +212,13 @@ object copy {
  * does nothing if there aren't any
  */
 object remove extends Function1[Path, Unit]{
-  def apply(target: Path): Unit = Files.delete(target.toNIO)
+  def apply(target: Path): Unit = Files.delete(target.wrapped)
 
   object all extends Function1[Path, Unit]{
     def apply(target: Path) = {
       require(target.segments.nonEmpty, s"Cannot rm a root directory: $target")
 
-      val nioTarget = target.toNIO
+      val nioTarget = target.wrapped
       if (Files.exists(nioTarget)) {
         if (Files.isDirectory(nioTarget)) {
           walk.stream(target, preOrder = false).foreach(remove)
@@ -233,10 +233,10 @@ object remove extends Function1[Path, Unit]{
   * Checks if a file or folder exists at the given path.
   */
 object exists extends Function1[Path, Boolean]{
-  def apply(p: Path): Boolean = Files.exists(p.toNIO)
+  def apply(p: Path): Boolean = Files.exists(p.wrapped)
   def apply(p: Path, followLinks: Boolean = true): Boolean = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
-    Files.exists(p.toNIO, opts:_*)
+    Files.exists(p.wrapped, opts:_*)
   }
 }
 
@@ -245,7 +245,7 @@ object exists extends Function1[Path, Boolean]{
   */
 object hardlink {
   def apply(src: Path, dest: Path) = {
-    Files.createLink(dest.toNIO, src.toNIO)
+    Files.createLink(dest.wrapped, src.wrapped)
   }
 }
 
@@ -259,7 +259,7 @@ object symlink {
       if (perms == null) Array[FileAttribute[_]]()
       else Array(PosixFilePermissions.asFileAttribute(perms.value.asJava))
 
-    Files.createSymbolicLink(dest.toNIO, src.toNIO, permArray:_*)
+    Files.createSymbolicLink(dest.wrapped, src.wrapped, permArray:_*)
   }
 }
 
@@ -270,6 +270,6 @@ object symlink {
   * given path is broken)
   */
 object followLink extends Function1[Path, Option[Path]]{
-  def apply(src: Path): Option[Path] = Try(Path(src.toNIO.toRealPath())).toOption
+  def apply(src: Path): Option[Path] = Try(Path(src.wrapped.toRealPath())).toOption
 }
 

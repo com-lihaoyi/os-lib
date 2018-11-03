@@ -5,6 +5,8 @@ import java.nio.file.Files
 
 object Internals{
 
+  val emptyStringArray = Array.empty[String]
+
   def transfer0(src: InputStream, sink: (Array[Byte], Int) => Unit) = {
     val buffer = new Array[Byte](8192)
     var r = 0

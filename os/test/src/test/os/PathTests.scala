@@ -12,7 +12,7 @@ object PathTests extends TestSuite{
         if(Unix()){
           assert(
             // ammonite.Path to java.nio.file.Path
-            (root/'omg).toNIO == Paths.get("/omg"),
+            (root/'omg).wrapped == Paths.get("/omg"),
 
             // java.nio.file.Path to ammonite.Path
             root/'omg == Path(Paths.get("/omg")),
@@ -273,11 +273,13 @@ object PathTests extends TestSuite{
           val relStr = "hello/cow/world/.."
           val absStr = "/hello/world"
 
+          val lhs = Path(absStr)
+          val rhs = root/'hello/'world
           assert(
             RelPath(relStr) == rel/'hello/'cow,
             // Path(...) also allows paths starting with ~,
             // which is expanded to become your home directory
-            Path(absStr) == root/'hello/'world
+            lhs == rhs
           )
 
           // You can also pass in java.io.File and java.nio.file.Path

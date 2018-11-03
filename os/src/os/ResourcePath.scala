@@ -15,9 +15,10 @@ object ResourcePath{
   * Classloaders are tricky: http://stackoverflow.com/questions/12292926
   */
 class ResourcePath private[os](val resRoot: ResourceRoot, segments0: Array[String])
-  extends BasePathImpl with Source{
+  extends BasePathImpl with Source with SegmentedPath {
   val segments: IndexedSeq[String] = segments0
   type ThisType = ResourcePath
+  def last = segments0.last
   override def toString = resRoot.errorName + "/" + segments0.mkString("/")
   def getHandle = Left{
     resRoot.getResourceAsStream(segments.mkString("/")) match{

@@ -36,7 +36,7 @@ object write{
       else Array(PosixFilePermissions.asFileAttribute(perms.value.asJava))
 
     val out = Files.newByteChannel(
-      target.toNIO,
+      target.wrapped,
       flags.toSet.asJava,
       permArray:_*
     )

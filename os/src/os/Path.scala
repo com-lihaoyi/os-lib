@@ -1,6 +1,6 @@
 package os
 
-import scala.util.Try
+import collection.JavaConverters._
 
 
 /**
@@ -40,6 +40,11 @@ trait BasePath{
     * This path starts with the target path, including if it's identical
     */
   def startsWith(target: ThisType): Boolean
+
+  /**
+    * This path ends with the target path, including if it's identical
+    */
+  def endsWith(target: RelPath): Boolean
 
   /**
     * The last segment in this path. Very commonly used, e.g. it
@@ -100,9 +105,7 @@ object BasePath {
   }
 }
 
-trait BasePathImpl extends BasePath{
-  def segments: IndexedSeq[String]
-
+trait SegmentedPath extends BasePath{
   protected[this] def make(p: Seq[String], ups: Int): ThisType
 
   def /(subpath: RelPath) = make(
@@ -110,12 +113,21 @@ trait BasePathImpl extends BasePath{
     math.max(subpath.ups - segments.length, 0)
   )
 
+  def endsWith(target: RelPath): Boolean = {
+    this == target || (target.ups == 0 && this.segments.endsWith(target.segments))
+  }
+}
+trait BasePathImpl extends BasePath{
+  def segments: IndexedSeq[String]
+
+  def /(subpath: RelPath): ThisType
+
   def ext = {
-    if (!segments.last.contains('.')) ""
-    else segments.last.split('.').lastOption.getOrElse("")
+    if (!last.contains('.')) ""
+    else last.split('.').lastOption.getOrElse("")
   }
 
-  def last = segments.last
+  def last: String
 }
 
 object PathError{
@@ -153,7 +165,8 @@ object FilePath {
   * are collapsed into a single number [[ups]].
   */
 class RelPath private[os](segments0: Array[String], val ups: Int)
-  extends FilePath with BasePathImpl{
+  extends FilePath with BasePathImpl with SegmentedPath {
+  def last = segments.last
   val segments: IndexedSeq[String] = segments0
   type ThisType = RelPath
   require(ups >= 0)
@@ -220,8 +233,8 @@ object RelPath {
   implicit val relPathOrdering: Ordering[RelPath] =
     Ordering.by((rp: RelPath) => (rp.ups, rp.segments.length, rp.segments.toIterable))
 
-  val up: RelPath = new RelPath(Array.empty[String], 1)
-  val rel: RelPath = new RelPath(Array.empty[String], 0)
+  val up: RelPath = new RelPath(Internals.emptyStringArray, 1)
+  val rel: RelPath = new RelPath(Internals.emptyStringArray, 0)
 }
 
 object Path {
@@ -246,12 +259,12 @@ object Path {
   def apply[T: PathConvertible](f: T, base: Path): Path = apply(FilePath(f), base)
   def apply[T: PathConvertible](f0: T): Path = {
     val f = implicitly[PathConvertible[T]].apply(f0)
+    if (f.iterator.asScala.count(_.startsWith("..")) > f.getNameCount/ 2) {
+      throw PathError.AbsolutePathOutsideRoot
+    }
 
-    val chunks = BasePath.chunkify(f)
-    if (chunks.count(_ == "..") > chunks.size / 2) throw PathError.AbsolutePathOutsideRoot
-
-    require(f.isAbsolute, f + " is not an absolute path")
-    new Path(f.getRoot, BasePath.chunkify(f.normalize()))
+    val normalized = f.normalize()
+    new Path(normalized)
   }
 
   implicit val pathOrdering: Ordering[Path] =
@@ -262,40 +275,48 @@ object Path {
   * An absolute path on the filesystem. Note that the path is
   * normalized and cannot contain any empty `""`, `"."` or `".."` segments
   */
-class Path private[os](val root: java.nio.file.Path, segments0: Array[String])
+class Path private[os](val wrapped: java.nio.file.Path)
   extends FilePath with BasePathImpl with SeekableSource{
-  val segments: IndexedSeq[String] = segments0
-  def getHandle() = Right(java.nio.file.Files.newByteChannel(toNIO))
+  require(wrapped.isAbsolute, wrapped + " is not an absolute path")
+  val segments: IndexedSeq[String] = wrapped.iterator().asScala.map(_.toString).toArray[String]
+  def getHandle() = Right(java.nio.file.Files.newByteChannel(wrapped))
   type ThisType = Path
 
-  def toNIO = root.resolve(segments0.mkString(root.getFileSystem.getSeparator))
+  def last = wrapped.getFileName.toString
 
-  protected[this] def make(p: Seq[String], ups: Int) = {
-    if (ups > 0) throw PathError.AbsolutePathOutsideRoot
-    new Path(root, p.toArray[String])
+  def /(subpath: RelPath): ThisType = {
+    if (subpath.ups > wrapped.getNameCount) throw PathError.AbsolutePathOutsideRoot
+    val resolved = wrapped.resolve(subpath.toString).normalize()
+    new Path(resolved)
   }
-  override def toString = toNIO.toString
+  override def toString = wrapped.toString
 
   override def equals(o: Any): Boolean = o match {
-    case p: Path => segments == p.segments
+    case p: Path => wrapped.equals(p.wrapped)
     case _ => false
   }
-  override def hashCode = segments.hashCode()
+  override def hashCode = wrapped.hashCode()
 
-  def startsWith(target: Path) = segments0.startsWith(target.segments)
+  def startsWith(target: Path) = wrapped.startsWith(target.wrapped)
+
+  def endsWith(target: RelPath) = wrapped.endsWith(target.toString)
 
   def relativeTo(base: Path): RelPath = {
-    var newUps = 0
-    var s2 = base.segments
 
-    while(!segments0.startsWith(s2)){
-      s2 = s2.dropRight(1)
-      newUps += 1
+    val nioRel = base.wrapped.relativize(wrapped)
+    val segments = nioRel.iterator().asScala.map(_.toString).toArray match{
+      case Array("") => Internals.emptyStringArray
+      case arr => arr
     }
-    new RelPath(segments0.drop(s2.length), newUps)
+    val nonUpIndex = segments.indexWhere(_ != "..") match{
+      case -1 => segments.length
+      case n => n
+    }
+
+    new RelPath(segments.drop(nonUpIndex), nonUpIndex)
   }
 
-  def toIO = toNIO.toFile
+  def toIO = wrapped.toFile
 }
 
 sealed trait PathConvertible[T]{

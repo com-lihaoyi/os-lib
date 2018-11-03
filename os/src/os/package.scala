@@ -7,7 +7,7 @@ package object os{
   /**
    * The root of the filesystem
    */
-  val root = Path(java.nio.file.Paths.get("").toAbsolutePath.getRoot)
+  val root: Path = Path(java.nio.file.Paths.get("").toAbsolutePath.getRoot)
 
   def resource(implicit resRoot: ResourceRoot = Thread.currentThread().getContextClassLoader) ={
     os.ResourcePath.resource(resRoot)
@@ -16,16 +16,16 @@ package object os{
   /**
    * The user's home directory
    */
-  val home = Path(System.getProperty("user.home"))
+  val home: Path = Path(System.getProperty("user.home"))
 
   /**
    * The current working directory for this process.
    */
-  val pwd = os.Path(new java.io.File("").getCanonicalPath)
+  val pwd: Path = os.Path(new java.io.File("").getCanonicalPath)
 
-  val up = RelPath.up
+  val up: RelPath = RelPath.up
 
-  val rel = RelPath.rel
+  val rel: RelPath = RelPath.rel
   /**
     * Extractor to let you easily pattern match on [[os.Path]]s. Lets you do
     *

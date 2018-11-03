@@ -151,7 +151,7 @@ object walk {
       val opts0 = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
       val opts = new java.util.HashSet[FileVisitOption]
       if (followLinks) opts.add(FileVisitOption.FOLLOW_LINKS)
-      val pNio = path.toNIO
+      val pNio = path.wrapped
       if (!Files.exists(pNio, opts0:_*)){
         throw new java.nio.file.NoSuchFileException(pNio.toString)
       }

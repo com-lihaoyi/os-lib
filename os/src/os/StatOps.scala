@@ -10,17 +10,17 @@ import scala.util.Try
   * Checks whether the given path is a symbolic link
   */
 object isLink extends Function1[Path, Boolean]{
-  def apply(p: Path): Boolean = Files.isSymbolicLink(p.toNIO)
+  def apply(p: Path): Boolean = Files.isSymbolicLink(p.wrapped)
 }
 
 /**
   * Checks whether the given path is a regular file
   */
 object isFile extends Function1[Path, Boolean]{
-  def apply(p: Path): Boolean = Files.isRegularFile(p.toNIO)
+  def apply(p: Path): Boolean = Files.isRegularFile(p.wrapped)
   def apply(p: Path, followLinks: Boolean = true): Boolean = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
-    Files.isRegularFile(p.toNIO, opts:_*)
+    Files.isRegularFile(p.wrapped, opts:_*)
   }
 }
 
@@ -29,10 +29,10 @@ object isFile extends Function1[Path, Boolean]{
   * Checks whether the given path is a directory
   */
 object isDir extends Function1[Path, Boolean]{
-  def apply(p: Path): Boolean = Files.isDirectory(p.toNIO)
+  def apply(p: Path): Boolean = Files.isDirectory(p.wrapped)
   def apply(p: Path, followLinks: Boolean = true): Boolean = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
-    Files.isDirectory(p.toNIO, opts:_*)
+    Files.isDirectory(p.wrapped, opts:_*)
   }
 }
 
@@ -40,17 +40,17 @@ object isDir extends Function1[Path, Boolean]{
   * Gets the size of the given file
   */
 object size extends Function1[Path, Long]{
-  def apply(p: Path): Long = Files.size(p.toNIO)
+  def apply(p: Path): Long = Files.size(p.wrapped)
 }
 
 /**
   * Gets the mtime of the given file
   */
 object mtime extends Function1[Path, Long]{
-  def apply(p: Path): Long = Files.getLastModifiedTime(p.toNIO).toMillis
+  def apply(p: Path): Long = Files.getLastModifiedTime(p.wrapped).toMillis
   def apply(p: Path, followLinks: Boolean = true): Long = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
-    Files.getLastModifiedTime(p.toNIO, opts:_*).toMillis
+    Files.getLastModifiedTime(p.wrapped, opts:_*).toMillis
   }
 
   /**
@@ -63,7 +63,7 @@ object mtime extends Function1[Path, Long]{
     */
   object set {
     def apply(p: Path, millis: Long) = {
-      Files.setLastModifiedTime(p.toNIO, FileTime.fromMillis(millis))
+      Files.setLastModifiedTime(p.wrapped, FileTime.fromMillis(millis))
     }
   }
 }
@@ -82,12 +82,12 @@ object stat extends Function1[os.Path, os.StatInfo]{
       // Don't blow up if we stat `root`
       p.segments.lastOption.getOrElse("/"),
       Files.readAttributes(
-        p.toNIO,
+        p.wrapped,
         classOf[BasicFileAttributes],
         opts:_*
       ),
       Try(Files.readAttributes(
-        p.toNIO,
+        p.wrapped,
         classOf[PosixFileAttributes],
         opts:_*
       )).toOption
@@ -122,12 +122,12 @@ object stat extends Function1[os.Path, os.StatInfo]{
       os.stat.full.make(
         p.segments.lastOption.getOrElse("/"),
         Files.readAttributes(
-          p.toNIO,
+          p.wrapped,
           classOf[BasicFileAttributes],
           opts:_*
         ),
         Try(Files.readAttributes(
-          p.toNIO,
+          p.wrapped,
           classOf[PosixFileAttributes],
           opts:_*
         )).toOption
