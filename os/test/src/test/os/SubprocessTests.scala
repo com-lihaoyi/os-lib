@@ -28,8 +28,7 @@ object SubprocessTests extends TestSuite{
         if(Unix()){
           val res = proc(scriptFolder / 'misc / 'echo, "abc").call()
           val listed = res.out.bytes
-          //        assert(listed == "File.txt\nfolder\nfolder2\nFile.txt".getBytes)
-          listed.toSeq
+          listed ==> "abc\n".getBytes
         }
       }
       'chained{
