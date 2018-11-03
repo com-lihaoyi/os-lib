@@ -176,6 +176,7 @@ largestThree ==> Seq(
 ### Moving files out of folder
 ```scala
 // Move all files inside the "misc" folder out of it
+import os.{GlobSyntax, /}
 os.list(wd/"misc").map(os.move.matching{case p/"misc"/x => p/x })
 ```
 

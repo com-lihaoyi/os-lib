@@ -3,7 +3,6 @@ package test.os
 import java.nio.file.attribute.{GroupPrincipal, FileTime}
 
 import utest._
-import os.{GlobSyntax, /}
 object ExampleTests extends TestSuite{
 
   val tests = Tests {
@@ -64,6 +63,7 @@ object ExampleTests extends TestSuite{
 
     'moveOut - TestUtil.prep{ wd =>
       // Move all files inside the "misc" folder out of it
+      import os.{GlobSyntax, /}
       os.list(wd/"misc").map(os.move.matching{case p/"misc"/x => p/x })
     }
 
