@@ -1254,14 +1254,15 @@ two basic versions are:
 
 
 Generally, almost all commands take absolute `os.Path`s. These are basically
-defined as:
+`java.nio.file.Path`s with additional guarantees:
 
-```scala
-class Path private[ops] (val root: java.nio.file.Path, segments0: Array[String])
-```
+- `os.Path`s are always absolute. Relative paths are a separate type
+  [os.RelPath](#osrelpath)
 
-With a number of useful operations that can be performed on them. Absolute paths
-can be created in a few ways:
+- `os.Path`s are always canonical. You will never find `.` or `..` segments in
+  them, and never need to worry about calling `.normalize` before operations.
+
+Absolute paths can be created in a few ways:
 
 ```scala
 // Get the process' Current Working Directory. As a convention
