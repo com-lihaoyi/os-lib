@@ -335,7 +335,8 @@ class Path private[os](val wrapped: java.nio.file.Path)
     new RelPath(segments.drop(nonUpIndex), nonUpIndex)
   }
 
-  def toIO = wrapped.toFile
+  def toIO: java.io.File = wrapped.toFile
+  def toNIO: java.nio.file.Path = wrapped
 }
 
 sealed trait PathConvertible[T]{
