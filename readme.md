@@ -19,16 +19,17 @@ val invoked = os.proc("cat", wd/"file.txt", wd/"copied.txt").call(cwd = wd)
 invoked.out.trim ==> "hellohello"
 ```
 
-OS-Lib is a Scala library to provides a convenient, safe and intuitive interface
-to common operating system filesystem and subprocess APIs. OS-Lib aims to be a
-complete replacement for the `java.nio.file.Files`/`java.nio.file.Paths` and
-`java.lang.ProcessBuilder` APIs, providing an API that is concise and simple
-while also providing you all the power, flexibility and performance of the
-underlying operating system APIs.
+OS-Lib is a simple Scala interface to common OS filesystem and subprocess APIs.
+OS-Lib aims to make working with files and processes in Scala as simple as any
+scripting language, while still providing the safety, flexibility and
+performance you would expect from Scala.
 
-OS-Lib draws inspiration from the Python `os`, `sys`, `shutil` and and
-`subprocess` modules, and aims to make working with files and processes in Scala
-as simple as any scripting language.
+OS-Lib aims to be a complete replacement for the
+`java.nio.file.Files`/`java.nio.file.Paths`, `java.lang.ProcessBuilder`
+`scala.io` and `scala.sys` APIs. You should not need to drop down to underlying
+Java APIs, as OS-Lib exposes all relevant capabilities in an intuitive and
+performant way. OS-Lib has no dependencies, and can be used in any Scala
+codebase without worrying about jar or style conflicts.
 
 - [Getting Started](#getting-started)
 - [Cookbook](#cookbook)
