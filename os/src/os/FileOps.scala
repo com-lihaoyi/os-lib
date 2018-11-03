@@ -51,10 +51,16 @@ object makeDir extends Function1[Path, Unit]{
 }
 
 
-trait CopyMove extends Function2[Path, Path, Unit]{
-  def apply(from: Path, to: Path, createFolders: Boolean): Unit = {
+trait CopyMove {
+
+  def doAction(from: Path, to: Path, followLinks: Boolean): Unit
+
+  def apply(from: Path,
+            to: Path,
+            createFolders: Boolean = false,
+            followLinks: Boolean = true): Unit = {
     if (createFolders) makeDir.all(to/up)
-    apply(from, to)
+    doAction(from, to, followLinks)
   }
 
   def apply(t: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
@@ -71,9 +77,9 @@ trait CopyMove extends Function2[Path, Path, Unit]{
     * Copy or move a file into a particular folder, rather
     * than into a particular path
     */
-  object into extends Function2[Path, Path, Unit]{
-    def apply(from: Path, to: Path) = {
-      CopyMove.this.apply(from, to/from.last)
+  object into {
+    def apply(from: Path, to: Path, createFolders: Boolean = false, followLinks: Boolean = true) = {
+      CopyMove.this.apply(from, to/from.last, createFolders, followLinks)
     }
   }
 
@@ -81,10 +87,10 @@ trait CopyMove extends Function2[Path, Path, Unit]{
     * Copy or move a file, stomping over anything
     * that may have been there before
     */
-  object over extends Function2[Path, Path, Unit]{
-    def apply(from: Path, to: Path) = {
+  object over {
+    def apply(from: Path, to: Path, createFolders: Boolean = false, followLinks: Boolean = true) = {
       remove(to)
-      CopyMove.this.apply(from, to)
+      CopyMove.this.apply(from, to, createFolders, followLinks)
     }
   }
 }
@@ -93,8 +99,9 @@ trait CopyMove extends Function2[Path, Path, Unit]{
   * Moves a file or folder from one path to another. Errors out if the destination
   * path already exists, or is within the source path.
  */
-object move extends Function2[Path, Path, Unit] with CopyMove{
-  def apply(from: Path, to: Path): Unit = {
+object move extends CopyMove{
+  def doAction(from: Path, to: Path, followLinks: Boolean): Unit = {
+    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
     require(
       !to.startsWith(from),
       s"Can't move a directory into itself: $to is inside $from"
@@ -110,8 +117,9 @@ object move extends Function2[Path, Path, Unit] with CopyMove{
   * all their contents. Errors out if the destination path already exists, or is
   * within the source path.
  */
-object copy extends Function2[Path, Path, Unit] with CopyMove{
-  def apply(from: Path, to: Path) = {
+object copy extends CopyMove{
+  def doAction(from: Path, to: Path, followLinks: Boolean): Unit = {
+    val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
     require(
       !to.startsWith(from),
       s"Can't copy a directory into itself: $to is inside $from"
