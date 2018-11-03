@@ -579,18 +579,10 @@ Returns the last-modified timestamp of the given file, in milliseconds
 
 ```scala
 os.perms(p: Path, followLinks: Boolean = true): PermSet
-```
-
-Reads the filesystem permissions of the given file or folder, as an
-[os.PermSet](#ospermset).
-
-#### os.perms.set
-
-```scala
 os.perms.set(p: Path, arg2: PermSet): Unit
 ```
 
-Sets the filesystem permissions of the given file or folder, as an
+Gets or sets the filesystem permissions of the given file or folder, as an
 [os.PermSet](#ospermset).
 
 Note that if you want to create a file or folder with a given set of
@@ -603,35 +595,23 @@ default set of permissions and having `os.perms.set` over-write them later
 
 ```scala
 os.owner(p: Path, followLinks: Boolean = true): UserPrincipal
-```
-
-Reads the owner of the given file or folder.
-
-#### os.owner.set
-
-```scala
 os.owner.set(arg1: Path, arg2: UserPrincipal): Unit
 os.owner.set(arg1: Path, arg2: String): Unit
 ```
 
-Sets the owner of the given file or folder.
+Gets or sets the owner of the given file or folder.
+
 
 #### os.group
 
 ```scala
 os.group(p: Path, followLinks: Boolean = true): GroupPrincipal
-```
-
-Reads the owning group of the given file or folder.
-
-#### os.group.set
-
-```scala
 os.group.set(arg1: Path, arg2: GroupPrincipal): Unit
 os.group.set(arg1: Path, arg2: String): Unit
+
 ```
 
-Sets the owning group of the given file or folder.
+Gets or sets the owning group of the given file or folder.
 
 ### Spawning Subprocesses
 
