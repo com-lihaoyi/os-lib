@@ -117,9 +117,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.1.2"
+"com.lihaoyi" %% "os-lib" % "0.1.3"
 // Mill
-ivy"com.lihaoyi::os-lib:0.1.2"
+ivy"com.lihaoyi::os-lib:0.1.3"
 ```
 
 ## Cookbook
@@ -743,12 +743,16 @@ os.exists(wd / "new_folder") ==> true
 
 ```scala
 os.makeDir.all(path: Path): Unit
-os.makeDir.all(path: Path, perms: PermSet): Unit
+os.makeDir.all(path: Path,
+               perms: PermSet = null,
+               acceptLinkedDirectory: Boolean = true): Unit
 ```
 
 Similar to [os.makeDir](#osmakedir), but automatically creates any necessary
 enclosing directories if they do not exist, and does not raise an error if the
-destination path already containts a directory.
+destination path already containts a directory. Also does not raise an error if
+the destination path contains a symlink to a directory, though you can force it
+to error out in that case by passing in `acceptLinkedDirectory = false`
 
 ```scala
 os.exists(wd / "new_folder") ==> false
@@ -1602,6 +1606,6 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
-### 0.1.2
+### 0.1.3
 
 - First release

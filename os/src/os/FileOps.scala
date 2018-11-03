@@ -36,11 +36,17 @@ object makeDir extends Function1[Path, Unit]{
     * destination path already containts a directory
     */
   object all extends Function1[Path, Unit]{
-    def apply(path: Path): Unit = Files.createDirectories(path.wrapped)
-    def apply(path: Path, perms: PermSet): Unit = {
-      if (perms == null) apply(path)
+    def apply(path: Path): Unit = apply(path, null, true)
+    def apply(path: Path, perms: PermSet = null, acceptLinkedDirectory: Boolean = true): Unit = {
+      // We special case calling makeDir.all on a symlink to a directory;
+      // normally createDirectories blows up noisily, when really what most
+      // people would want is for it to succeed since there is a (linked)
+      // directory right there
+      if (os.isDir(path) && os.isLink(path) && acceptLinkedDirectory) () // do nothing
+      else if (perms == null) Files.createDirectories(path.wrapped)
       else {
         import collection.JavaConverters._
+
         Files.createDirectories(
           path.wrapped,
           PosixFilePermissions.asFileAttribute(perms.value.asJava)
