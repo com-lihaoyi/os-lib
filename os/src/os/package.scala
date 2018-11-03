@@ -39,9 +39,8 @@ package object os{
     * To break apart a path and extract various pieces of it.
     */
   object /{
-    def unapply[T <: BasePath](p: T): Option[(p.ThisType, String)] = {
-      if (p.segments.nonEmpty)
-        Some((p / up, p.last))
+    def unapply(p: Path): Option[(Path, String)] = {
+      if (p.segmentCount != 0) Some((p / up, p.last))
       else None
     }
   }

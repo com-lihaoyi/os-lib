@@ -13,11 +13,6 @@ import collection.JavaConverters._
 trait BasePath{
   type ThisType <: BasePath
   /**
-    * The individual path segments of this path.
-    */
-  def segments: IndexedSeq[String]
-
-  /**
     * Combines this path with the given relative path, returning
     * a path of the same type as this one (e.g. `Path` returns `Path`,
     * `RelPath` returns `RelPath`
@@ -107,6 +102,10 @@ object BasePath {
 
 trait SegmentedPath extends BasePath{
   protected[this] def make(p: Seq[String], ups: Int): ThisType
+  /**
+    * The individual path segments of this path.
+    */
+  def segments: IndexedSeq[String]
 
   def /(subpath: RelPath) = make(
     segments.dropRight(subpath.ups) ++ subpath.segments,
@@ -118,8 +117,6 @@ trait SegmentedPath extends BasePath{
   }
 }
 trait BasePathImpl extends BasePath{
-  def segments: IndexedSeq[String]
-
   def /(subpath: RelPath): ThisType
 
   def ext = {
@@ -267,8 +264,28 @@ object Path {
     new Path(normalized)
   }
 
-  implicit val pathOrdering: Ordering[Path] =
-    Ordering.by((rp: Path) => (rp.segments.length, rp.segments.toIterable))
+  implicit val pathOrdering: Ordering[Path] = new Ordering[Path]{
+    def compare(x: Path, y: Path): Int = {
+      val xSegCount = x.segmentCount
+      val ySegCount = y.segmentCount
+      if (xSegCount < ySegCount) -1
+      else if (xSegCount > ySegCount) 1
+      else if (xSegCount == 0 && ySegCount == 0) 0
+      else{
+        var xSeg = ""
+        var ySeg = ""
+        var i = -1
+        do{
+          i += 1
+          xSeg = x.getSegment(i)
+          ySeg = y.getSegment(i)
+        } while (i < xSegCount && xSeg == ySeg)
+        if (i == xSegCount) 0
+        else Ordering.String.compare(xSeg, ySeg)
+      }
+    }
+  }
+
 }
 
 /**
@@ -278,7 +295,9 @@ object Path {
 class Path private[os](val wrapped: java.nio.file.Path)
   extends FilePath with BasePathImpl with SeekableSource{
   require(wrapped.isAbsolute, wrapped + " is not an absolute path")
-  val segments: IndexedSeq[String] = wrapped.iterator().asScala.map(_.toString).toArray[String]
+  def getSegments(): Iterator[String] = wrapped.iterator().asScala.map(_.toString)
+  def getSegment(i: Int): String = wrapped.getName(i).toString
+  def segmentCount = wrapped.getNameCount
   def getHandle() = Right(java.nio.file.Files.newByteChannel(wrapped))
   type ThisType = Path
 

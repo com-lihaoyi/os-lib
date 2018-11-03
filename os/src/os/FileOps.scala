@@ -216,7 +216,7 @@ object remove extends Function1[Path, Unit]{
 
   object all extends Function1[Path, Unit]{
     def apply(target: Path) = {
-      require(target.segments.nonEmpty, s"Cannot rm a root directory: $target")
+      require(target.segmentCount != 0, s"Cannot remove a root directory: $target")
 
       val nioTarget = target.wrapped
       if (Files.exists(nioTarget)) {

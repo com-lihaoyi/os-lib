@@ -127,11 +127,11 @@ object PathTests extends TestSuite{
           // Keep applying `up` and verify that the path gets
           // shorter and shorter and eventually errors.
           var abs = pwd
-          var i = abs.segments.length
+          var i = abs.segmentCount
           while(i > 0){
-            abs/=up
+            abs /= up
             i-=1
-            assert(abs.segments.length == i)
+            assert(abs.segmentCount == i)
           }
           intercept[PathError.AbsolutePathOutsideRoot.type]{ abs/up }
         }
@@ -237,27 +237,12 @@ object PathTests extends TestSuite{
           d == "D"
         )
 
-
-        val relative = rel/'omg/'wtf/'bbq
-        val a2/b2/c2 = relative
-        assert(
-          a2 == rel/'omg,
-          b2 == "wtf",
-          c2 == "bbq"
-        )
-
         // If the paths aren't deep enough, it
         // just doesn't match but doesn't blow up
         root/'omg match {
           case a3/b3/c3/d3/e3 => assert(false)
           case _ =>
         }
-
-        relative match {
-          case a3/b3/c3/d3/e3 => assert(false)
-          case _ =>
-        }
-
       }
     }
     'sorting{
