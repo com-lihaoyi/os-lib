@@ -89,21 +89,36 @@ object ManipulatingFilesFoldersTests extends TestSuite {
     }
     'makeDir - {
       * - prep{ wd =>
-
+        os.exists(wd / "new_folder") ==> false
+        os.makeDir(wd / "new_folder")
+        os.exists(wd / "new_folder") ==> true
       }
       'all - {
         * - prep{ wd =>
-
+          os.exists(wd / "new_folder") ==> false
+          os.makeDir.all(wd / "new_folder" / "inner" / "deep")
+          os.exists(wd / "new_folder" / "inner" / "deep") ==> true
         }
       }
     }
     'remove - {
       * - prep{ wd =>
+        os.exists(wd / "File.txt") ==> true
+        os.remove(wd / "File.txt")
+        os.exists(wd / "File.txt") ==> false
 
+        os.exists(wd / "folder1" / "one.txt") ==> true
+        os.remove(wd / "folder1" / "one.txt")
+        os.remove(wd / "folder1")
+        os.exists(wd / "folder1" / "one.txt") ==> false
+        os.exists(wd / "folder1") ==> false
       }
       'all - {
         * - prep{ wd =>
-
+          os.exists(wd / "folder1" / "one.txt") ==> true
+          os.remove.all(wd / "folder1")
+          os.exists(wd / "folder1" / "one.txt") ==> false
+          os.exists(wd / "folder1") ==> false
         }
       }
     }
