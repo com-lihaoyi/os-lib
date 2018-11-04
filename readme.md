@@ -28,8 +28,9 @@ OS-Lib aims to be a complete replacement for the
 `java.nio.file.Files`/`java.nio.file.Paths`, `java.lang.ProcessBuilder`
 `scala.io` and `scala.sys` APIs. You should not need to drop down to underlying
 Java APIs, as OS-Lib exposes all relevant capabilities in an intuitive and
-performant way. OS-Lib has no dependencies, and can be used in any Scala
-codebase without worrying about jar or style conflicts.
+performant way. OS-Lib has no dependencies and is unopinionated: it exposes the
+underlying APIs is a concise but straightforward way, without introducing it's
+own idiosyncrasies, quirks, or clever DSLs.
 
 - [Getting Started](#getting-started)
 - [Cookbook](#cookbook)
@@ -117,9 +118,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.1.4"
+"com.lihaoyi" %% "os-lib" % "0.1.5"
 // Mill
-ivy"com.lihaoyi::os-lib:0.1.4"
+ivy"com.lihaoyi::os-lib:0.1.5"
 ```
 
 ## Cookbook
@@ -1606,6 +1607,6 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
-### 0.1.4
+### 0.1.5
 
 - First release

@@ -21,7 +21,19 @@ object list extends Function1[Path, IndexedSeq[Path]] {
     * is large.
     */
   object stream extends Function1[Path, geny.Generator[Path]]{
-    def apply(arg: Path) = os.walk(arg, maxDepth = 1)
+    def apply(arg: Path) = new Generator[Path] {
+      def generate(handleItem: Path => Generator.Action) = {
+        val ds = Files.newDirectoryStream(arg.toNIO)
+        val iter = ds.iterator()
+        var currentAction: Generator.Action = Generator.Continue
+        try {
+          while (iter.hasNext && currentAction == Generator.Continue){
+            currentAction = handleItem(Path(iter.next().toAbsolutePath))
+          }
+        } finally ds.close()
+        currentAction
+      }
+    }
   }
 }
 
@@ -174,7 +186,7 @@ object walk {
           val ds = Files.newDirectoryStream(pathNIO)
           val iter = ds.iterator()
           try {
-            while (iter.hasNext) Files.walkFileTree(
+            while (iter.hasNext && currentAction == Generator.Continue) Files.walkFileTree(
               iter.next(),
               opts,
               maxDepth - 1,
