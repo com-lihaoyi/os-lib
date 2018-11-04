@@ -58,10 +58,16 @@ object SpawningSubprocessesTests extends TestSuite {
       'spawn - {
         * - prep { wd =>
           val sub = os.proc("python", "-c", "print eval(raw_input())").spawn(cwd = wd)
-          val out = new BufferedReader(new InputStreamReader(sub.getInputStream))
-          sub.getOutputStream.write("1 + 2 + 3\n".getBytes)
-          sub.getOutputStream.flush()
-          out.readLine() ==> "6"
+          sub.stdin.write("1 + 2")
+          sub.stdin.writeLine("+ 4")
+          sub.stdin.flush()
+          sub.stdout.readLine() ==> "7"
+
+          val sub2 = os.proc("python", "-c", "print eval(raw_input())").spawn(cwd = wd)
+          sub2.stdin.write("1 + 2".getBytes)
+          sub2.stdin.write("+ 4\n".getBytes)
+          sub2.stdin.flush()
+          sub2.stdout.read() ==> '7'.toByte
         }
       }
     }

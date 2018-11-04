@@ -1,5 +1,7 @@
 package os
 
+import java.io._
+import java.nio.charset.{Charset, StandardCharsets}
 import java.util.concurrent.{ArrayBlockingQueue, TimeUnit}
 
 import scala.annotation.tailrec
@@ -107,13 +109,13 @@ case class proc(command: Shellable*) {
 
     val inWriter = new Thread(new Runnable {
       def run() = {
-        Internals.transfer(data.getInputStream(), process.getOutputStream)
+        Internals.transfer(data.getInputStream(), process.stdin)
       }
     })
     val outReader = new Thread(new Runnable {
       def run() = {
         Internals.transfer0(
-          process.getInputStream,
+          process.stdout,
           (arr, n) => callbackQueue.put((true, arr, n))
         )
       }
@@ -122,7 +124,7 @@ case class proc(command: Shellable*) {
     val errReader = new Thread(new Runnable {
       def run() = {
         Internals.transfer0(
-          process.getErrorStream,
+          process.stderr,
           (arr, n) => callbackQueue.put((false, arr, n))
         )
       }
@@ -146,8 +148,10 @@ case class proc(command: Shellable*) {
       }
     }
 
-    process.destroy()
-    process.destroyForcibly()
+    if (System.currentTimeMillis() - startTime > timeout){
+      process.destroy()
+      process.destroyForcibly()
+    }
 
     // If someone `Ctrl C`s the Ammonite REPL while we are waiting on a
     // subprocess, don't stop waiting!
@@ -167,10 +171,11 @@ case class proc(command: Shellable*) {
     //   thing (e.g. in the case of `git log`, which leaves a `less` grandchild
     //   hanging around). Thus we simply don't let `Ctrl C` interrupt these
     //   fellas, and force you to use e.g. `q` to exit `less` gracefully.
-
     @tailrec def run(): Int =
-      try process.waitFor()
-      catch {case e: Throwable => run() }
+      try {
+        process.waitFor()
+        process.exitCode()
+      } catch {case e: Throwable => run() }
 
     run()
   }
@@ -186,7 +191,7 @@ case class proc(command: Shellable*) {
             stdout: Redirect = Pipe,
             stderr: Redirect = Pipe,
             mergeErrIntoOut: Boolean = false,
-            propagateEnv: Boolean = true): java.lang.Process = {
+            propagateEnv: Boolean = true): SubProcess = {
     val builder = new java.lang.ProcessBuilder()
 
     val baseEnv =
@@ -198,12 +203,200 @@ case class proc(command: Shellable*) {
     }
     builder.directory(Option(cwd).getOrElse(os.pwd).toIO)
 
-    builder
-      .command(command.flatMap(_.s):_*)
-      .redirectInput(stdin.toRedirectFrom)
-      .redirectOutput(stdout.toRedirectTo)
-      .redirectError(stderr.toRedirectTo)
-      .redirectErrorStream(mergeErrIntoOut)
-      .start()
+    new SubProcess(
+      builder
+        .command(command.flatMap(_.s):_*)
+        .redirectInput(stdin.toRedirectFrom)
+        .redirectOutput(stdout.toRedirectTo)
+        .redirectError(stderr.toRedirectTo)
+        .redirectErrorStream(mergeErrIntoOut)
+        .start()
+    )
+  }
+}
+
+/**
+  * Represents a spawn subprocess that has started and may or may not have
+  * completed.
+  */
+class SubProcess(val wrapped: java.lang.Process){
+  val stdin: SubProcess.Input = new SubProcess.Input(wrapped.getOutputStream)
+  val stdout: SubProcess.Output = new SubProcess.Output(wrapped.getInputStream)
+  val stderr: SubProcess.Output = new SubProcess.Output(wrapped.getErrorStream)
+
+  /**
+    * The subprocess' exit code. Conventionally, 0 exit code represents a
+    * successful termination, and non-zero exit code indicates a failure.
+    *
+    * Throws an exception if the subprocess has not terminated
+    */
+  def exitCode(): Int = wrapped.exitValue()
+
+  /**
+    * Returns `true` if the subprocess is still running and has not terminated
+    */
+  def isAlive(): Boolean = wrapped.isAlive
+
+  /**
+    * Attempt to destroy the subprocess (gently), via the underlying JVM APIs
+    */
+  def destroy(): Unit = wrapped.destroy()
+
+  /**
+    * Force-destroys the subprocess, via the underlying JVM APIs
+    */
+  def destroyForcibly(): Unit = wrapped.destroyForcibly()
+
+  /**
+    * Wait up to `millis` for the subprocess to terminate, by default waits
+    * indefinitely. Returns `true` if the subprocess has terminated by the time
+    * this method returns
+    */
+  def waitFor(millis: Long = -1): Boolean =
+    if(millis == -1) {
+      wrapped.waitFor()
+      true
+    } else {
+      wrapped.waitFor(millis, TimeUnit.MILLISECONDS)
+    }
+
+}
+
+object SubProcess{
+
+  /**
+    * A [[BufferedWriter]] with the underlying [[java.io.OutputStream]] exposed
+    */
+  class Input(val wrapped: java.io.OutputStream) extends java.io.OutputStream{
+    def write(b: Int) = wrapped.write(b)
+
+    override def write(b: Array[Byte]): Unit = wrapped.write(b)
+    override def write(b: Array[Byte], offset: Int, len: Int): Unit = wrapped.write(b, offset, len)
+
+
+    def write(s: String,
+              charSet: Charset = StandardCharsets.UTF_8): Unit = {
+      val writer = new OutputStreamWriter(wrapped, charSet)
+      writer.write(s)
+      writer.flush()
+    }
+    def writeLine(s: String,
+                  charSet: Charset = StandardCharsets.UTF_8): Unit = {
+      val writer = new OutputStreamWriter(wrapped, charSet)
+      writer.write(s)
+      writer.write("\n")
+      writer.flush()
+    }
+
+    override def flush() = wrapped.flush()
+  }
+
+  /**
+    * A combination [[BufferedReader]] and [[java.io.InputStream]], this allows
+    * you to read both bytes and lines, without worrying about the buffer used
+    * for reading lines messing up your reading of bytes.
+    */
+  class Output(val wrapped: java.io.InputStream,
+               bufferSize: Int = 8192) extends java.io.InputStream{
+    // We maintain our own buffer internally, in order to make readLine
+    // efficient by avoiding reading character by character. As a consequence
+    // all the other read methods have to check the buffer for data and using
+    // that before going and reading from the wrapped input stream.
+    private[this] var bufferOffset = 0
+    private[this] var bufferEnd = 0
+    private[this] val buffer = new Array[Byte](bufferSize)
+    // Keep track if the last readLine() call terminated on a \r, since that
+    // means any subsequence readLine() that starts with a \n should ignore the
+    // leading character
+    private[this] var lastSeenSlashR = false
+
+    def read() = {
+      lastSeenSlashR = false
+      if (bufferOffset < bufferEnd){
+        val res = buffer(bufferOffset)
+        bufferOffset += 1
+        res
+      }else{
+        wrapped.read()
+      }
+    }
+
+    override def read(b: Array[Byte]) = {
+      lastSeenSlashR = false
+      this.read(b, 0, b.length)
+    }
+    override def read(b: Array[Byte], offset: Int, len: Int) = {
+      lastSeenSlashR = false
+      val bufferedCount = bufferEnd - bufferOffset
+      if (bufferedCount > len){
+        bufferOffset += len
+        System.arraycopy(buffer, bufferEnd, b, offset, len)
+        len
+      }else{
+        bufferOffset = bufferEnd
+        System.arraycopy(buffer, bufferEnd, b, offset, bufferedCount)
+        wrapped.read(b, bufferedCount, len - bufferedCount) + bufferedCount
+      }
+    }
+
+    /**
+      * Read a single line from the stream, as a string. A line is ended by \n,
+      * \r or \r\n. The returned string does *not* return the trailing
+      * delimiter.
+      */
+    def readLine(charSet: Charset = StandardCharsets.UTF_8): String = {
+      val output = new ByteArrayOutputStream()
+      // Reads the buffer for a newline, returning the index of the newline
+      // (if any). Returns the length of the buffer if no newline is found
+      @tailrec def recChar(i: Int, skipFirst: Boolean): (Int, Boolean) = {
+        if (i == bufferEnd) (i, skipFirst) // terminate tailrec
+        else if (buffer(i) == '\n') {
+          if (lastSeenSlashR) {
+            lastSeenSlashR = false
+            recChar(i + 1, true)
+          } else (i, skipFirst)
+
+        } else if (buffer(i) == '\r'){
+          lastSeenSlashR = true
+          (i, skipFirst)
+        } else{
+          recChar(i + 1, skipFirst)
+        }
+      }
+
+      // Reads what's currently in the buffer trying to find a newline. If no
+      // newline is found in the whole buffer, load another batch of bytes into
+      // the buffer from the input stream and try again
+      @tailrec def recBuffer(didSomething: Boolean): Boolean = {
+        val (newLineIndex, skipFirst) = recChar(bufferOffset, false)
+        val skipOffset = if (skipFirst) 1 else 0
+        if (newLineIndex < bufferEnd) { // Found a newline
+          output.write(buffer, bufferOffset + skipOffset, newLineIndex - bufferOffset - skipOffset)
+          bufferOffset = newLineIndex + 1
+          true
+        } else if (newLineIndex == bufferEnd){
+
+          val start = bufferOffset + skipOffset
+          val end = newLineIndex - bufferOffset - skipOffset
+          output.write(buffer, start, end)
+          val readCount = wrapped.read(buffer, 0, buffer.length)
+          if (readCount != -1){ // End of buffer
+            bufferOffset = 0
+            bufferEnd = readCount
+            recBuffer(didSomething || end > start)
+          }else{ // End of input
+            val didSomething2 = didSomething || newLineIndex != (bufferOffset + skipOffset)
+            bufferOffset = 0
+            bufferEnd = 0
+            didSomething2
+          }
+        } else ???
+      }
+
+      val didSomething = recBuffer(false)
+
+      if (didSomething) output.toString(charSet.name())
+      else null
+    }
   }
 }

@@ -1242,16 +1242,27 @@ os.proc(command: os.Shellable*)
 ```
 
 The most flexible of the `os.proc` calls, `os.proc.spawn` simply configures and
-starts a subprocess, and returns it as a `java.lang.Process` for you to interact
-with however you like, e.g. by sending commands to it's `stdin` and reading from
-it's `stdout`.
+starts a subprocess, and returns it as a `os.SubProcess`. `os.SubProcess` is a
+simple wrapped around `java.lang.Process`, which provides `stdin`, `stdout`, and
+`stderr` streams for you to interact with however you like. e.g. You can sending
+commands to it's `stdin` and reading from it's `stdout`.
+
+`stdin`, `stdout` and `stderr` are `java.lang.OutputStream`s and
+`java.lang.InputStream`s enhanced with the `.writeLine(s: String)`/`.readLine()`
+methods for easy reading and writing of character and line-based data.
 
 ```scala
 val sub = os.proc("python", "-c", "print eval(raw_input())").spawn(cwd = wd)
-val out = new BufferedReader(new InputStreamReader(sub.getInputStream))
-sub.getOutputStream.write("1 + 2 + 3\n".getBytes)
-sub.getOutputStream.flush()
-out.readLine() ==> "6"
+sub.stdin.write("1 + 2")
+sub.stdin.writeLine("+ 4")
+sub.stdin.flush()
+sub.stdout.readLine() ==> "7"
+
+val sub2 = os.proc("python", "-c", "print eval(raw_input())").spawn(cwd = wd)
+sub2.stdin.write("1 + 2".getBytes)
+sub2.stdin.write("+ 4\n".getBytes)
+sub2.stdin.flush()
+sub2.stdout.read() ==> '7'.toByte
 ```
 
 ## Data Types

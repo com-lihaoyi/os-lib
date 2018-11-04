@@ -179,8 +179,8 @@ case class StreamValue(chunks: Seq[Bytes]){
   def trim: String = string.trim
   def trim(codec: Codec): String = string(codec).trim
 
-  def lines: Vector[String] = string.lines.toVector
-  def lines(codec: Codec): Vector[String] = string(codec).lines.toVector
+  def lines: Vector[String] = Predef.augmentString(string).lines.toVector
+  def lines(codec: Codec): Vector[String] = Predef.augmentString(string(codec)).lines.toVector
 }
 /**
   * An implicit wrapper defining the things that can
