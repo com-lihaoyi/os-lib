@@ -375,12 +375,16 @@ os.read(wd / "File.txt") ==> "We  are sow"
 
 ```scala
 os.list(p: Path): IndexedSeq[Path]
+os.list(p: Path, sort: Boolean = true): IndexedSeq[Path]
 ```
 
 Returns all the files and folders directly within the given folder. If the given
 path is not a folder, raises an error. Can be called via
 [os.list.stream](#osliststream) to stream the results. To list files recursively,
 use [os.walk](#oswalk).
+
+For convenience `os.list` sorts the entries in the folder before returning
+them. You can disable sorted by passing in the flag `sort = false`.
 
 ```scala
 os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
@@ -1149,7 +1153,7 @@ os.proc(command: os.Shellable*)
         stderr: os.Redirect = os.Pipe,
         mergeErrIntoOut: Boolean = false,
         timeout: Long = Long.MaxValue,
-        check: Boolean = false,
+        check: Boolean = true,
         propagateEnv: Boolean = true): CommandResult
 ```
 
@@ -1168,8 +1172,8 @@ is run:
   processes output/error streams are configured.
 - `mergeErrIntoOut`: merges the subprocess's stderr stream into it's stdout
 - `timeout`: how long to wait for the subprocess to complete
-- `check`: enable this to throw an exception if the subprocess fails with a
-  non-zero exit code
+- `check`: disable this to avoid throwing an exception if the subprocess fails
+  with a non-zero exit code
 - `propagateEnv`: disable this to avoid passing in this parent process's
   environment variables to the subprocess
 

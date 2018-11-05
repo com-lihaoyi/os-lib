@@ -8,16 +8,25 @@ import java.nio.file.attribute.BasicFileAttributes
 import geny.Generator
 
 /**
-  * Returns all the files and folders directly within the given folder. If the given
-  * path is not a folder, raises an error. Can be called with [[list.stream]]
-  * to return an iterator. To list files recursively, use [[walk]]
+  * Returns all the files and folders directly within the given folder. If the
+  * given path is not a folder, raises an error. Can be called with
+  * [[list.stream]] to return an iterator. To list files recursively, use
+  * [[walk]]
+  *
+  * For convenience `os.list` sorts the entries in the folder before returning
+  * them. You can disable sorted by passing in the flag `sort = false`.
   */
 object list extends Function1[Path, IndexedSeq[Path]] {
-  def apply(src: Path) = stream(src).toArray[Path].sorted
+  def apply(src: Path, sort: Boolean = true) = {
+    val arr = stream(src).toArray[Path]
+    if (sort) arr.sorted
+    else arr
+  }
+  def apply(src: Path) = apply(src, true)
 
   /**
-    * Similar to [[os.list]]], except provides a [os.Generator](../../../readme.md#osgenerator) of
-    * results rather than accumulating all of them in memory. Useful if the result set
+    * Similar to [[os.list]]], except provides a [[os.Generator]] of results
+    * rather than accumulating all of them in memory. Useful if the result set
     * is large.
     */
   object stream extends Function1[Path, geny.Generator[Path]]{

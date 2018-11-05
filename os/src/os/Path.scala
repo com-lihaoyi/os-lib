@@ -52,6 +52,12 @@ trait BasePath{
     * string if there is no extension
     */
   def ext: String
+
+  /**
+    * The individual path segments of this path.
+    */
+  def segments: TraversableOnce[String]
+
 }
 
 object BasePath {
@@ -302,7 +308,7 @@ class Path private[os](val wrapped: java.nio.file.Path)
     new SeekableSource.ChannelSource(java.nio.file.Files.newByteChannel(wrapped))
 
   require(wrapped.isAbsolute, wrapped + " is not an absolute path")
-  def getSegments(): Iterator[String] = wrapped.iterator().asScala.map(_.toString)
+  def segments: Iterator[String] = wrapped.iterator().asScala.map(_.toString)
   def getSegment(i: Int): String = wrapped.getName(i).toString
   def segmentCount = wrapped.getNameCount
   type ThisType = Path

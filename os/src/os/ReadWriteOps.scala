@@ -2,7 +2,7 @@ package os
 
 import java.io.{BufferedReader, InputStreamReader}
 import java.nio.ByteBuffer
-import java.nio.channels.{Channels, FileChannel}
+import java.nio.channels.{Channels, FileChannel, SeekableByteChannel}
 import java.nio.file.attribute.{FileAttribute, PosixFilePermission, PosixFilePermissions}
 import java.nio.file.{Files, StandardOpenOption}
 
@@ -119,6 +119,20 @@ object read extends Function1[ReadablePath, String]{
             offset: Long = 0,
             count: Int = Int.MaxValue): String = {
     new String(read.bytes(arg, offset, count), charSet.charSet)
+  }
+
+  /**
+    * Opens a [[java.io.InputStream]] to read from the given file
+    */
+  object inputStream extends Function1[ReadablePath, java.io.InputStream]{
+    def apply(p: ReadablePath): java.io.InputStream = p.toSource.getInputStream()
+  }
+
+  /**
+    * Opens a [[SeekableByteChannel]] to read from the given file.
+    */
+  object channel extends Function1[Path, SeekableByteChannel]{
+    def apply(p: Path): SeekableByteChannel = p.toSource.getChannel()
   }
 
   /**

@@ -205,7 +205,7 @@ object ExampleTests extends TestSuite{
             .filter(_.ext == "scala")
             .map(longLines)
             .filter(_._2.length > 0)
-            .filter(!_._1.getSegments.contains("src_managed"))
+            .filter(!_._1.segments.contains("src_managed"))
 
       assert(filesWithTooLongLines.length == 0)
     }
