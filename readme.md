@@ -436,6 +436,11 @@ occurs last after all it's contents.
 override that behavior. You can also specify a maximum depth you wish to walk
 via the `maxDepth` parameter.
 
+`os.walk` does not include the path given to it as part of the traversal by
+default. Pass in `includeTarget = true` to make it do so. The path appears at
+the start of the traversal of `preOrder = true`, and at the end of the traversal
+if `preOrder = false`.
+
 ```scala
 os.walk(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
 

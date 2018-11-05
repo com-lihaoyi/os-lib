@@ -203,7 +203,7 @@ object walk {
               path,
               os.BasicStatInfo.make(
                 if (path.segmentCount == 0) "/" else path.last,
-                java.nio.file.Files.readAttributes(path.toNIO, classOf[BasicFileAttributes]),
+                java.nio.file.Files.readAttributes(path.toNIO, classOf[BasicFileAttributes])
               )
             )
           )
