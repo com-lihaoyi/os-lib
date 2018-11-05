@@ -4,7 +4,7 @@ import java.io.{BufferedReader, InputStreamReader}
 import java.nio.ByteBuffer
 import java.nio.channels.{Channels, FileChannel, SeekableByteChannel}
 import java.nio.file.attribute.{FileAttribute, PosixFilePermission, PosixFilePermissions}
-import java.nio.file.{Files, StandardOpenOption}
+import java.nio.file.{Files, OpenOption, StandardOpenOption}
 
 import geny.Generator
 
@@ -19,6 +19,28 @@ import scala.io.Codec
   * there.
   */
 object write{
+  /**
+    * Open a [[java.io.OutputStream]] to write to the given file
+    */
+  def outputStream(target: Path,
+                   perms: PermSet = null,
+                   createFolders: Boolean = true,
+                   openOptions: Seq[OpenOption] =
+                     Seq(StandardOpenOption.CREATE, StandardOpenOption.WRITE)) = {
+    if (createFolders) makeDir.all(target/RelPath.up, perms)
+    if (perms != null && !exists(target)){
+      import collection.JavaConverters._
+      val permArray =
+        if (perms == null) Array[FileAttribute[PosixFilePermission]]()
+        else Array(PosixFilePermissions.asFileAttribute(perms.value.asJava))
+      java.nio.file.Files.createFile(target.toNIO, permArray:_*)
+    }
+    java.nio.file.Files.newOutputStream(
+      target.toNIO,
+      openOptions.toArray:_*
+    )
+  }
+
   /**
     * Performs the actual opening and writing to a file. Basically cribbed
     * from `java.nio.file.Files.write` so we could re-use it properly for
@@ -74,6 +96,24 @@ object write{
         0
       )
     }
+
+    /**
+      * Open a [[java.io.OutputStream]] to write or append to the given file
+      */
+    def outputStream(target: Path,
+                     perms: PermSet = null,
+                     createFolders: Boolean = true) = {
+      os.write.outputStream(
+        target,
+        perms,
+        createFolders,
+        Seq(
+          StandardOpenOption.CREATE,
+          StandardOpenOption.WRITE,
+          StandardOpenOption.APPEND
+        )
+      )
+    }
   }
   /**
     * Similar to [[os.write]], except if the file already exists this
@@ -97,6 +137,24 @@ object write{
         ) ++ (if (truncate) Seq(StandardOpenOption.TRUNCATE_EXISTING) else Nil),
         perms,
         offset
+      )
+    }
+
+    /**
+      * Open a [[java.io.OutputStream]] to write to the given file
+      */
+    def outputStream(target: Path,
+                     perms: PermSet = null,
+                     createFolders: Boolean = true) = {
+      os.write.outputStream(
+        target,
+        perms,
+        createFolders,
+        Seq(
+          StandardOpenOption.CREATE,
+          StandardOpenOption.WRITE,
+          StandardOpenOption.TRUNCATE_EXISTING
+        )
       )
     }
   }
