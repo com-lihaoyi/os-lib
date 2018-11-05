@@ -32,6 +32,11 @@ object ListingWalkingTests extends TestSuite {
       * - prep{ wd =>
         os.walk(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
 
+        os.walk(wd / "folder1", includeTarget = true) ==> Seq(
+          wd / "folder1",
+          wd / "folder1" / "one.txt"
+        )
+
         os.walk(wd / "folder2") ==> Seq(
           wd / "folder2" / "nestedA",
           wd / "folder2" / "nestedA" / "a.txt",
@@ -63,8 +68,8 @@ object ListingWalkingTests extends TestSuite {
       'attrs - {
         * - prep{ wd =>
           val filesSortedBySize = os.walk.attrs(wd / "misc", followLinks = true)
-            .sortBy{case (p, attrs) => attrs.size()}
-            .collect{case (p, attrs) if attrs.isRegularFile => p}
+            .sortBy{case (p, attrs) => attrs.size}
+            .collect{case (p, attrs) if attrs.isFile => p}
 
           filesSortedBySize ==> Seq(
             wd / "misc" / "echo",
@@ -86,7 +91,7 @@ object ListingWalkingTests extends TestSuite {
         'attrs - {
           * - prep{ wd =>
             def totalFileSizes(p: os.Path) = os.walk.stream.attrs(p)
-              .collect{case (p, attrs) if attrs.isRegularFile => attrs.size()}
+              .collect{case (p, attrs) if attrs.isFile => attrs.size}
               .sum
 
             totalFileSizes(wd / "folder1") ==> 22

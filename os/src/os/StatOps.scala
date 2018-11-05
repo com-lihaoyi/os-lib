@@ -78,7 +78,7 @@ object stat extends Function1[os.Path, os.StatInfo]{
   def apply(p: os.Path): os.StatInfo = apply(p, followLinks = true)
   def apply(p: os.Path, followLinks: Boolean = true): os.StatInfo = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
-    os.stat.make(
+    os.StatInfo.make(
       // Don't blow up if we stat `root`
       if (p.segmentCount == 0) "/" else p.last,
       Files.readAttributes(
@@ -93,21 +93,6 @@ object stat extends Function1[os.Path, os.StatInfo]{
       )).toOption
     )
   }
-  def make(name: String, attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
-    import collection.JavaConverters._
-    new StatInfo(
-      name,
-      attrs.size(),
-      attrs.lastModifiedTime(),
-      posixAttrs.map(_.owner).orNull,
-      posixAttrs.map(a => new PermSet(a.permissions.asScala.toSet)).orNull,
-      if (attrs.isRegularFile) FileType.File
-      else if (attrs.isDirectory) FileType.Dir
-      else if (attrs.isSymbolicLink) FileType.SymLink
-      else if (attrs.isOther) FileType.Other
-      else ???
-    )
-  }
 
   /**
     * Reads in the full filesystem metadata for the given file. By default follows
@@ -119,7 +104,7 @@ object stat extends Function1[os.Path, os.StatInfo]{
     def apply(p: os.Path): os.FullStatInfo = apply(p, followLinks = true)
     def apply(p: os.Path, followLinks: Boolean = true): os.FullStatInfo = {
       val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
-      os.stat.full.make(
+      os.FullStatInfo.make(
         if (p.segmentCount == 0) "/" else p.last,
         Files.readAttributes(
           p.wrapped,
@@ -131,24 +116,6 @@ object stat extends Function1[os.Path, os.StatInfo]{
           classOf[PosixFileAttributes],
           opts:_*
         )).toOption
-      )
-    }
-    def make(name: String, attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
-      import collection.JavaConverters._
-      new os.FullStatInfo(
-        name,
-        attrs.size(),
-        attrs.lastModifiedTime(),
-        attrs.lastAccessTime(),
-        attrs.creationTime(),
-        posixAttrs.map(_.group()).orNull,
-        posixAttrs.map(_.owner()).orNull,
-        posixAttrs.map(a => new PermSet(a.permissions.asScala.toSet)).orNull,
-        if (attrs.isRegularFile) FileType.File
-        else if (attrs.isDirectory) FileType.Dir
-        else if (attrs.isSymbolicLink) FileType.SymLink
-        else if (attrs.isOther) FileType.Other
-        else ???
       )
     }
   }

@@ -250,6 +250,38 @@ case class RedirectToPath(p: Path, append: Boolean = false) extends Redirect{
   *
   * If you want more information, use `stat.full`
   */
+case class BasicStatInfo(name: String,
+                         size: Long,
+                         mtime: FileTime,
+                         fileType: FileType){
+  def isDir = fileType == FileType.Dir
+  def isSymLink = fileType == FileType.SymLink
+  def isFile = fileType == FileType.File
+}
+object BasicStatInfo{
+
+  def make(name: String, attrs: BasicFileAttributes) = {
+    import collection.JavaConverters._
+    new BasicStatInfo(
+      name,
+      attrs.size(),
+      attrs.lastModifiedTime(),
+      if (attrs.isRegularFile) FileType.File
+      else if (attrs.isDirectory) FileType.Dir
+      else if (attrs.isSymbolicLink) FileType.SymLink
+      else if (attrs.isOther) FileType.Other
+      else ???
+    )
+  }
+}
+
+/**
+  * The result from doing an system `stat` on a particular path.
+  *
+  * Created via `stat! filePath`.
+  *
+  * If you want more information, use `stat.full`
+  */
 case class StatInfo(name: String,
                     size: Long,
                     mtime: FileTime,
@@ -260,7 +292,24 @@ case class StatInfo(name: String,
   def isSymLink = fileType == FileType.SymLink
   def isFile = fileType == FileType.File
 }
+object StatInfo{
 
+  def make(name: String, attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
+    import collection.JavaConverters._
+    new StatInfo(
+      name,
+      attrs.size(),
+      attrs.lastModifiedTime(),
+      posixAttrs.map(_.owner).orNull,
+      posixAttrs.map(a => new PermSet(a.permissions.asScala.toSet)).orNull,
+      if (attrs.isRegularFile) FileType.File
+      else if (attrs.isDirectory) FileType.Dir
+      else if (attrs.isSymbolicLink) FileType.SymLink
+      else if (attrs.isOther) FileType.Other
+      else ???
+    )
+  }
+}
 /**
   * A richer, more informative version of the [[stat]] object.
   *
@@ -279,4 +328,25 @@ case class FullStatInfo(name: String,
   def isDir = fileType == FileType.Dir
   def isSymLink = fileType == FileType.SymLink
   def isFile = fileType == FileType.File
+}
+object FullStatInfo{
+
+  def make(name: String, attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
+    import collection.JavaConverters._
+    new os.FullStatInfo(
+      name,
+      attrs.size(),
+      attrs.lastModifiedTime(),
+      attrs.lastAccessTime(),
+      attrs.creationTime(),
+      posixAttrs.map(_.group()).orNull,
+      posixAttrs.map(_.owner()).orNull,
+      posixAttrs.map(a => new PermSet(a.permissions.asScala.toSet)).orNull,
+      if (attrs.isRegularFile) FileType.File
+      else if (attrs.isDirectory) FileType.Dir
+      else if (attrs.isSymbolicLink) FileType.SymLink
+      else if (attrs.isOther) FileType.Other
+      else ???
+    )
+  }
 }

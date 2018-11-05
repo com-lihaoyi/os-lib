@@ -72,13 +72,18 @@ object walk {
     *                    to false
     *
     * @param maxDepth The max depth of the tree you wish to walk; defaults to unlimited
+    *
+    * @param includeTarget Whether or not to include the given path as part of the walk.
+    *                      If `true`, does not raise an error if the given path is a
+    *                      simple file and not a folder
     */
   def apply(path: Path,
             skip: Path => Boolean = _ => false,
             preOrder: Boolean = true,
             followLinks: Boolean = false,
-            maxDepth: Int = Int.MaxValue): IndexedSeq[Path] = {
-    stream(path, skip, preOrder, followLinks, maxDepth).toArray[Path]
+            maxDepth: Int = Int.MaxValue,
+            includeTarget: Boolean = false): IndexedSeq[Path] = {
+    stream(path, skip, preOrder, followLinks, maxDepth, includeTarget).toArray[Path]
   }
 
   /**
@@ -98,13 +103,19 @@ object walk {
     *                    to false
     *
     * @param maxDepth The max depth of the tree you wish to walk; defaults to unlimited
+    *
+    * @param includeTarget Whether or not to include the given path as part of the walk.
+    *                      If `true`, does not raise an error if the given path is a
+    *                      simple file and not a folder
     */
   def attrs(path: Path,
             skip: Path => Boolean = _ => false,
             preOrder: Boolean = true,
             followLinks: Boolean = false,
-            maxDepth: Int = Int.MaxValue): IndexedSeq[(Path, BasicFileAttributes)] = {
-    stream.attrs(path, skip, preOrder, followLinks, maxDepth).toArray[(Path, BasicFileAttributes)]
+            maxDepth: Int = Int.MaxValue,
+            includeTarget: Boolean = false): IndexedSeq[(Path, os.BasicStatInfo)] = {
+    stream.attrs(path, skip, preOrder, followLinks, maxDepth, includeTarget)
+      .toArray[(Path, os.BasicStatInfo)]
   }
 
   object stream {
@@ -126,14 +137,19 @@ object walk {
       *                    to false
       *
       * @param maxDepth The max depth of the tree you wish to walk; defaults to unlimited
+      *
+      * @param includeTarget Whether or not to include the given path as part of the walk.
+      *                      If `true`, does not raise an error if the given path is a
+      *                      simple file and not a folder
       */
     def apply(path: Path,
               skip: Path => Boolean = _ => false,
               preOrder: Boolean = true,
               followLinks: Boolean = false,
-              maxDepth: Int = Int.MaxValue): Generator[Path] = {
+              maxDepth: Int = Int.MaxValue,
+              includeTarget: Boolean = false): Generator[Path] = {
 
-      attrs(path, skip, preOrder, followLinks, maxDepth).map(_._1)
+      attrs(path, skip, preOrder, followLinks, maxDepth, includeTarget).map(_._1)
     }
 
     /**
@@ -153,12 +169,17 @@ object walk {
       *                    to false
       *
       * @param maxDepth The max depth of the tree you wish to walk; defaults to unlimited
+      *
+      * @param includeTarget Whether or not to include the given path as part of the walk.
+      *                      If `true`, does not raise an error if the given path is a
+      *                      simple file and not a folder
       */
     def attrs(path: Path,
               skip: Path => Boolean = _ => false,
               preOrder: Boolean = true,
               followLinks: Boolean = false,
-              maxDepth: Int = Int.MaxValue): Generator[(Path, BasicFileAttributes)] = {
+              maxDepth: Int = Int.MaxValue,
+              includeTarget: Boolean = false): Generator[(Path, os.BasicStatInfo)] = {
 
       val opts0 = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
       val opts = new java.util.HashSet[FileVisitOption]
@@ -167,68 +188,101 @@ object walk {
       if (!Files.exists(pathNIO, opts0:_*)){
         throw new java.nio.file.NoSuchFileException(pathNIO.toString)
       }
-      new geny.Generator[(Path, BasicFileAttributes)]{
-        def generate(handleItem: ((Path, BasicFileAttributes)) => Generator.Action) = {
+      new geny.Generator[(Path, os.BasicStatInfo)]{
+        def generate(handleItem: ((Path, os.BasicStatInfo)) => Generator.Action) = {
           var currentAction: geny.Generator.Action = geny.Generator.Continue
-          val attrsStack = collection.mutable.Buffer.empty[BasicFileAttributes]
+          val attrsStack = collection.mutable.Buffer.empty[os.BasicStatInfo]
           def actionToResult(action: Generator.Action) = action match{
             case Generator.Continue => FileVisitResult.CONTINUE
             case Generator.End =>
               currentAction = Generator.End
               FileVisitResult.TERMINATE
-
           }
-          // Use `newDirectoryStream` to do the first-level traversal,
-          // rather than relying on `walkFileTree`, because `walkFileTree`
-          // does the unintuitive thing when the `path` being walked is a
-          // symlink to a directory (it just returns the symlink path and
-          // does not walking)
-          val ds = Files.newDirectoryStream(pathNIO)
-          val iter = ds.iterator()
-          try {
-            while (iter.hasNext && currentAction == Generator.Continue) Files.walkFileTree(
-              iter.next(),
-              opts,
-              maxDepth - 1,
-              new FileVisitor[java.nio.file.Path] {
-                def preVisitDirectory(dir: file.Path, attrs: BasicFileAttributes) = {
-                  val dirP = Path(dir.toAbsolutePath)
-                  if (skip(dirP)) FileVisitResult.SKIP_SUBTREE
-                  else actionToResult(
-                    if (preOrder && dirP != path) handleItem((dirP, attrs))
-                    else {
-                      attrsStack.append(attrs)
-                      currentAction
-                    }
-                  )
-                }
-
-                def visitFile(file: java.nio.file.Path, attrs: BasicFileAttributes) = {
-                  val fileP = Path(file.toAbsolutePath)
-                  actionToResult(
-                    if (skip(fileP)) currentAction
-                    else handleItem((fileP, attrs))
-                  )
-                }
-
-                def visitFileFailed(file: java.nio.file.Path, exc: IOException) =
-                  actionToResult(currentAction)
-
-                def postVisitDirectory(dir: java.nio.file.Path, exc: IOException) = {
-                  actionToResult(
-                    if (preOrder) currentAction
-                    else {
-                      val dirP = Path(dir.toAbsolutePath)
-                      if (dirP != path) handleItem((dirP, attrsStack.remove(attrsStack.length - 1)))
-                      else currentAction
-                    }
-                  )
-                }
-              }
+          if (includeTarget && preOrder) handleItem(
+            (
+              path,
+              os.BasicStatInfo.make(
+                if (path.segmentCount == 0) "/" else path.last,
+                java.nio.file.Files.readAttributes(path.toNIO, classOf[BasicFileAttributes]),
+              )
             )
-          }finally{
-            ds.close()
+          )
+
+          if (os.isDir(path) || !includeTarget) {
+            // Use `newDirectoryStream` to do the first-level traversal,
+            // rather than relying on `walkFileTree`, because `walkFileTree`
+            // does the unintuitive thing when the `path` being walked is a
+            // symlink to a directory (it just returns the symlink path and
+            // does not walking)
+            val ds = Files.newDirectoryStream(pathNIO)
+            val iter = ds.iterator()
+            try {
+              while (iter.hasNext && currentAction == Generator.Continue) Files.walkFileTree(
+                iter.next(),
+                opts,
+                maxDepth - 1,
+                new FileVisitor[java.nio.file.Path] {
+                  def preVisitDirectory(dir: file.Path, attrs: BasicFileAttributes) = {
+                    val dirP = Path(dir.toAbsolutePath)
+                    if (skip(dirP)) FileVisitResult.SKIP_SUBTREE
+                    else actionToResult {
+                      val stated = os.BasicStatInfo.make(
+                        if (path.segmentCount == 0) "/" else path.last, attrs
+                      )
+                      if (preOrder && dirP != path) handleItem((dirP, stated))
+                      else {
+                        attrsStack.append(stated)
+                        currentAction
+                      }
+                    }
+                  }
+
+                  def visitFile(file: java.nio.file.Path, attrs: BasicFileAttributes) = {
+                    val fileP = Path(file.toAbsolutePath)
+                    actionToResult(
+                      if (skip(fileP)) currentAction
+                      else handleItem(
+                        (
+                          fileP,
+                          os.BasicStatInfo.make(
+                            if (path.segmentCount == 0) "/" else path.last, attrs
+                          )
+                        )
+                      )
+                    )
+                  }
+
+                  def visitFileFailed(file: java.nio.file.Path, exc: IOException) =
+                    actionToResult(currentAction)
+
+                  def postVisitDirectory(dir: java.nio.file.Path, exc: IOException) = {
+                    actionToResult(
+                      if (preOrder) currentAction
+                      else {
+                        val dirP = Path(dir.toAbsolutePath)
+                        if (dirP != path) {
+                          handleItem((dirP, attrsStack.remove(attrsStack.length - 1)))
+                        }
+                        else currentAction
+                      }
+                    )
+                  }
+                }
+              )
+            } finally {
+              ds.close()
+            }
           }
+
+          if (includeTarget && !preOrder) handleItem(
+            (
+              path,
+              os.BasicStatInfo.make(
+                if (path.segmentCount == 0) "/" else path.last,
+                java.nio.file.Files.readAttributes(path.toNIO, classOf[BasicFileAttributes])
+              )
+            )
+          )
           currentAction
         }
       }

@@ -118,9 +118,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.1.6"
+"com.lihaoyi" %% "os-lib" % "0.1.7"
 // Mill
-ivy"com.lihaoyi::os-lib:0.1.6"
+ivy"com.lihaoyi::os-lib:0.1.7"
 ```
 
 ## Cookbook
@@ -416,7 +416,8 @@ os.walk(path: Path,
         skip: Path => Boolean = _ => false,
         preOrder: Boolean = true,
         followLinks: Boolean = false,
-        maxDepth: Int = Int.MaxValue): IndexedSeq[Path]
+        maxDepth: Int = Int.MaxValue,
+        includeTarget: Boolean = false): IndexedSeq[Path]
 ```
 
 Recursively walks the given folder and returns the paths of every file or folder
@@ -437,6 +438,11 @@ via the `maxDepth` parameter.
 
 ```scala
 os.walk(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+
+os.walk(wd / "folder1", includeTarget = true) ==> Seq(
+  wd / "folder1",
+  wd / "folder1" / "one.txt"
+)
 
 os.walk(wd / "folder2") ==> Seq(
   wd / "folder2" / "nestedA",
@@ -470,17 +476,20 @@ os.walk.attrs(path: Path,
               skip: Path => Boolean = _ => false,
               preOrder: Boolean = true,
               followLinks: Boolean = false,
-              maxDepth: Int = Int.MaxValue): IndexedSeq[(Path, BasicFileAttributes)]
+              maxDepth: Int = Int.MaxValue,
+              includeTarget: Boolean = false): IndexedSeq[(Path, os.BasicStatInfo)]
 ```
 
-Similar to [os.walk](#oswalk), except it also provides the filesystem metadata
-of every path that it returns. Can save time by allowing you to avoid querying
-the filesystem for metadata later.
+Similar to [os.walk](#oswalk), except it also provides the `os.BasicStatInfo`
+filesystem metadata of every path that it returns. Can save time by allowing you
+to avoid querying the filesystem for metadata later. Note that
+`os.BasicStatInfo` does not include filesystem ownership and permissions data;
+use `os.stat` on the path if you need those attributes.
 
 ```scala
 val filesSortedBySize = os.walk.attrs(wd / "misc", followLinks = true)
-  .sortBy{case (p, attrs) => attrs.size()}
-  .collect{case (p, attrs) if attrs.isRegularFile => p}
+  .sortBy{case (p, attrs) => attrs.size}
+  .collect{case (p, attrs) if attrsisFile => p}
 
 filesSortedBySize ==> Seq(
   wd / "misc" / "echo",
@@ -495,10 +504,11 @@ filesSortedBySize ==> Seq(
 
 ```scala
 os.walk.stream(path: Path,
-            skip: Path => Boolean = _ => false,
-            preOrder: Boolean = true,
-            followLinks: Boolean = false,
-            maxDepth: Int = Int.MaxValue): os.Generator[Path]
+              skip: Path => Boolean = _ => false,
+              preOrder: Boolean = true,
+              followLinks: Boolean = false,
+              maxDepth: Int = Int.MaxValue,
+              includeTarget: Boolean = false): os.Generator[Path]
 ```
 
 
@@ -519,10 +529,11 @@ os.walk.stream(wd / "folder2", skip = _.last == "nestedA").count() ==> 2
 
 ```scala
 os.walk.stream.attrs(path: Path,
-                   skip: Path => Boolean = _ => false,
-                   preOrder: Boolean = true,
-                   followLinks: Boolean = false,
-                   maxDepth: Int = Int.MaxValue): os.Generator[Path]
+                     skip: Path => Boolean = _ => false,
+                     preOrder: Boolean = true,
+                     followLinks: Boolean = false,
+                     maxDepth: Int = Int.MaxValue,
+                     includeTarget: Boolean = false): os.Generator[(Path, os.BasicStatInfo)]
 ```
 
 Similar to [os.walk.stream](#oswalkstream), except it also provides the filesystem
@@ -531,7 +542,7 @@ querying the filesystem for metadata later.
 
 ```scala
 def totalFileSizes(p: os.Path) = os.walk.stream.attrs(p)
-  .collect{case (p, attrs) if attrs.isRegularFile => attrs.size()}
+  .collect{case (p, attrs) if attrs.isFile => attrs.size}
   .sum
 
 totalFileSizes(wd / "folder1") ==> 22
@@ -1618,6 +1629,6 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
-### 0.1.6
+### 0.1.7
 
 - First release
