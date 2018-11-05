@@ -48,9 +48,11 @@ own idiosyncrasies, quirks, or clever DSLs.
     - [os.read.bytes](#osreadbytes)
     - [os.read.lines](#osreadlines)
     - [os.read.lines.stream](#osreadlinesstream)
+    - [os.read.inputStream](#osreadinputstream)
     - [os.write](#oswrite)
     - [os.write.append](#oswriteappend)
     - [os.write.over](#oswriteover)
+    - [os.write.outputStream](#oswriteoutputstream)
 
     Listing & Walking
 
@@ -118,9 +120,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.1.9"
+"com.lihaoyi" %% "os-lib" % "0.2.0"
 // Mill
-ivy"com.lihaoyi::os-lib:0.1.9"
+ivy"com.lihaoyi::os-lib:0.2.0"
 ```
 
 ## Cookbook
@@ -285,6 +287,28 @@ for(line <- os.read.lines.stream(wd / "Multi Line.txt")){
 }
 ```
 
+#### os.read.inputStream
+
+```scala
+os.read.inputStream(p: ReadablePath): java.io.InputStream
+```
+
+Opens a `java.io.InputStream` to read from the given file.
+
+```scala
+val is = os.read.inputStream(wd / "File.txt") // ==> "I am cow"
+is.read() ==> 'I'
+is.read() ==> ' '
+is.read() ==> 'a'
+is.read() ==> 'm'
+is.read() ==> ' '
+is.read() ==> 'c'
+is.read() ==> 'o'
+is.read() ==> 'w'
+is.read() ==> -1
+is.close()
+```
+
 #### os.write
 
 ```scala
@@ -367,6 +391,29 @@ os.read(wd / "File.txt") ==> "We  are cow"
 
 os.write.over(wd / "File.txt", "s", offset = 8, truncate = false)
 os.read(wd / "File.txt") ==> "We  are sow"
+```
+
+#### os.write.outputStream
+
+```scala
+os.write.outputStream(target: Path,
+                      perms: PermSet = null,
+                      createFolders: Boolean = true,
+                      openOptions: Seq[OpenOption] = Seq(CREATE, WRITE))
+```
+
+Open a `java.io.OutputStream` to write to the given file.
+
+```scala
+val out = os.write.outputStream(wd / "New File.txt")
+out.write('H')
+out.write('e')
+out.write('l')
+out.write('l')
+out.write('o')
+out.close()
+
+os.read(wd / "New File.txt") ==> "Hello"
 ```
 
 ### Listing & Walking
@@ -1652,6 +1699,6 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
-### 0.1.9
+### 0.2.0
 
 - First release

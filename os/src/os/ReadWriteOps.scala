@@ -9,7 +9,7 @@ import java.nio.file.{Files, OpenOption, StandardOpenOption}
 import geny.Generator
 
 import scala.io.Codec
-
+import StandardOpenOption.{CREATE, WRITE}
 
 /**
   * Write some data to a file. This can be a String, an Array[Byte], or a
@@ -25,8 +25,7 @@ object write{
   def outputStream(target: Path,
                    perms: PermSet = null,
                    createFolders: Boolean = true,
-                   openOptions: Seq[OpenOption] =
-                     Seq(StandardOpenOption.CREATE, StandardOpenOption.WRITE)) = {
+                   openOptions: Seq[OpenOption] = Seq(CREATE, WRITE)) = {
     if (createFolders) makeDir.all(target/RelPath.up, perms)
     if (perms != null && !exists(target)){
       import collection.JavaConverters._

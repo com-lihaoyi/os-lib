@@ -13,6 +13,21 @@ object ReadingWritingTests extends TestSuite {
             |I weigh twice as much as you
             |And I look good on the barbecue""".stripMargin
       }
+      'inputStream - {
+        * - prep{wd =>
+          val is = os.read.inputStream(wd / "File.txt") // ==> "I am cow"
+          is.read() ==> 'I'
+          is.read() ==> ' '
+          is.read() ==> 'a'
+          is.read() ==> 'm'
+          is.read() ==> ' '
+          is.read() ==> 'c'
+          is.read() ==> 'o'
+          is.read() ==> 'w'
+          is.read() ==> -1
+          is.close()
+        }
+      }
       'bytes - {
         * - prep{ wd =>
           os.read.bytes(wd / "File.txt") ==> "I am cow".getBytes
@@ -79,6 +94,19 @@ object ReadingWritingTests extends TestSuite {
 
           os.write.over(wd / "File.txt", "s", offset = 8, truncate = false)
           os.read(wd / "File.txt") ==> "We  are sow"
+        }
+      }
+      'inputStream - {
+        * - prep{ wd =>
+          val out = os.write.outputStream(wd / "New File.txt")
+          out.write('H')
+          out.write('e')
+          out.write('l')
+          out.write('l')
+          out.write('o')
+          out.close()
+
+          os.read(wd / "New File.txt") ==> "Hello"
         }
       }
     }
