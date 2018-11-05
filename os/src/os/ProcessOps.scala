@@ -2,7 +2,8 @@ package os
 
 import java.io._
 import java.nio.charset.{Charset, StandardCharsets}
-import java.util.concurrent.{ArrayBlockingQueue, TimeUnit}
+import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.{ArrayBlockingQueue, Semaphore, TimeUnit}
 
 import scala.annotation.tailrec
 
@@ -84,7 +85,12 @@ case class proc(command: Shellable*) {
     * standard output/error streams for you, you pass in `onOut`/`onErr` callbacks to
     * receive the data as it is generated.
     *
-    * Returns the exit code of the subprocess once it terminates
+    * Note that the Array[Byte] buffer you are passed in `onOut`/`onErr` are
+    * shared from callback to callback, so if you want to preserve the data make
+    * sure you read the it out of the array rather than storing the array (which
+    * will have its contents over-written next callback.
+    *
+    * Returns the exit code of the subprocess once it terminates.
     */
   def stream(cwd: Path = null,
              env: Map[String, String] = null,
@@ -107,6 +113,12 @@ case class proc(command: Shellable*) {
     // function being visible to the user (and possibly causing multithreading bugs!)
     val callbackQueue = new ArrayBlockingQueue[(Boolean, Array[Byte], Int)](1)
 
+    // Ensure we do not start reading another block of data into the
+    // outReader/errReader buffers until the main thread's user callback has
+    // finished processing the data in that buffer and returns
+    val errCallbackLock = new Semaphore(1, true)
+    val outCallbackLock = new Semaphore(1, true)
+
     val inWriter = new Thread(new Runnable {
       def run() = {
         Internals.transfer(data.getInputStream(), process.stdin)
@@ -116,6 +128,7 @@ case class proc(command: Shellable*) {
       def run() = {
         Internals.transfer0(
           process.stdout,
+          () => outCallbackLock.acquire(),
           (arr, n) => callbackQueue.put((true, arr, n))
         )
       }
@@ -125,6 +138,7 @@ case class proc(command: Shellable*) {
       def run() = {
         Internals.transfer0(
           process.stderr,
+          () => errCallbackLock.acquire(),
           (arr, n) => callbackQueue.put((false, arr, n))
         )
       }
@@ -145,6 +159,8 @@ case class proc(command: Shellable*) {
         case (out, arr, n) =>
           val callback = if (out) onOut else onErr
           callback(arr, n)
+          val lock = if (out) outCallbackLock else errCallbackLock
+          lock.release()
       }
     }
 

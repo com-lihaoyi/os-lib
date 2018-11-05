@@ -118,9 +118,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.1.7"
+"com.lihaoyi" %% "os-lib" % "0.1.8"
 // Mill
-ivy"com.lihaoyi::os-lib:0.1.7"
+ivy"com.lihaoyi::os-lib:0.1.8"
 ```
 
 ## Cookbook
@@ -1233,6 +1233,11 @@ Similar to [os.proc.call](#osproccall), but instead of aggregating the process's
 standard output/error streams for you, you pass in `onOut`/`onErr` callbacks to
 receive the data as it is generated.
 
+Note that the `Array[Byte]` buffer you are passed in `onOut`/`onErr` are
+shared from callback to callback, so if you want to preserve the data make
+sure you read the it out of the array rather than storing the array (which
+will have its contents over-written next callback.
+
 Returns the exit code of the subprocess once it terminates
 
 ```scala
@@ -1634,6 +1639,6 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
-### 0.1.7
+### 0.1.8
 
 - First release
