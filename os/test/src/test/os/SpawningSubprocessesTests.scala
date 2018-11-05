@@ -31,7 +31,13 @@ object SpawningSubprocessesTests extends TestSuite {
           res.out.bytes
 
 
-          val fail = os.proc('ls, "doesnt-exist").call(cwd = wd)
+          val thrown = intercept[os.SubprocessException]{
+            os.proc('ls, "doesnt-exist").call(cwd = wd)
+          }
+
+          assert(thrown.result.exitCode != 0)
+
+          val fail = os.proc('ls, "doesnt-exist").call(cwd = wd, check = false)
 
           assert(fail.exitCode != 0)
 

@@ -46,8 +46,8 @@ case class proc(command: Shellable*) {
     *                        process's error stream is configured.
     * @param mergeErrIntoOut merges the subprocess's stderr stream into it's stdout
     * @param timeout         how long to wait for the subprocess to complete
-    * @param check           enable this to throw an exception if the subprocess fails with a
-    *                        non-zero exit code
+    * @param check           disable this to avoid throwing an exception if the subprocess
+    *                        fails with a non-zero exit code
     * @param propagateEnv    disable this to avoid passing in this parent process's
     *                        environment variables to the subprocess
     */
@@ -59,7 +59,7 @@ case class proc(command: Shellable*) {
            stderr: Redirect = Pipe,
            mergeErrIntoOut: Boolean = false,
            timeout: Long = Long.MaxValue,
-           check: Boolean = false,
+           check: Boolean = true,
            propagateEnv: Boolean = true)
             : CommandResult = {
 

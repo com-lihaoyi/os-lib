@@ -118,9 +118,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.1.8"
+"com.lihaoyi" %% "os-lib" % "0.1.9"
 // Mill
-ivy"com.lihaoyi::os-lib:0.1.8"
+ivy"com.lihaoyi::os-lib:0.1.9"
 ```
 
 ## Cookbook
@@ -1196,9 +1196,18 @@ res.out.lines ==> Seq(
 res.out.bytes
 
 
-val fail = os.proc('ls, "doesnt-exist").call(cwd = wd)
+// Non-zero exit codes throw an exception by default
+val thrown = intercept[os.SubprocessException]{
+  os.proc('ls, "doesnt-exist").call(cwd = wd)
+}
 
-fail.exitCode ==> 1
+assert(thrown.result.exitCode != 0)
+
+// Though you can avoid throwing by setting `check = false`
+val fail = os.proc('ls, "doesnt-exist").call(cwd = wd, check = false)
+
+assert(fail.exitCode != 0)
+
 
 fail.out.string ==> ""
 
@@ -1639,6 +1648,6 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
-### 0.1.8
+### 0.1.9
 
 - First release
