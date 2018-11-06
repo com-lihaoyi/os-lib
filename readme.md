@@ -25,11 +25,11 @@ os.list(wd) ==> Seq(wd/"copied.txt", wd/"file.txt")
 val invoked = os.proc("cat", wd/"file.txt", wd/"copied.txt").call(cwd = wd)
 invoked.out.trim ==> "hellohello"
 
-// Pipe subprocesses together
-val tar = os.proc("tar", "cvf", "-", "os/test/resources/misc").spawn(stderr = os.Inherit)
-val gzip = os.proc("gzip", "-n").spawn(stdin = tar.stdout)
+// Chain multiple subprocess' stdin/stdout together
+val curl = os.proc("curl", "-L" , "https://git.io/fpvpS").spawn(stderr = os.Inherit)
+val gzip = os.proc("gzip", "-n").spawn(stdin = curl.stdout)
 val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
-sha.stdout.trim ==> "f696682bcb1b749deec20d10cf0e12b9f6473021a2846fc435c1e5a4b284cf3c  -"
+sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
 ```
 
 OS-Lib is a simple Scala interface to common OS filesystem and subprocess APIs.
@@ -48,6 +48,8 @@ own idiosyncrasies, quirks, or clever DSLs.
 - [Getting Started](#getting-started)
 - [Cookbook](#cookbook)
     - [Concatenate text files](#concatenate-text-files)
+    - [Spawning a subprocess on multiple files](#spawning-a-subprocess-on-multiple-files)
+    - [Curl URL to temporary file](#curl-url-to-temporary-file)
     - [Recursive line count](#recursive-line-count)
     - [Largest three files](#largest-three-files)
     - [Moving files out of folder](#moving-files-out-of-folder)
@@ -166,6 +168,38 @@ os.read(wd/"all.txt") ==>
     |Hear me moo
     |I weigh twice as much as you
     |And I look good on the barbecue""".stripMargin
+```
+
+### Spawning a subprocess on multiple files
+
+```scala
+// Find and concatenate all .txt files directly in the working directory using `cat`
+os.proc("cat", os.list(wd).filter(_.ext == "txt"))
+  .call(stdout = wd/"all.txt")
+
+os.read(wd/"all.txt") ==>
+  """I am cowI am cow
+    |Hear me moo
+    |I weigh twice as much as you
+    |And I look good on the barbecue""".stripMargin
+```
+
+### Curl URL to temporary file
+
+```scala
+// Curl to temporary file
+val temp = os.temp()
+os.proc("curl", "-L" , "https://git.io/fpfTs")
+.call(stdout = temp)
+
+os.size(temp) ==> 53814
+
+// Curl to temporary file
+val temp2 = os.temp()
+val proc = os.proc("curl", "-L" , "https://git.io/fpfTJ").spawn()
+
+os.write.over(temp2, proc.stdout)
+os.size(temp2) ==> 53814
 ```
 
 ### Recursive line count
@@ -1187,9 +1221,9 @@ and output:
 
 - `os.Pipe`: the default, this connects the subprocess's stream to the parent
   process via pipes; if used on its stdin this lets the parent process write to
-  the subprocess via `java.lang.Process#getOutputStream`, and if used on its
-  stdout it lets the parent process read from the subprocess via
-  `java.lang.Process#getInputStream` and `java.lang.Process#getErrorStream`.
+  the subprocess via `os.SubProcess#stdin`, and if used on its stdout it lets the
+  parent process read from the subprocess via `os.SubProcess#stdout`
+  and `os.SubProcess#stderr`.
 
 - `os.Inherit`: inherits the stream from the parent process. This lets the
   subprocess read directly from the paren process's standard input or write
@@ -1354,17 +1388,17 @@ os.proc(command: os.Shellable*)
 
 The most flexible of the `os.proc` calls, `os.proc.spawn` simply configures and
 starts a subprocess, and returns it as a `os.SubProcess`. `os.SubProcess` is a
-simple wrapped around `java.lang.Process`, which provides `stdin`, `stdout`, and
+simple wrapper around `java.lang.Process`, which provides `stdin`, `stdout`, and
 `stderr` streams for you to interact with however you like. e.g. You can sending
 commands to it's `stdin` and reading from it's `stdout`.
 
 To implement pipes, you can spawn a process, take it's stdout, and pass it
 as the stdin of a second spawned process.
 
-Note that if you provide `ProcessOutput` callbakcs to `stdout`/`stderr`,
-the calls to those callbacks take place on newly spawned threads that
-execute in parallel with the main thread. Thus make sure any data
-processing you do in those callbacks is thread safe!
+Note that if you provide `ProcessOutput` callbacks to `stdout`/`stderr`, the
+calls to those callbacks take place on newly spawned threads that execute in
+parallel with the main thread. Thus make sure any data processing you do in
+those callbacks is thread safe!
 
 `stdin`, `stdout` and `stderr` are `java.lang.OutputStream`s and
 `java.lang.InputStream`s enhanced with the `.writeLine(s: String)`/`.readLine()`
@@ -1384,10 +1418,10 @@ sub2.stdin.flush()
 sub2.stdout.read() ==> '7'.toByte
 
 // You can chain multiple subprocess' stdin/stdout together
-val tar = os.proc("tar", "cvf", "-", "os/test/resources/misc").spawn(stderr = os.Inherit)
-val gzip = os.proc("gzip", "-n").spawn(stdin = tar.stdout)
+val curl = os.proc("curl", "-L" , "https://git.io/fpvpS").spawn(stderr = os.Inherit)
+val gzip = os.proc("gzip", "-n").spawn(stdin = curl.stdout)
 val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
-sha.stdout.trim ==> "f696682bcb1b749deec20d10cf0e12b9f6473021a2846fc435c1e5a4b284cf3c  -"
+sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
 ```
 
 ## Data Types

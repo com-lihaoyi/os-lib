@@ -21,7 +21,7 @@ object ExampleTests extends TestSuite{
       val invoked = os.proc("cat", wd/"file.txt", wd/"copied.txt").call(cwd = wd)
       invoked.out.trim ==> "hellohello"
 
-      val curl = os.proc("curl", "-L" , "https://git.io/fpvpS").spawn(stderr = os.Inherit)
+      val curl = os.proc("curl", "-L" , "https://git.io/fpfTs").spawn(stderr = os.Inherit)
       val gzip = os.proc("gzip", "-n").spawn(stdin = curl.stdout)
       val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
       sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
@@ -39,6 +39,34 @@ object ExampleTests extends TestSuite{
           |Hear me moo
           |I weigh twice as much as you
           |And I look good on the barbecue""".stripMargin
+    }
+
+    'subprocessConcat - TestUtil.prep{wd =>
+      // Find and concatenate all .txt files directly in the working directory
+      os.proc("cat", os.list(wd).filter(_.ext == "txt"))
+        .call(stdout = wd/"all.txt")
+
+      os.read(wd/"all.txt") ==>
+        """I am cowI am cow
+          |Hear me moo
+          |I weigh twice as much as you
+          |And I look good on the barbecue""".stripMargin
+    }
+
+    'curlToTempFile- TestUtil.prep{wd =>
+      // Curl to temporary file
+      val temp = os.temp()
+      os.proc("curl", "-L" , "https://git.io/fpfTs")
+        .call(stdout = temp)
+
+      os.size(temp) ==> 53814
+
+      // Curl to temporary file
+      val temp2 = os.temp()
+      val proc = os.proc("curl", "-L" , "https://git.io/fpfTs").spawn()
+
+      os.write.over(temp2, proc.stdout)
+      os.size(temp2) ==> 53814
     }
 
     'lineCount - TestUtil.prep{wd =>
@@ -185,15 +213,6 @@ object ExampleTests extends TestSuite{
 
       assert(lines == 9)
     }
-    'addUpScalaSize{
-      os.walk(os.pwd).filter(_.ext == "scala").map(os.size).reduce(_ + _)
-    }
-    'concatAll{if (Unix()){
-      os.write.over(
-        os.pwd/'out/'scratch/'test/"omg.txt",
-        os.walk(os.pwd).filter(_.ext == "scala").map(os.read)
-      )
-    }}
 
     'noLongLines{
       import os._
