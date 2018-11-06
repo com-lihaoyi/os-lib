@@ -174,8 +174,7 @@ os.read(wd/"all.txt") ==>
 
 ```scala
 // Find and concatenate all .txt files directly in the working directory using `cat`
-os.proc("cat", os.list(wd).filter(_.ext == "txt"))
-  .call(stdout = wd/"all.txt")
+os.proc("cat", os.list(wd).filter(_.ext == "txt")).call(stdout = wd/"all.txt")
 
 os.read(wd/"all.txt") ==>
   """I am cowI am cow
@@ -189,8 +188,7 @@ os.read(wd/"all.txt") ==>
 ```scala
 // Curl to temporary file
 val temp = os.temp()
-os.proc("curl", "-L" , "https://git.io/fpfTs")
-.call(stdout = temp)
+os.proc("curl", "-L" , "https://git.io/fpfTs").call(stdout = temp)
 
 os.size(temp) ==> 53814
 
