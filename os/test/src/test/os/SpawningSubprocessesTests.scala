@@ -72,17 +72,23 @@ object SpawningSubprocessesTests extends TestSuite {
       }
       'spawn - {
         * - prep { wd =>
-          val sub = os.proc("python", "-c", "print eval(raw_input())").spawn(cwd = wd)
+          // Start a long-lived python process which you can communicate with
+          val sub = os.proc("python", "-u", "-c", "while True: print(eval(raw_input()))")
+                      .spawn(cwd = wd)
+
+          // Sending some text to the subprocess
           sub.stdin.write("1 + 2")
           sub.stdin.writeLine("+ 4")
           sub.stdin.flush()
           sub.stdout.readLine() ==> "7"
 
-          val sub2 = os.proc("python", "-c", "print eval(raw_input())").spawn(cwd = wd)
-          sub2.stdin.write("1 + 2".getBytes)
-          sub2.stdin.write("+ 4\n".getBytes)
-          sub2.stdin.flush()
-          sub2.stdout.read() ==> '7'.toByte
+          // Sending some bytes to the subprocess
+          sub.stdin.write("1 * 2".getBytes)
+          sub.stdin.write("* 4\n".getBytes)
+          sub.stdin.flush()
+          sub.stdout.read() ==> '8'.toByte
+
+          sub.destroy()
 
           // You can chain multiple subprocess' stdin/stdout together
           val curl = os.proc("curl", "-L" , "https://git.io/fpfTs").spawn(stderr = os.Inherit)
