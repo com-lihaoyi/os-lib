@@ -202,46 +202,6 @@ object Shellable{
     Shellable(s.flatMap(f(_).s))
 }
 
-/**
-  * The different ways you can redirect input/output streams from a suprocess
-  */
-sealed trait Redirect{
-  def toRedirectTo: ProcessBuilder.Redirect
-  def toRedirectFrom: ProcessBuilder.Redirect
-}
-
-object Redirect{
-  implicit def RedirectToPath(p: Path): Redirect = RedirectToPath(p)
-}
-
-/**
-  * Inherit the input/output stream from the current process
-  */
-object Inherit extends Redirect{
-  def toRedirectTo = ProcessBuilder.Redirect.INHERIT
-  def toRedirectFrom = ProcessBuilder.Redirect.INHERIT
-}
-
-/**
-  * Pipe the input/output stream to the current process to be used via
-  * `java.lang.Process#{getInputStream,getOutputStream,getErrorStream}`
-  */
-object Pipe extends Redirect{
-  def toRedirectTo = ProcessBuilder.Redirect.PIPE
-  def toRedirectFrom = ProcessBuilder.Redirect.PIPE
-}
-
-/**
-  * Redirect the input/output directly to a file on disk
-  */
-case class RedirectToPath(p: Path, append: Boolean = false) extends Redirect{
-  def toRedirectTo =
-    if (append) ProcessBuilder.Redirect.appendTo(p.toIO)
-    else ProcessBuilder.Redirect.to(p.toIO)
-
-  def toRedirectFrom = ProcessBuilder.Redirect.from(p.toIO)
-}
-
 
 /**
   * The result from doing an system `stat` on a particular path.

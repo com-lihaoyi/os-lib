@@ -5,6 +5,8 @@ import java.nio.charset.{Charset, StandardCharsets}
 import java.util.concurrent.locks.ReentrantLock
 import java.util.concurrent.{ArrayBlockingQueue, Semaphore, TimeUnit}
 
+import os.write.append
+
 import scala.annotation.tailrec
 
 /**
@@ -53,10 +55,9 @@ case class proc(command: Shellable*) {
     */
   def call(cwd: Path = null,
            env: Map[String, String] = null,
-           data: Source = Array[Byte](),
-           stdin: Redirect = Pipe,
-           stdout: Redirect = Pipe,
-           stderr: Redirect = Pipe,
+           stdin: ProcessInput = Pipe,
+           stdout: ProcessOutput = Pipe,
+           stderr: ProcessOutput = Pipe,
            mergeErrIntoOut: Boolean = false,
            timeout: Long = Long.MaxValue,
            check: Boolean = true,
@@ -65,7 +66,7 @@ case class proc(command: Shellable*) {
 
     val chunks = collection.mutable.Buffer.empty[Either[Bytes, Bytes]]
     val exitCode = stream(
-      cwd, env, data,
+      cwd, env,
       (arr, i) => chunks.append(Left(new Bytes(arr.take(i)))),
       (arr, i) => chunks.append(Right(new Bytes(arr.take(i)))),
       stdin,
@@ -94,12 +95,11 @@ case class proc(command: Shellable*) {
     */
   def stream(cwd: Path = null,
              env: Map[String, String] = null,
-             data: Source = Array[Byte](),
              onOut: (Array[Byte], Int) => Unit,
              onErr: (Array[Byte], Int) => Unit,
-             stdin: Redirect = Pipe,
-             stdout: Redirect = Pipe,
-             stderr: Redirect = Pipe,
+             stdin: ProcessInput = Pipe,
+             stdout: ProcessOutput = Pipe,
+             stderr: ProcessOutput = Pipe,
              mergeErrIntoOut: Boolean = false,
              timeout: Long = Long.MaxValue,
              propagateEnv: Boolean = true): Int = {
@@ -119,11 +119,6 @@ case class proc(command: Shellable*) {
     val errCallbackLock = new Semaphore(1, true)
     val outCallbackLock = new Semaphore(1, true)
 
-    val inWriter = new Thread(new Runnable {
-      def run() = {
-        Internals.transfer(data.getInputStream(), process.stdin)
-      }
-    })
     val outReader = new Thread(new Runnable {
       def run() = {
         Internals.transfer0(
@@ -143,7 +138,7 @@ case class proc(command: Shellable*) {
         )
       }
     })
-    inWriter.start()
+
     outReader.start()
     errReader.start()
     val startTime = System.currentTimeMillis()
@@ -203,9 +198,9 @@ case class proc(command: Shellable*) {
     */
   def spawn(cwd: Path = null,
             env: Map[String, String] = null,
-            stdin: Redirect = Pipe,
-            stdout: Redirect = Pipe,
-            stderr: Redirect = Pipe,
+            stdin: ProcessInput = Pipe,
+            stdout: ProcessOutput = Pipe,
+            stderr: ProcessOutput = Pipe,
             mergeErrIntoOut: Boolean = false,
             propagateEnv: Boolean = true): SubProcess = {
     val builder = new java.lang.ProcessBuilder()
@@ -219,15 +214,23 @@ case class proc(command: Shellable*) {
     }
     builder.directory(Option(cwd).getOrElse(os.pwd).toIO)
 
-    new SubProcess(
+    lazy val proc: SubProcess = new SubProcess(
       builder
         .command(command.flatMap(_.s):_*)
-        .redirectInput(stdin.toRedirectFrom)
-        .redirectOutput(stdout.toRedirectTo)
-        .redirectError(stderr.toRedirectTo)
+        .redirectInput(stdin.redirectFrom)
+        .redirectOutput(stdout.redirectTo)
+        .redirectError(stderr.redirectTo)
         .redirectErrorStream(mergeErrIntoOut)
-        .start()
+        .start(),
+      stdin.processInput(proc.stdin).map(new Thread(_)),
+      stdout.processOutput(proc.stdout).map(new Thread(_)),
+      stderr.processOutput(proc.stderr).map(new Thread(_))
     )
+
+    proc.inputPumperThread.foreach(_.start())
+    proc.outputPumperThread.foreach(_.start())
+    proc.errorPumperThread.foreach(_.start())
+    proc
   }
 }
 
@@ -235,7 +238,10 @@ case class proc(command: Shellable*) {
   * Represents a spawn subprocess that has started and may or may not have
   * completed.
   */
-class SubProcess(val wrapped: java.lang.Process){
+class SubProcess(val wrapped: java.lang.Process,
+                 val inputPumperThread: Option[Thread],
+                 val outputPumperThread: Option[Thread],
+                 val errorPumperThread: Option[Thread]){
   val stdin: SubProcess.Input = new SubProcess.Input(wrapped.getOutputStream)
   val stdout: SubProcess.Output = new SubProcess.Output(wrapped.getInputStream)
   val stderr: SubProcess.Output = new SubProcess.Output(wrapped.getErrorStream)
@@ -277,6 +283,7 @@ class SubProcess(val wrapped: java.lang.Process){
     }
 
 }
+
 
 object SubProcess{
 
@@ -325,6 +332,24 @@ object SubProcess{
     // means any subsequence readLine() that starts with a \n should ignore the
     // leading character
     private[this] var lastSeenSlashR = false
+
+    /**
+      * Read all bytes from this pipe from the subprocess, blocking until it is
+      * complete, and returning it as a byte array
+      */
+    def readBytes(): Array[Byte] = {
+      val out = new ByteArrayOutputStream()
+      Internals.transfer(this, out)
+      out.toByteArray
+    }
+
+    /**
+      * Read all bytes from this pipe from the subprocess as a string in the given
+      * charset (defaults to UTF-8), blocking until it is complete.
+      */
+    def readString(charSet: Charset = java.nio.charset.StandardCharsets.UTF_8): String = {
+      new String(readBytes(), charSet)
+    }
 
     def read() = {
       lastSeenSlashR = false
@@ -415,4 +440,82 @@ object SubProcess{
       else null
     }
   }
+}
+
+/**
+  * Represents the configuration of a SubProcess's input stream. Can either be
+  * [[os.Inherit]], [[os.Pipe]], [[os.Redirect]] or a [[os.Source]]
+  */
+trait ProcessInput{
+  def redirectFrom: ProcessBuilder.Redirect
+  def processInput(stdin: => SubProcess.Input): Option[Runnable]
+}
+object ProcessInput{
+  implicit def makeSourceInput[T](r: T)(implicit f: T => Source): ProcessInput = SourceInput(f(r))
+  case class SourceInput(r: Source) extends ProcessInput {
+    def redirectFrom = ProcessBuilder.Redirect.PIPE
+
+    def processInput(stdin: => SubProcess.Input): Option[Runnable] = Some{
+      new Runnable{def run() = os.Internals.transfer(r.getInputStream(), stdin)}
+    }
+  }
+}
+
+/**
+  * Represents the configuration of a SubProcess's output or error stream. Can
+  * either be [[os.Inherit]], [[os.Pipe]], [[os.Redirect]] or a [[os.ProcessOutput]]
+  */
+sealed trait ProcessOutput{
+  def redirectTo: ProcessBuilder.Redirect
+  def processOutput(out: => SubProcess.Output): Option[Runnable]
+}
+object ProcessOutput{
+  def apply(f: (Array[Byte], Int) => Unit, preReadCallback: () => Unit = () => ()) =
+    CallbackOutput(f, preReadCallback)
+
+  case class CallbackOutput(f: (Array[Byte], Int) => Unit, preReadCallback: () => Unit){
+    def redirectTo = ProcessBuilder.Redirect.PIPE
+    def processOutput(stdin: => SubProcess.Output) = Some{
+      new Runnable {def run(): Unit = os.Internals.transfer0(stdin, preReadCallback, f)}
+    }
+  }
+}
+
+/**
+  * Inherit the input/output stream from the current process
+  */
+object Inherit extends ProcessInput with ProcessOutput {
+  def redirectTo = ProcessBuilder.Redirect.INHERIT
+  def redirectFrom = ProcessBuilder.Redirect.INHERIT
+  def processInput(stdin: => SubProcess.Input) = None
+  def processOutput(stdin: => SubProcess.Output) = None
+}
+
+/**
+  * Pipe the input/output stream to the current process to be used via
+  * `java.lang.Process#{getInputStream,getOutputStream,getErrorStream}`
+  */
+object Pipe extends ProcessInput with ProcessOutput {
+  def redirectTo = ProcessBuilder.Redirect.PIPE
+  def redirectFrom = ProcessBuilder.Redirect.PIPE
+  def processInput(stdin: => SubProcess.Input) = None
+  def processOutput(stdin: => SubProcess.Output) = None
+}
+
+/**
+  * Redirect the input/output directly to a file on disk
+  */
+object Redirect{
+  def apply(p: Path) = PathRedirect(p)
+  def append(p: Path) = PathAppendRedirect(p)
+}
+case class PathRedirect(p: Path) extends ProcessInput with ProcessOutput{
+  def redirectFrom = ProcessBuilder.Redirect.from(p.toIO)
+  def processInput(stdin: => SubProcess.Input) = None
+  def redirectTo = ProcessBuilder.Redirect.to(p.toIO)
+  def processOutput(out: => SubProcess.Output) = None
+}
+case class PathAppendRedirect(p: Path) extends ProcessOutput{
+  def redirectTo = ProcessBuilder.Redirect.appendTo(p.toIO)
+  def processOutput(out: => SubProcess.Output) = None
 }
