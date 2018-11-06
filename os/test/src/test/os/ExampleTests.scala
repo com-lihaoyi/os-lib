@@ -23,8 +23,8 @@ object ExampleTests extends TestSuite{
 
       val tar = os.proc("tar", "cvf", "-", "os/test/resources/misc").spawn(stderr = os.Inherit)
       val gzip = os.proc("gzip", "-n").spawn(stdin = tar.stdout)
-      val hash = os.proc("md5").spawn(stdin = gzip.stdout)
-      hash.stdout.string ==> "c46d49f93d172c6757519ac4bac47eb4\n"
+      val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
+      sha.stdout.trim ==> "f696682bcb1b749deec20d10cf0e12b9f6473021a2846fc435c1e5a4b284cf3c  -"
     }
 
     'concatTxt - TestUtil.prep{wd =>
