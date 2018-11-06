@@ -1275,6 +1275,8 @@ is run:
 - `propagateEnv`: disable this to avoid passing in this parent process's
   environment variables to the subprocess
 
+Note that redirecting `stdout`/`stderr` elsewhere means that the respective
+`CommandResult#out`/`CommandResult#err` values will be empty.
 
 ```scala
 val res = os.proc('ls, wd/"folder2").call()
@@ -1359,6 +1361,8 @@ sure you read the it out of the array rather than storing the array (which
 will have its contents over-written next callback.
 
 All calls to the `onOut`/`onErr` callbacks take place on the main thread.
+Redirecting `stdout`/`stderr` elsewhere means that the respective
+`onOut`/`onErr` callbacks will not be triggered
 
 Returns the exit code of the subprocess once it terminates
 
@@ -1396,7 +1400,10 @@ as the stdin of a second spawned process.
 Note that if you provide `ProcessOutput` callbacks to `stdout`/`stderr`, the
 calls to those callbacks take place on newly spawned threads that execute in
 parallel with the main thread. Thus make sure any data processing you do in
-those callbacks is thread safe!
+those callbacks is thread safe! For simpler cases, it may be easier to use
+[os.proc.stream](#osprocstream) which triggers it's `onOut`/`onErr` callbacks
+all on the calling thread, avoiding needing to think about multithreading and
+concurrency issues.
 
 `stdin`, `stdout` and `stderr` are `java.lang.OutputStream`s and
 `java.lang.InputStream`s enhanced with the `.writeLine(s: String)`/`.readLine()`
