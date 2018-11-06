@@ -145,7 +145,7 @@ case class CommandResult(exitCode: Int,
       case Left(s) => outChunks.append(s)
       case Right(s) => errChunks.append(s)
     }
-    (StreamValue(outChunks), StreamValue(errChunks))
+    (StreamValue.ChunkStreamValue(outChunks), StreamValue.ChunkStreamValue(errChunks))
   }
 
   override def toString() = {
@@ -170,8 +170,8 @@ case class SubprocessException(result: CommandResult) extends Exception(result.t
   * Encapsulates one of the output streams from a subprocess and provides
   * convenience methods for accessing it in a variety of forms
   */
-case class StreamValue(chunks: Seq[Bytes]){
-  def bytes = chunks.iterator.map(_.array).toArray.flatten
+trait StreamValue{
+  def bytes: Array[Byte]
 
   def string: String = string(StandardCharsets.UTF_8)
   def string(codec: Codec): String = new String(bytes, codec.charSet)
@@ -182,11 +182,16 @@ case class StreamValue(chunks: Seq[Bytes]){
   def lines: Vector[String] = Predef.augmentString(string).lines.toVector
   def lines(codec: Codec): Vector[String] = Predef.augmentString(string(codec)).lines.toVector
 }
+object StreamValue{
+  case class ChunkStreamValue(chunks: Seq[Bytes]) extends StreamValue{
+    def bytes = chunks.iterator.map(_.array).toArray.flatten
+  }
+}
 /**
   * An implicit wrapper defining the things that can
   * be "interpolated" directly into a subprocess call.
   */
-case class Shellable(s: Seq[String])
+case class Shellable(value: Seq[String])
 object Shellable{
   implicit def StringShellable(s: String): Shellable = Shellable(Seq(s))
 
@@ -196,10 +201,10 @@ object Shellable{
   implicit def NumericShellable[T: Numeric](s: T): Shellable = Shellable(Seq(s.toString))
 
   implicit def IterableShellable[T](s: Iterable[T])(implicit f: T => Shellable): Shellable =
-    Shellable(s.toSeq.flatMap(f(_).s))
+    Shellable(s.toSeq.flatMap(f(_).value))
 
   implicit def ArrayShellable[T](s: Array[T])(implicit f: T => Shellable): Shellable =
-    Shellable(s.flatMap(f(_).s))
+    Shellable(s.flatMap(f(_).value))
 }
 
 

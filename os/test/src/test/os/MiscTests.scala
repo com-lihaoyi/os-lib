@@ -37,7 +37,7 @@ object MiscTests extends TestSuite{
 
         for(bufferSize <- bufferSizes) {
           // println(bufferSize)
-          val subOut = new os.SubProcess.Output(
+          val subOut = new os.SubProcess.OutputStream(
             new ByteArrayInputStream(input.getBytes), bufferSize
           )
 

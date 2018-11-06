@@ -24,6 +24,12 @@ os.list(wd) ==> Seq(wd/"copied.txt", wd/"file.txt")
 // Invoke subprocesses
 val invoked = os.proc("cat", wd/"file.txt", wd/"copied.txt").call(cwd = wd)
 invoked.out.trim ==> "hellohello"
+
+// Pipe subprocesses together
+val tar = os.proc("tar", "cvf", "-", "os/test/resources/misc").spawn(stderr = os.Inherit)
+val gzip = os.proc("gzip", "-n").spawn(stdin = tar.stdout)
+val hash = os.proc("md5").spawn(stdin = gzip.stdout)
+hash.stdout.string ==> "c46d49f93d172c6757519ac4bac47eb4\n"
 ```
 
 OS-Lib is a simple Scala interface to common OS filesystem and subprocess APIs.
@@ -1174,9 +1180,10 @@ be used as `os.Shellable`s:
 - `Iterable[T]`s of any of the above
 
 Most of the subprocess commands also let you redirect the subprocess's
-input/output streams via `os.Redirect` values: whether to inherit them from the
-parent process, stream them into buffers, or output them to files. The following
-`os.Redirect` values are most common:
+`stdin`/`stdout`/`stderr` streams via `os.ProcessInput` or `os.ProcessOutput`
+values: whether to inherit them from the parent process, stream them into
+buffers, or output them to files. The following values are common to both input
+and output:
 
 - `os.Pipe`: the default, this connects the subprocess's stream to the parent
   process via pipes; if used on its stdin this lets the parent process write to
@@ -1188,9 +1195,14 @@ parent process, stream them into buffers, or output them to files. The following
   subprocess read directly from the paren process's standard input or write
   directly to the parent process's standard output or error
 
-- `os.RedirectToPath`: connects the subprocess's stream to the given filesystem
+- `os.Path`: connects the subprocess's stream to the given filesystem
   path, reading it's standard input from a file or writing it's standard
   output/error to the file.
+
+In addition, you can pass any [os.Source](#ossource)s to a Subprocess's `stdin`
+(`String`s, `InputStream`s, `Array[Byte]`s, ...), and pass in a
+`os.ProcessOutput` value to `stdout`/`stderr` to register callbacks that are run
+when output is received on those streams.
 
 Often, if you are only interested in capturing the standard output of the
 subprocess but want any errors sent to the console, you might set `stderr =
@@ -1202,13 +1214,13 @@ os.Inherit` while leaving `stdout = os.Pipe`.
 os.proc(command: os.Shellable*)
   .call(cwd: Path = null,
         env: Map[String, String] = null,
-        stdin: os.Source = Array[Byte](),
-        stdout: os.Redirect = os.Pipe,
-        stderr: os.Redirect = os.Pipe,
+        stdin: ProcessInput = Pipe,
+        stdout: ProcessOutput = Pipe,
+        stderr: ProcessOutput = Pipe,
         mergeErrIntoOut: Boolean = false,
         timeout: Long = Long.MaxValue,
         check: Boolean = true,
-        propagateEnv: Boolean = true): CommandResult
+        propagateEnv: Boolean = true): os.CommandResult
 ```
 
 Invokes the given subprocess like a function, passing in input and returning a
@@ -1270,6 +1282,10 @@ assert(fail.exitCode != 0)
 fail.out.string ==> ""
 
 assert(fail.err.string.contains("No such file or directory"))
+
+// You can pass in data to a subprocess' stdin
+val hash = os.proc("md5").call(stdin = "Hello World")
+hash.out.string ==> "b10a8db164e0754105b7a99be72e3fe5\n"
 ```
 
 If you want to spawn an interactive subprocess, such as `vim`, `less`, or a
@@ -1286,11 +1302,11 @@ os.proc("vim").call(stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit
 os.proc(command: os.Shellable*)
   .stream(cwd: Path = null,
           env: Map[String, String] = null,
-          stdin: os.Source = Array[Byte](),
           onOut: (Array[Byte], Int) => Unit,
           onErr: (Array[Byte], Int) => Unit,
-          stdout: os.Redirect = os.Pipe,
-          stderr: os.Redirect = os.Pipe,
+          stdin: ProcessInput = Pipe,
+          stdout: ProcessOutput = Pipe,
+          stderr: ProcessOutput = Pipe,
           mergeErrIntoOut: Boolean = false,
           timeout: Long = Long.MaxValue,
           propagateEnv: Boolean = true): Int
@@ -1304,6 +1320,8 @@ Note that the `Array[Byte]` buffer you are passed in `onOut`/`onErr` are
 shared from callback to callback, so if you want to preserve the data make
 sure you read the it out of the array rather than storing the array (which
 will have its contents over-written next callback.
+
+All calls to the `onOut`/`onErr` callbacks take place on the main thread.
 
 Returns the exit code of the subprocess once it terminates
 
@@ -1322,9 +1340,9 @@ lineCount ==> 21
 os.proc(command: os.Shellable*)
   .spawn(cwd: Path = null,
          env: Map[String, String] = null,
-         stdin: os.Redirect = os.Pipe,
-         stdout: os.Redirect = os.Pipe,
-         stderr: os.Redirect = os.Pipe,
+         stdin: os.ProcessInput = os.Pipe,
+         stdout: os.ProcessOutput = os.Pipe,
+         stderr: os.ProcessOutput = os.Pipe,
          mergeErrIntoOut: Boolean = false,
          propagateEnv: Boolean = true): java.lang.Process
 ```
@@ -1334,6 +1352,14 @@ starts a subprocess, and returns it as a `os.SubProcess`. `os.SubProcess` is a
 simple wrapped around `java.lang.Process`, which provides `stdin`, `stdout`, and
 `stderr` streams for you to interact with however you like. e.g. You can sending
 commands to it's `stdin` and reading from it's `stdout`.
+
+To implement pipes, you can spawn a process, take it's stdout, and pass it
+as the stdin of a second spawned process.
+
+Note that if you provide `ProcessOutput` callbakcs to `stdout`/`stderr`,
+the calls to those callbacks take place on newly spawned threads that
+execute in parallel with the main thread. Thus make sure any data
+processing you do in those callbacks is thread safe!
 
 `stdin`, `stdout` and `stderr` are `java.lang.OutputStream`s and
 `java.lang.InputStream`s enhanced with the `.writeLine(s: String)`/`.readLine()`
@@ -1351,6 +1377,12 @@ sub2.stdin.write("1 + 2".getBytes)
 sub2.stdin.write("+ 4\n".getBytes)
 sub2.stdin.flush()
 sub2.stdout.read() ==> '7'.toByte
+
+// You can chain multiple subprocess' stdin/stdout together
+val tar = os.proc("tar", "cvf", "-", "os/test/resources/misc").spawn(stderr = os.Inherit)
+val gzip = os.proc("gzip", "-n").spawn(stdin = tar.stdout)
+val hash = os.proc("md5").spawn(stdin = gzip.stdout)
+hash.stdout.string ==> "c46d49f93d172c6757519ac4bac47eb4\n"
 ```
 
 ## Data Types
@@ -1648,8 +1680,6 @@ can provide data which you can then use to write, transmit, etc.
 By default, the following types of values can be used where-ever `os.Source`s
 are required:
 
-- `os.Path`
-- `os.ResourcePath`
 - `Array[Byte]`
 - `java.lang.String` (these are treated as UTF-8)
 - `java.io.InputStream`
@@ -1661,8 +1691,10 @@ Some operations only work on `os.SeekableSource`, because they need the ability
 to seek to specific offsets in the data. Only the following types of values can
 be used where `os.SeekableSource` is required:
 
-- `os.Path`
 - `java.nio.channels.SeekableByteChannel`
+
+You can also convert an `os.Path` or `os.ResourcePath` to an `os.Source` via
+`.toSource`.
 
 ### os.Generator
 
@@ -1705,6 +1737,10 @@ string, int or set representations of the `os.PermSet` via:
 - `perms.value: Set[PosixFilePermission]`
 
 ## Changelog
+
+### 0.2.1
+
+- Allow chaining of multiple subprocesses `stdin`/`stdout`
 
 ### 0.2.0
 

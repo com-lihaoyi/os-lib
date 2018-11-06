@@ -20,6 +20,11 @@ object ExampleTests extends TestSuite{
 
       val invoked = os.proc("cat", wd/"file.txt", wd/"copied.txt").call(cwd = wd)
       invoked.out.trim ==> "hellohello"
+
+      val tar = os.proc("tar", "cvf", "-", "os/test/resources/misc").spawn(stderr = os.Inherit)
+      val gzip = os.proc("gzip", "-n").spawn(stdin = tar.stdout)
+      val hash = os.proc("md5").spawn(stdin = gzip.stdout)
+      hash.stdout.string ==> "c46d49f93d172c6757519ac4bac47eb4\n"
     }
 
     'concatTxt - TestUtil.prep{wd =>

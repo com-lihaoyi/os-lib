@@ -45,6 +45,10 @@ object SpawningSubprocessesTests extends TestSuite {
 
           assert(fail.err.string.contains("No such file or directory"))
 
+          // You can pass in data to a subprocess' stdin
+          val hash = os.proc("md5").call(stdin = "Hello World")
+          hash.out.string ==> "b10a8db164e0754105b7a99be72e3fe5\n"
+
           if (false){
             os.proc("vim").call(stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit)
           }
@@ -74,6 +78,13 @@ object SpawningSubprocessesTests extends TestSuite {
           sub2.stdin.write("+ 4\n".getBytes)
           sub2.stdin.flush()
           sub2.stdout.read() ==> '7'.toByte
+
+          // You can chain multiple subprocess' stdin/stdout together
+          val tar = os.proc("tar", "cvf", "-", "os/test/resources/misc")
+            .spawn(stderr = os.Inherit)
+          val gzip = os.proc("gzip", "-n").spawn(stdin = tar.stdout)
+          val hash = os.proc("md5").spawn(stdin = gzip.stdout)
+          hash.stdout.string ==> "c46d49f93d172c6757519ac4bac47eb4\n"
         }
       }
     }
