@@ -1381,7 +1381,7 @@ os.proc(command: os.Shellable*)
          stdout: os.ProcessOutput = os.Pipe,
          stderr: os.ProcessOutput = os.Pipe,
          mergeErrIntoOut: Boolean = false,
-         propagateEnv: Boolean = true): java.lang.Process
+         propagateEnv: Boolean = true): os.SubProcess
 ```
 
 The most flexible of the `os.proc` calls, `os.proc.spawn` simply configures and
