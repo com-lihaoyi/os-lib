@@ -211,7 +211,7 @@ object SubProcess{
 
 /**
   * Represents the configuration of a SubProcess's input stream. Can either be
-  * [[os.Inherit]], [[os.Pipe]], [[os.Redirect]] or a [[os.Source]]
+  * [[os.Inherit]], [[os.Pipe]], [[os.Path]] or a [[os.Source]]
   */
 trait ProcessInput{
   def redirectFrom: ProcessBuilder.Redirect
@@ -234,14 +234,14 @@ object ProcessInput{
 
 /**
   * Represents the configuration of a SubProcess's output or error stream. Can
-  * either be [[os.Inherit]], [[os.Pipe]], [[os.Redirect]] or a [[os.ProcessOutput]]
+  * either be [[os.Inherit]], [[os.Pipe]], [[os.Path]] or a [[os.ProcessOutput]]
   */
 sealed trait ProcessOutput{
   def redirectTo: ProcessBuilder.Redirect
   def processOutput(out: => SubProcess.OutputStream): Option[Runnable]
 }
 object ProcessOutput{
-  implicit def makePathRedirect(p: Path): ProcessInput = PathRedirect(p)
+  implicit def makePathRedirect(p: Path): ProcessOutput = PathRedirect(p)
 
   def apply(f: (Array[Byte], Int) => Unit, preReadCallback: () => Unit = () => ()) =
     CallbackOutput(f, preReadCallback)

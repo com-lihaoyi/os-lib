@@ -49,6 +49,11 @@ object SpawningSubprocessesTests extends TestSuite {
           val hash = os.proc("shasum", "-a", "256").call(stdin = "Hello World")
           hash.out.trim ==> "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e  -"
 
+          // Taking input from a file and directing output to another file
+          os.proc("base64").call(stdin = wd / "File.txt", stdout = wd / "File.txt.b64")
+
+          os.read(wd / "File.txt.b64") ==> "SSBhbSBjb3c=\n"
+
           if (false){
             os.proc("vim").call(stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit)
           }

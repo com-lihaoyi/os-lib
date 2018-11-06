@@ -133,9 +133,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.2.0"
+"com.lihaoyi" %% "os-lib" % "0.2.2"
 // Mill
-ivy"com.lihaoyi::os-lib:0.2.0"
+ivy"com.lihaoyi::os-lib:0.2.2"
 ```
 
 ## Cookbook
@@ -1286,6 +1286,11 @@ assert(fail.err.string.contains("No such file or directory"))
 // You can pass in data to a subprocess' stdin
 val hash = os.proc("shasum", "-a", "256").call(stdin = "Hello World")
 hash.out.trim ==> "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e  -"
+
+// Taking input from a file and directing output to another file
+os.proc("base64").call(stdin = wd / "File.txt", stdout = wd / "File.txt.b64")
+
+os.read(wd / "File.txt.b64") ==> "SSBhbSBjb3c="
 ```
 
 If you want to spawn an interactive subprocess, such as `vim`, `less`, or a
@@ -1738,7 +1743,7 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
-### 0.2.1
+### 0.2.2
 
 - Allow chaining of multiple subprocesses `stdin`/`stdout`
 
