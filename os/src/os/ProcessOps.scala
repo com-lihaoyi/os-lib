@@ -218,9 +218,13 @@ case class proc(command: Shellable*) {
 
     builder.directory(Option(cwd).getOrElse(os.pwd).toIO)
 
+    val cmd = 
+      if(scala.util.Properties.isWin) Vector("cmd.exe", "/C") ++ command.flatMap(_.value)
+      else command.flatMap(_.value)
+
     lazy val proc: SubProcess = new SubProcess(
       builder
-        .command(command.flatMap(_.value):_*)
+        .command(cmd:_*)
         .redirectInput(stdin.redirectFrom)
         .redirectOutput(stdout.redirectTo)
         .redirectError(stderr.redirectTo)

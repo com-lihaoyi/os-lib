@@ -4,17 +4,21 @@ import test.os.TestUtil.prep
 import utest._
 
 object FilesystemMetadataTests extends TestSuite {
+
+  // win adds 3 bytes, 3 \r characters
+  val multilineSize = if(scala.util.Properties.isWin) 84 else 81
+
   def tests = Tests{
     'stat - {
       * - prep{ wd =>
         os.stat(wd / "File.txt").size ==> 8
-        os.stat(wd / "Multi Line.txt").size ==> 81
+        os.stat(wd / "Multi Line.txt").size ==> multilineSize
         os.stat(wd / "folder1").fileType ==> os.FileType.Dir
       }
       'full - {
         * - prep{ wd =>
           os.stat.full(wd / "File.txt").size ==> 8
-          os.stat.full(wd / "Multi Line.txt").size ==> 81
+          os.stat.full(wd / "Multi Line.txt").size ==> multilineSize
           os.stat.full(wd / "folder1").fileType ==> os.FileType.Dir
         }
       }
@@ -49,7 +53,7 @@ object FilesystemMetadataTests extends TestSuite {
     'size  {
       * - prep{ wd =>
         os.size(wd / "File.txt") ==> 8
-        os.size(wd / "Multi Line.txt") ==> 81
+        os.size(wd / "Multi Line.txt") ==> multilineSize
       }
     }
     'mtime - {

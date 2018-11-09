@@ -193,7 +193,7 @@ object PathTests extends TestSuite{
         intercept[PathError.InvalidSegment](rel/'src / ".")
         intercept[PathError.InvalidSegment](rel/'src / "..")
       }
-      'CannotRelativizeAbsAndRel{
+      'CannotRelativizeAbsAndRel{if(Unix()){
         val abs = pwd
         val rel = os.rel/'omg/'wtf
         compileError("""
@@ -214,7 +214,7 @@ object PathTests extends TestSuite{
             """,
             "type mismatch"
           )
-      }
+      }}
       'InvalidCasts{
         if(Unix()){
           intercept[IllegalArgumentException](Path("omg/cow"))

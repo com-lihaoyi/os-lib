@@ -6,6 +6,11 @@ import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 
 object TestUtil {
+
+  def isInstalled(exe: String): Boolean = {
+    os.proc(s"which $exe").call(check = false).exitCode == 0
+  }
+
   def prep[T](f: os.Path => T)(implicit tp: TestPath,
                                fn: sourcecode.FullName) ={
     val segments = Seq("out", "scratch") ++ fn.value.split('.').drop(2) ++ tp.value

@@ -6,7 +6,7 @@ import utest._
 object ExampleTests extends TestSuite{
 
   val tests = Tests {
-    'splash - TestUtil.prep{wd =>
+    'splash - TestUtil.prep{wd => if (Unix()){
       // Make sure working directory exists and is empty
       val wd = os.pwd/"out"/"splash"
       os.remove.all(wd)
@@ -25,7 +25,7 @@ object ExampleTests extends TestSuite{
       val gzip = os.proc("gzip", "-n").spawn(stdin = curl.stdout)
       val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
       sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
-    }
+    }}
 
     'concatTxt - TestUtil.prep{wd =>
       // Find and concatenate all .txt files directly in the working directory
@@ -42,8 +42,9 @@ object ExampleTests extends TestSuite{
     }
 
     'subprocessConcat - TestUtil.prep{wd =>
+      val catCmd = if(scala.util.Properties.isWin) "type" else "cat"
       // Find and concatenate all .txt files directly in the working directory
-      os.proc("cat", os.list(wd).filter(_.ext == "txt"))
+      os.proc(catCmd, os.list(wd).filter(_.ext == "txt"))
         .call(stdout = wd/"all.txt")
 
       os.read(wd/"all.txt") ==>
@@ -53,7 +54,7 @@ object ExampleTests extends TestSuite{
           |And I look good on the barbecue""".stripMargin
     }
 
-    'curlToTempFile- TestUtil.prep{wd =>
+    'curlToTempFile- TestUtil.prep{wd => if (Unix()){
       // Curl to temporary file
       val temp = os.temp()
       os.proc("curl", "-L" , "https://git.io/fpfTs")
@@ -67,7 +68,7 @@ object ExampleTests extends TestSuite{
 
       os.write.over(temp2, proc.stdout)
       os.size(temp2) ==> 53814
-    }
+    }}
 
     'lineCount - TestUtil.prep{wd =>
       // Line-count of all .txt files recursively in wd
@@ -86,10 +87,13 @@ object ExampleTests extends TestSuite{
         .filter(os.isFile(_, followLinks = false))
         .map(x => os.size(x) -> x).sortBy(-_._1)
         .take(3)
+      
+      // win adds 3 bytes, 3 \r characters
+      val multilineSize = if(scala.util.Properties.isWin) 84 else 81
 
       largestThree ==> Seq(
         (711, wd / "misc" / "binary.png"),
-        (81, wd / "Multi Line.txt"),
+        (multilineSize, wd / "Multi Line.txt"),
         (22, wd / "folder1" / "one.txt")
       )
     }
