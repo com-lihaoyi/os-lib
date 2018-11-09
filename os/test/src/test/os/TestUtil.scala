@@ -8,9 +8,9 @@ import java.nio.file.attribute.BasicFileAttributes
 object TestUtil {
 
   def isInstalled(exe: String): Boolean = {
-    // see https://stackoverflow.com/questions/592620/how-to-check-if-a-program-exists-from-a-bash-script
-    val cmd = if(scala.util.Properties.isWin) "which" else "command -v"
-    os.proc(s"$cmd $exe").call(check = false).exitCode == 0
+    // Travis doesn't support "which" or "command -v" ???
+    if(!scala.util.Properties.isWin) true
+    else os.proc(s"which $exe").call(check = false).exitCode == 0
   }
 
   def prep[T](f: os.Path => T)(implicit tp: TestPath,
