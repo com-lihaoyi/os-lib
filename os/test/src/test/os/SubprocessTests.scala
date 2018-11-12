@@ -118,7 +118,8 @@ object SubprocessTests extends TestSuite{
       'jarTf {
         // This was the original repro for the multi-chunk concurrency bugs
         val jarFile = os.pwd / 'os / 'test / 'resources / 'misc / "out.jar"
-        os.proc('jar, "-tf", jarFile).call().out.string ==>
+        assert(TestUtil.eqIgnoreNewlineStyle(
+          os.proc('jar, "-tf", jarFile).call().out.string,
           """META-INF/MANIFEST.MF
             |test/FooTwo.class
             |test/Bar.class
@@ -127,6 +128,7 @@ object SubprocessTests extends TestSuite{
             |test/BarThree.class
             |hello.txt
             |""".stripMargin
+        ))
       }
     }
     'workingDirectory{

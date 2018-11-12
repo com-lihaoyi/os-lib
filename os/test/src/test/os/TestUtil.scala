@@ -7,9 +7,17 @@ import java.nio.file.attribute.BasicFileAttributes
 
 object TestUtil {
 
+  val NewLineRegex = "\r\n|\r|\n"
+
   def isInstalled(executable: String): Boolean = {
     val getPathCmd = if(scala.util.Properties.isWin) "where" else "which"
     os.proc(getPathCmd, executable).call(check = false).exitCode == 0
+  }
+
+  def eqIgnoreNewlineStyle(str1: String, str2: String) = {
+    val str1Normalized = str1.replaceAll(NewLineRegex, "\n").replaceAll("\n+", "\n")
+    val str2Normalized = str2.replaceAll(NewLineRegex, "\n").replaceAll("\n+", "\n")
+    str1Normalized == str2Normalized
   }
 
   def prep[T](f: os.Path => T)(implicit tp: TestPath,
