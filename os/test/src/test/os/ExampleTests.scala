@@ -88,12 +88,13 @@ object ExampleTests extends TestSuite{
         .map(x => os.size(x) -> x).sortBy(-_._1)
         .take(3)
       
-      // win adds 3 bytes, 3 \r characters
-      val multilineSize = if(scala.util.Properties.isWin) 84 else 81
+      // on unix it is 81 bytes, win adds 3 bytes (3 \r characters)
+      val multilineSizes = Set[Long](81, 84)
+      assert(multilineSizes contains os.stat.full(wd / "Multi Line.txt").size)
 
-      largestThree ==> Seq(
+      // ignore multiline (second file) because its size varies
+      largestThree.filterNot(_._2.last == "Multi Line.txt") ==> Seq(
         (711, wd / "misc" / "binary.png"),
-        (multilineSize, wd / "Multi Line.txt"),
         (22, wd / "folder1" / "one.txt")
       )
     }
