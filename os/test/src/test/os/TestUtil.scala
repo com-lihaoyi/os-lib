@@ -14,6 +14,11 @@ object TestUtil {
     os.proc(getPathCmd, executable).call(check = false).exitCode == 0
   }
 
+  // 1. when using Git "core.autocrlf true" 
+  //    some tests would fail when comparing with only \n
+  // 2. when using Git "core.autocrlf false" 
+  //    some tests would fail when comparing with process outputs which produce CRLF strings
+  /** Compares two strings, ignoring line-ending style */
   def eqIgnoreNewlineStyle(str1: String, str2: String) = {
     val str1Normalized = str1.replaceAll(NewLineRegex, "\n").replaceAll("\n+", "\n")
     val str2Normalized = str2.replaceAll(NewLineRegex, "\n").replaceAll("\n+", "\n")

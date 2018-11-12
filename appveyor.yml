@@ -5,7 +5,9 @@ os: Windows Server 2012 R2
 environment:
   matrix:
   - JAVA_HOME: C:\Program Files\Java\jdk1.8.0
-    TEST_TASKS: __[2.12.7].test
+    TEST_TASKS: __[2.11.12].test __[2.12.7].test
+  - JAVA_HOME: C:\Program Files\Java\jdk9
+    TEST_TASKS: __[2.11.12].test __[2.12.7].test
 
 init:
   # Appveyor has so,e problems with symlinks..
