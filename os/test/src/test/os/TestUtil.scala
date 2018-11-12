@@ -7,10 +7,9 @@ import java.nio.file.attribute.BasicFileAttributes
 
 object TestUtil {
 
-  def isInstalled(exe: String): Boolean = {
-    // Travis doesn't support "which" or "command -v" ???
-    if(!scala.util.Properties.isWin) true
-    else os.proc(s"which $exe").call(check = false).exitCode == 0
+  def isInstalled(executable: String): Boolean = {
+    val getPathCmd = if(!scala.util.Properties.isWin) "where" else "which"
+    os.proc(getPathCmd, executable).call(check = false).exitCode == 0
   }
 
   def prep[T](f: os.Path => T)(implicit tp: TestPath,
