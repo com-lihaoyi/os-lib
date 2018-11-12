@@ -8,7 +8,7 @@ import java.nio.file.attribute.BasicFileAttributes
 object TestUtil {
 
   def isInstalled(executable: String): Boolean = {
-    val getPathCmd = if(!scala.util.Properties.isWin) "where" else "which"
+    val getPathCmd = if(scala.util.Properties.isWin) "where" else "which"
     os.proc(getPathCmd, executable).call(check = false).exitCode == 0
   }
 
