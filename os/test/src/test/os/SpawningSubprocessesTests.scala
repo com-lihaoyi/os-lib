@@ -67,7 +67,7 @@ object SpawningSubprocessesTests extends TestSuite {
             onOut = (buf, len) => lineCount += buf.slice(0, len).count(_ == '\n'),
             onErr = (buf, len) => () // do nothing
           )
-          lineCount ==> 21
+          lineCount ==> 22
         }
       }
       'spawn - {

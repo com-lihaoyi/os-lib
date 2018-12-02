@@ -259,13 +259,13 @@ object hardlink {
   * Creates a symbolic link between two paths
   */
 object symlink {
-  def apply(src: Path, dest: Path, perms: PermSet = null): Unit = {
+  def apply(src: FilePath, dest: Path, perms: PermSet = null): Unit = {
     import collection.JavaConverters._
     val permArray =
       if (perms == null) Array[FileAttribute[_]]()
       else Array(PosixFilePermissions.asFileAttribute(perms.value.asJava))
 
-    Files.createSymbolicLink(dest.wrapped, src.wrapped, permArray:_*)
+    Files.createSymbolicLink(dest.toNIO, src.toNIO, permArray:_*)
   }
 }
 
@@ -277,5 +277,14 @@ object symlink {
   */
 object followLink extends Function1[Path, Option[Path]]{
   def apply(src: Path): Option[Path] = Try(Path(src.wrapped.toRealPath())).toOption
+}
+
+
+/**
+  * Reads the destination that the given symbolic link is pointed to
+  */
+object readLink extends Function1[Path, os.FilePath]{
+  def apply(src: Path): FilePath = os.FilePath(Files.readSymbolicLink(src.toNIO))
+  def absolute(src: Path): FilePath = os.Path(Files.readSymbolicLink(src.toNIO), src / up)
 }
 

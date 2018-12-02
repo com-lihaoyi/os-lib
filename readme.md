@@ -928,12 +928,13 @@ os.isLink(wd / "Linked.txt") ==> false
 #### os.symlink
 
 ```scala
-os.symlink(src: Path, dest: Path, perms: PermSet = null): Unit
+os.symlink(src: Path, dest: os.FilePath, perms: PermSet = null): Unit
 ```
 
 Create a symbolic to the source path from the destination path. Optionally takes
 a [os.PermSet](#ospermset) to customize the filesystem permissions of the symbolic
 link.
+
 ```scala
 os.symlink(wd / "File.txt", wd / "Linked.txt")
 os.exists(wd / "Linked.txt")
@@ -941,15 +942,56 @@ os.read(wd / "Linked.txt") ==> "I am cow"
 os.isLink(wd / "Linked.txt") ==> true
 ```
 
+You can create symlinks with either absolute `os.Path`s or relative `os.RelPath`s:
+
+```scala
+os.symlink(wd / "File.txt", os.rel/ "Linked2.txt")
+os.exists(wd / "Linked2.txt")
+os.read(wd / "Linked2.txt") ==> "I am cow"
+os.isLink(wd / "Linked2.txt") ==> true
+```
+
+Creating absolute and relative symlinks respectively. Relative symlinks are
+resolved relative to the enclosing folder of the link.
+
+#### os.readLink
+
+```scala
+os.readLink(src: Path): os.FilePath
+os.readLink.absolute(src: Path): os.Path
+```
+
+Returns the immediate destination of the given symbolic link.
+
+```scala
+os.readLink(wd / "misc" / "file-symlink") ==> os.up / "File.txt"
+os.readLink(wd / "misc" / "folder-symlink") ==> os.up / "folder1"
+os.readLink(wd / "misc" / "broken-symlink") ==> os.rel / "broken"
+os.readLink(wd / "misc" / "broken-abs-symlink") ==> os.root / "doesnt" / "exist"
+```
+
+Note that symbolic links can be either absolute `os.Path`s or relative
+`os.RelPath`s, represented by `os.FilePath`. You can also use `os.readLink.all`
+to automatically resolve relative symbolic links to their absolute destination:
+
+```scala
+os.readLink.absolute(wd / "misc" / "file-symlink") ==> wd / "File.txt"
+os.readLink.absolute(wd / "misc" / "folder-symlink") ==> wd / "folder1"
+os.readLink.absolute(wd / "misc" / "broken-symlink") ==> wd / "misc" / "broken"
+os.readLink.absolute(wd / "misc" / "broken-abs-symlink") ==> os.root / "doesnt" / "exist"
+```
+
+
+
 #### os.followLink
 
 ```scala
 os.followLink(src: Path): Option[Path]
 ```
 
-Attempts to any symbolic links in the given path and return the canonical path.
-Returns `None` if the path cannot be resolved (i.e. some symbolic link in the
-given path is broken)
+Attempts to any deference symbolic links in the given path, recursively, and return the
+canonical path. Returns `None` if the path cannot be resolved (i.e. some
+symbolic link in the given path is broken)
 
 ```scala
 os.followLink(wd / "misc" / "file-symlink") ==> Some(wd / "File.txt")

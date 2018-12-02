@@ -152,7 +152,9 @@ object PathError{
   * relative [[RelPath]], and can be constructed from a
   * java.nio.file.Path or java.io.File
   */
-trait FilePath extends BasePath
+trait FilePath extends BasePath{
+  def toNIO: java.nio.file.Path
+}
 object FilePath {
   def apply[T: PathConvertible](f0: T) = {
     val f = implicitly[PathConvertible[T]].apply(f0)
@@ -203,6 +205,8 @@ class RelPath private[os](segments0: Array[String], val ups: Int)
     case p: RelPath => segments == p.segments && p.ups == ups
     case _ => false
   }
+
+  def toNIO = java.nio.file.Paths.get(toString)
 }
 
 object RelPath {
