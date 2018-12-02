@@ -156,6 +156,47 @@ object write{
       )
     }
   }
+
+  /**
+    * Opens a [[SeekableByteChannel]] to write to the given file.
+    */
+  object channel extends Function1[Path, SeekableByteChannel]{
+    def write(p: Path, options: Seq[StandardOpenOption]) = {
+      java.nio.file.Files.newByteChannel(p.toNIO, options.toArray:_*)
+    }
+    def apply(p: Path): SeekableByteChannel = {
+      write(p, Seq(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE))
+    }
+
+    /**
+      * Opens a [[SeekableByteChannel]] to write to the given file.
+      */
+    object append extends Function1[Path, SeekableByteChannel]{
+      def apply(p: Path): SeekableByteChannel = {
+        write(p,
+          Seq(
+            StandardOpenOption.CREATE,
+            StandardOpenOption.APPEND,
+            StandardOpenOption.WRITE
+          )
+        )
+      }
+    }
+    /**
+      * Opens a [[SeekableByteChannel]] to write to the given file.
+      */
+    object over extends Function1[Path, SeekableByteChannel]{
+      def apply(p: Path): SeekableByteChannel = {
+        write(p,
+          Seq(
+            StandardOpenOption.CREATE,
+            StandardOpenOption.TRUNCATE_EXISTING,
+            StandardOpenOption.WRITE
+          )
+        )
+      }
+    }
+  }
 }
 
 /**
