@@ -69,8 +69,9 @@ own idiosyncrasies, quirks, or clever DSLs.
     - [os.write.append](#oswriteappend)
     - [os.write.over](#oswriteover)
     - [os.write.outputStream](#oswriteoutputstream)
+    - [os.truncate](#ostruncate)
 
-    Listing & Walking
+  Listing & Walking
 
     - [os.list](#oslist)
     - [os.list.stream](#osliststream)
@@ -493,6 +494,22 @@ out.write('o')
 out.close()
 
 os.read(wd / "New File.txt") ==> "Hello"
+```
+
+#### os.truncate
+
+```scala
+os.truncate(p: Path, size: Long): Unit
+```
+
+Truncate the given file to the given size. If the file is smaller than the
+given size, does nothing.
+
+```scala
+os.read(wd / "File.txt") ==> "I am cow"
+
+os.truncate(wd / "File.txt", 4)
+os.read(wd / "File.txt") ==> "I am"
 ```
 
 ### Listing & Walking

@@ -159,6 +159,17 @@ object write{
   }
 }
 
+/**
+  * Truncate the given file to the given size. If the file is smaller than the
+  * given size, does nothing.
+  */
+object truncate{
+  def apply(p: Path, size: Long): Unit = {
+    val channel = FileChannel.open(p.toNIO, StandardOpenOption.WRITE)
+    try channel.truncate(size)
+    finally channel.close()
+  }
+}
 
 /**
   * Reads the contents of a [[os.Path]] or other [[os.Source]] as a

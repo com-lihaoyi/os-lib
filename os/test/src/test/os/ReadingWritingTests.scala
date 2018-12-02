@@ -125,6 +125,14 @@ object ReadingWritingTests extends TestSuite {
         }
       }
     }
+    'truncate - {
+      * - prep{ wd =>
+        os.read(wd / "File.txt") ==> "I am cow"
+
+        os.truncate(wd / "File.txt", 4)
+        os.read(wd / "File.txt") ==> "I am"
+      }
+    }
   }
 }
 
