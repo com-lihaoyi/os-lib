@@ -61,6 +61,7 @@ own idiosyncrasies, quirks, or clever DSLs.
 
     - [os.read](#osread)
     - [os.read.bytes](#osreadbytes)
+    - [os.read.chunks](#osreadchunks)
     - [os.read.lines](#osreadlines)
     - [os.read.lines.stream](#osreadlinesstream)
     - [os.read.inputStream](#osreadinputstream)
@@ -290,6 +291,37 @@ supports seeking.
 ```scala
 os.read.bytes(wd / "File.txt") ==> "I am cow".getBytes
 os.read.bytes(wd / "misc" / "binary.png").length ==> 711
+```
+#### os.read.chunks
+
+```scala
+os.read.chunks(p: ReadablePath, chunkSize: Int): os.Generator[(Array[Byte], Int)]
+os.read.chunks(p: ReadablePath, buffer: Array[Byte]): os.Generator[(Array[Byte], Int)]
+```
+
+Reads the contents of the given path in chunks of the given size;
+returns a generator which provides a byte array and an offset into that
+array which contains the data for that chunk. All chunks will be of the
+given size, except for the last chunk which may be smaller.
+
+Note that the array returned by the generator is shared between each
+callback; make sure you copy the bytes/array somewhere else if you want
+to keep them around.
+
+Optionally takes in a provided input `buffer` instead of a `chunkSize`,
+allowing you to re-use the buffer between invocations.
+
+```scala
+val chunks = os.read.chunks(wd / "File.txt", chunkSize = 2)
+  .map{case (buf, n) => buf.take(n).toSeq } // copy the buffer to save the data
+  .toSeq
+
+chunks ==> Seq(
+  Seq[Byte]('I', ' '),
+  Seq[Byte]('a', 'm'),
+  Seq[Byte](' ', 'c'),
+  Seq[Byte]('o', 'w')
+)
 ```
 
 #### os.read.lines

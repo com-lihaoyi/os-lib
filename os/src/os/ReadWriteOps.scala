@@ -221,6 +221,54 @@ object read extends Function1[ReadablePath, String]{
   }
 
   /**
+    * Reads the contents of the given [[os.Path]] in chunks of the given size;
+    * returns a generator which provides a byte array and an offset into that
+    * array which contains the data for that chunk. All chunks will be of the
+    * given size, except for the last chunk which may be smaller.
+    *
+    * Note that the array returned by the generator is shared between each
+    * callback; make sure you copy the bytes/array somewhere else if you want
+    * to keep them around.
+    *
+    * Optionally takes in a provided input `buffer` instead of a `chunkSize`,
+    * allowing you to re-use the buffer between invocations.
+    */
+  object chunks {
+    def apply(p: ReadablePath, chunkSize: Int): geny.Generator[(Array[Byte], Int)] = {
+      apply(p, new Array[Byte](chunkSize))
+    }
+    def apply(p: ReadablePath, buffer: Array[Byte]): geny.Generator[(Array[Byte], Int)] = {
+      new Generator[(Array[Byte], Int)] {
+        def generate(handleItem: ((Array[Byte], Int)) => Generator.Action): Generator.Action = {
+          val is = os.read.inputStream(p)
+          try{
+            var bufferOffset = 0
+            var lastAction: Generator.Action = Generator.Continue
+            while ( {
+              is.read(buffer, bufferOffset, buffer.length - bufferOffset) match {
+                case -1 =>
+                  if (bufferOffset != 0) lastAction = handleItem((buffer, bufferOffset))
+                  false
+                case n =>
+                  if (n + bufferOffset == buffer.length) {
+                    lastAction = handleItem((buffer, buffer.length))
+                    bufferOffset = 0
+                  } else {
+                    bufferOffset += n
+                  }
+                  lastAction == Generator.Continue
+              }
+            }) ()
+            lastAction
+          } finally{
+            is.close()
+          }
+        }
+      }
+    }
+  }
+
+  /**
     * Reads the given [[os.Path]] or other [[os.Source]] as a string
     * and splits it into lines; defaults to reading as UTF-8, which you
     * can override by specifying a `charSet`.

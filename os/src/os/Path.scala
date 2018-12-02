@@ -152,7 +152,7 @@ object PathError{
   * relative [[RelPath]], and can be constructed from a
   * java.nio.file.Path or java.io.File
   */
-trait FilePath extends BasePath{
+sealed trait FilePath extends BasePath{
   def toNIO: java.nio.file.Path
 }
 object FilePath {

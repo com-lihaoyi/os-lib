@@ -34,6 +34,21 @@ object ReadingWritingTests extends TestSuite {
           os.read.bytes(wd / "misc" / "binary.png").length ==> 711
         }
       }
+      'chunks - {
+        * - prep{ wd =>
+          val chunks = os.read.chunks(wd / "File.txt", chunkSize = 2)
+            .map{case (buf, n) => buf.take(n).toSeq } // copy the buffer to save the data
+            .toSeq
+
+          chunks ==> Seq(
+            Seq[Byte]('I', ' '),
+            Seq[Byte]('a', 'm'),
+            Seq[Byte](' ', 'c'),
+            Seq[Byte]('o', 'w')
+          )
+        }
+      }
+
       'lines - {
         * - prep{ wd =>
           os.read.lines(wd / "File.txt") ==> Seq("I am cow")
