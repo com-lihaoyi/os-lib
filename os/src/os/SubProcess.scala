@@ -13,7 +13,7 @@ import scala.annotation.tailrec
 class SubProcess(val wrapped: java.lang.Process,
                  val inputPumperThread: Option[Thread],
                  val outputPumperThread: Option[Thread],
-                 val errorPumperThread: Option[Thread]){
+                 val errorPumperThread: Option[Thread]) extends java.lang.AutoCloseable{
   val stdin: SubProcess.InputStream = new SubProcess.InputStream(wrapped.getOutputStream)
   val stdout: SubProcess.OutputStream = new SubProcess.OutputStream(wrapped.getInputStream)
   val stderr: SubProcess.OutputStream = new SubProcess.OutputStream(wrapped.getErrorStream)
@@ -40,6 +40,11 @@ class SubProcess(val wrapped: java.lang.Process,
     * Force-destroys the subprocess, via the underlying JVM APIs
     */
   def destroyForcibly(): Unit = wrapped.destroyForcibly()
+
+  /**
+    * Alias for [[destroy]]
+    */
+  def close() = wrapped.destroy()
 
   /**
     * Wait up to `millis` for the subprocess to terminate, by default waits
