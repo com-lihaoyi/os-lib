@@ -137,11 +137,11 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.2.4"
+"com.lihaoyi" %% "os-lib" % "0.2.5"
 // Mill
-ivy"com.lihaoyi::os-lib:0.2.4"
+ivy"com.lihaoyi::os-lib:0.2.5"
 // Ammonite
-import ivy.`com.lihaoyi::os-lib:0.2.4`
+import ivy.`com.lihaoyi::os-lib:0.2.5`
 ```
 
 ## Cookbook
@@ -1927,7 +1927,7 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
-### 0.2.4
+### 0.2.5
 
 - New `os.readLink`/`os.readLink.absolute` methods to read the contents of
   symbolic links without dereferencing them.
