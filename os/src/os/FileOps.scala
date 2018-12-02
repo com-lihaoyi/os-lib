@@ -225,8 +225,8 @@ object remove extends Function1[Path, Unit]{
       require(target.segmentCount != 0, s"Cannot remove a root directory: $target")
 
       val nioTarget = target.wrapped
-      if (Files.exists(nioTarget)) {
-        if (Files.isDirectory(nioTarget)) {
+      if (Files.exists(nioTarget, LinkOption.NOFOLLOW_LINKS)) {
+        if (Files.isDirectory(nioTarget, LinkOption.NOFOLLOW_LINKS)) {
           walk.stream(target, preOrder = false).foreach(remove)
         }
         Files.delete(nioTarget)

@@ -894,6 +894,27 @@ os.remove(wd / "folder1")
 os.exists(wd / "folder1" / "one.txt") ==> false
 os.exists(wd / "folder1") ==> false
 ```
+
+When removing symbolic links, it is the link that gets removed, and not it's
+destination:
+
+```scala
+os.remove(wd / "misc" / "file-symlink")
+os.exists(wd / "misc" / "file-symlink", followLinks = false) ==> false
+os.exists(wd / "File.txt", followLinks = false) ==> true
+
+os.remove(wd / "misc" / "folder-symlink")
+os.exists(wd / "misc" / "folder-symlink", followLinks = false) ==> false
+os.exists(wd / "folder1", followLinks = false) ==> true
+os.exists(wd / "folder1" / "one.txt", followLinks = false) ==> true
+
+os.remove(wd / "misc" / "broken-symlink")
+os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
+```
+
+If you wish to remove the destination of a symlink, use
+[os.readLink](#osreadlink).
+
 #### os.remove.all
 
 ```scala
@@ -909,6 +930,26 @@ os.remove.all(wd / "folder1")
 os.exists(wd / "folder1" / "one.txt") ==> false
 os.exists(wd / "folder1") ==> false
 ```
+
+When removing symbolic links, it is the links that gets removed, and not it's
+destination:
+
+```scala
+os.remove.all(wd / "misc" / "file-symlink")
+os.exists(wd / "misc" / "file-symlink", followLinks = false) ==> false
+os.exists(wd / "File.txt", followLinks = false) ==> true
+
+os.remove.all(wd / "misc" / "folder-symlink")
+os.exists(wd / "misc" / "folder-symlink", followLinks = false) ==> false
+os.exists(wd / "folder1", followLinks = false) ==> true
+os.exists(wd / "folder1" / "one.txt", followLinks = false) ==> true
+
+os.remove.all(wd / "misc" / "broken-symlink")
+os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
+```
+
+If you wish to remove the destination of a symlink, use
+[os.readLink](#osreadlink).
 
 #### os.hardlink
 

@@ -133,12 +133,42 @@ object ManipulatingFilesFoldersTests extends TestSuite {
         os.exists(wd / "folder1" / "one.txt") ==> false
         os.exists(wd / "folder1") ==> false
       }
+      'link - {
+        * - prep{ wd =>
+          os.remove(wd / "misc" / "file-symlink")
+          os.exists(wd / "misc" / "file-symlink", followLinks = false) ==> false
+          os.exists(wd / "File.txt", followLinks = false) ==> true
+
+          os.remove(wd / "misc" / "folder-symlink")
+          os.exists(wd / "misc" / "folder-symlink", followLinks = false) ==> false
+          os.exists(wd / "folder1", followLinks = false) ==> true
+          os.exists(wd / "folder1" / "one.txt", followLinks = false) ==> true
+
+          os.remove(wd / "misc" / "broken-symlink")
+          os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
+        }
+      }
       'all - {
         * - prep{ wd =>
           os.exists(wd / "folder1" / "one.txt") ==> true
           os.remove.all(wd / "folder1")
           os.exists(wd / "folder1" / "one.txt") ==> false
           os.exists(wd / "folder1") ==> false
+        }
+        'link - {
+          * - prep{ wd =>
+            os.remove.all(wd / "misc" / "file-symlink")
+            os.exists(wd / "misc" / "file-symlink", followLinks = false) ==> false
+            os.exists(wd / "File.txt", followLinks = false) ==> true
+
+            os.remove.all(wd / "misc" / "folder-symlink")
+            os.exists(wd / "misc" / "folder-symlink", followLinks = false) ==> false
+            os.exists(wd / "folder1", followLinks = false) ==> true
+            os.exists(wd / "folder1" / "one.txt", followLinks = false) ==> true
+
+            os.remove.all(wd / "misc" / "broken-symlink")
+            os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
+          }
         }
       }
     }
