@@ -28,10 +28,9 @@ object write{
                    openOptions: Seq[OpenOption] = Seq(CREATE, WRITE)) = {
     if (createFolders) makeDir.all(target/RelPath.up, perms)
     if (perms != null && !exists(target)){
-      import collection.JavaConverters._
       val permArray =
         if (perms == null) Array[FileAttribute[PosixFilePermission]]()
-        else Array(PosixFilePermissions.asFileAttribute(perms.value.asJava))
+        else Array(PosixFilePermissions.asFileAttribute(perms.toSet))
       java.nio.file.Files.createFile(target.toNIO, permArray:_*)
     }
     java.nio.file.Files.newOutputStream(
@@ -54,7 +53,7 @@ object write{
     import collection.JavaConverters._
     val permArray =
       if (perms == null) Array[FileAttribute[PosixFilePermission]]()
-      else Array(PosixFilePermissions.asFileAttribute(perms.value.asJava))
+      else Array(PosixFilePermissions.asFileAttribute(perms.toSet))
 
     val out = Files.newByteChannel(
       target.wrapped,

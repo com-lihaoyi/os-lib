@@ -10,8 +10,7 @@ object perms extends Function1[Path, PermSet]{
   def apply(p: Path): PermSet = apply(p, followLinks = true)
   def apply(p: Path, followLinks: Boolean = true): PermSet = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
-    import collection.JavaConverters._
-    new PermSet(Files.getPosixFilePermissions(p.wrapped, opts:_*).asScala.toSet)
+    PermSet.fromSet(Files.getPosixFilePermissions(p.wrapped, opts:_*))
   }
   /**
     * Set the filesystem permissions of the file/folder at the given path
@@ -24,8 +23,7 @@ object perms extends Function1[Path, PermSet]{
     */
   object set {
     def apply(p: Path, arg2: PermSet): Unit = {
-      import collection.JavaConverters._
-      Files.setPosixFilePermissions(p.wrapped, arg2.value.asJava)
+      Files.setPosixFilePermissions(p.wrapped, arg2.toSet)
     }
   }
 

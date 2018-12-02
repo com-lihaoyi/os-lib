@@ -24,10 +24,9 @@ import scala.util.Try
 object makeDir extends Function1[Path, Unit]{
   def apply(path: Path): Unit = Files.createDirectory(path.wrapped)
   def apply(path: Path, perms: PermSet): Unit = {
-    import collection.JavaConverters._
     Files.createDirectory(
       path.wrapped,
-      PosixFilePermissions.asFileAttribute(perms.value.asJava)
+      PosixFilePermissions.asFileAttribute(perms.toSet)
     )
   }
   /**
@@ -45,11 +44,9 @@ object makeDir extends Function1[Path, Unit]{
       if (os.isDir(path) && os.isLink(path) && acceptLinkedDirectory) () // do nothing
       else if (perms == null) Files.createDirectories(path.wrapped)
       else {
-        import collection.JavaConverters._
-
         Files.createDirectories(
           path.wrapped,
-          PosixFilePermissions.asFileAttribute(perms.value.asJava)
+          PosixFilePermissions.asFileAttribute(perms.toSet)
         )
       }
     }
@@ -260,10 +257,9 @@ object hardlink {
   */
 object symlink {
   def apply(src: FilePath, dest: Path, perms: PermSet = null): Unit = {
-    import collection.JavaConverters._
     val permArray =
       if (perms == null) Array[FileAttribute[_]]()
-      else Array(PosixFilePermissions.asFileAttribute(perms.value.asJava))
+      else Array(PosixFilePermissions.asFileAttribute(perms.toSet))
 
     Files.createSymbolicLink(dest.toNIO, src.toNIO, permArray:_*)
   }

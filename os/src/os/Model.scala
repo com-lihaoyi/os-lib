@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, LinkOption, Paths}
 import java.nio.file.attribute._
 
-import collection.JavaConverters._
 import scala.io.Codec
 import scala.util.Try
 
@@ -19,8 +18,23 @@ object FileType{
   case object Other extends FileType
 }
 object PermSet{
-  implicit def fromSet(arg: Set[PosixFilePermission]): PermSet = {
-    new PermSet(arg)
+  implicit def fromSet(value: java.util.Set[PosixFilePermission]): PermSet = {
+    var total = 0
+    import PosixFilePermission._
+    def add(perm: PosixFilePermission) = {
+      if (value.contains(perm)) total += permToMask(perm)
+    }
+    add(OWNER_READ)
+    add(OWNER_WRITE)
+    add(OWNER_EXECUTE)
+    add(GROUP_READ)
+    add(GROUP_WRITE)
+    add(GROUP_EXECUTE)
+    add(OTHERS_READ)
+    add(OTHERS_WRITE)
+    add(OTHERS_EXECUTE)
+
+    new PermSet(total)
   }
 
   /**
@@ -32,9 +46,11 @@ object PermSet{
       "Invalid permissions string: must be length 9, not " + arg.length
     )
     import PosixFilePermission._
-    val perms = new java.util.HashSet[PosixFilePermission]()
-    def add(i: Int, expected: Char, perm: PosixFilePermission) = {
-      if(arg(i) == expected) perms.add(perm)
+    var perms = 0
+    def add(perm: PosixFilePermission) = {
+      val i = permToOffset(perm)
+      val expected = permToChar(perm)
+      if(arg(i) == expected) perms |= permToMask(perm)
       else if (arg(i) != '-') {
         throw new Exception(
           "Invalid permissions string: unknown character [" + arg(i) + "] " +
@@ -42,70 +58,100 @@ object PermSet{
         )
       }
     }
-    add(0, 'r', OWNER_READ)
-    add(1, 'w', OWNER_WRITE)
-    add(2, 'x', OWNER_EXECUTE)
-    add(3, 'r', GROUP_READ)
-    add(4, 'w', GROUP_WRITE)
-    add(5, 'x', GROUP_EXECUTE)
-    add(6, 'r', OTHERS_READ)
-    add(7, 'w', OTHERS_WRITE)
-    add(8, 'x', OTHERS_EXECUTE)
-    new PermSet(perms.asScala.toSet)
+    add(OWNER_READ)
+    add(OWNER_WRITE)
+    add(OWNER_EXECUTE)
+    add(GROUP_READ)
+    add(GROUP_WRITE)
+    add(GROUP_EXECUTE)
+    add(OTHERS_READ)
+    add(OTHERS_WRITE)
+    add(OTHERS_EXECUTE)
+    new PermSet(perms)
   }
 
   /**
     * Parses a 0x777 integer into a [[PermSet]]
     */
-  implicit def fromInt(arg: Int): PermSet = {
-    import PosixFilePermission._
-    val perms = new java.util.HashSet[PosixFilePermission]()
-    def add(i: Int, perm: PosixFilePermission) = {
-      if((arg & (256 >> i)) != 0) perms.add(perm)
-    }
-    add(0, OWNER_READ)
-    add(1, OWNER_WRITE)
-    add(2, OWNER_EXECUTE)
-    add(3, GROUP_READ)
-    add(4, GROUP_WRITE)
-    add(5, GROUP_EXECUTE)
-    add(6, OTHERS_READ)
-    add(7, OTHERS_WRITE)
-    add(8, OTHERS_EXECUTE)
-    new PermSet(perms.asScala.toSet)
+  implicit def fromInt(value: Int): PermSet = new PermSet(value)
+
+  def permToMask(elem: PosixFilePermission) = 256 >> permToOffset(elem)
+  def permToChar(elem: PosixFilePermission) = elem match{
+    case PosixFilePermission.OWNER_READ => 'r'
+    case PosixFilePermission.OWNER_WRITE => 'w'
+    case PosixFilePermission.OWNER_EXECUTE => 'x'
+    case PosixFilePermission.GROUP_READ => 'r'
+    case PosixFilePermission.GROUP_WRITE => 'w'
+    case PosixFilePermission.GROUP_EXECUTE => 'x'
+    case PosixFilePermission.OTHERS_READ => 'r'
+    case PosixFilePermission.OTHERS_WRITE => 'w'
+    case PosixFilePermission.OTHERS_EXECUTE => 'x'
+  }
+  def permToOffset(elem: PosixFilePermission) = elem match{
+    case PosixFilePermission.OWNER_READ => 0
+    case PosixFilePermission.OWNER_WRITE => 1
+    case PosixFilePermission.OWNER_EXECUTE => 2
+    case PosixFilePermission.GROUP_READ => 3
+    case PosixFilePermission.GROUP_WRITE => 4
+    case PosixFilePermission.GROUP_EXECUTE => 5
+    case PosixFilePermission.OTHERS_READ => 6
+    case PosixFilePermission.OTHERS_WRITE => 7
+    case PosixFilePermission.OTHERS_EXECUTE => 8
   }
 }
 
 /**
   * A set of permissions; can be converted easily to the rw-rwx-r-x form via
-  * [[toString]], or to the 0x777 form via [[toInt]] and the other way via
-  * `PermSet.fromString`/`PermSet.fromInt`
-  *
+  * [[toString]], or to a set of [[PosixFilePermission]]s via [[toSet]] and the
+  * other way via `PermSet.fromString`/`PermSet.fromSet`
   */
-class PermSet(val value: Set[PosixFilePermission]) {
-  def contains(elem: PosixFilePermission) = value.contains(elem)
-  def +(elem: PosixFilePermission) = new PermSet(value + elem)
-  def -(elem: PosixFilePermission) = new PermSet(value - elem)
-  def iterator = value.iterator
-  def toInt(): Int = {
-    var total = 0
+case class PermSet(value: Int) {
+  def contains(elem: PosixFilePermission) = (PermSet.permToMask(elem) & value) != 0
+  def +(elem: PosixFilePermission) = new PermSet(value | PermSet.permToMask(elem))
+  def ++(other: PermSet) = new PermSet(value | other.value)
+
+  def -(elem: PosixFilePermission) = new PermSet(value & (~PermSet.permToMask(elem)))
+  def --(other: PermSet) = new PermSet(value & (~other.value))
+
+  def toInt(): Int = value
+
+  def toSet(): java.util.Set[PosixFilePermission] = {
     import PosixFilePermission._
-    def add(i: Int, perm: PosixFilePermission) = {
-      if (value.contains(perm)) total += (256 >> i)
+    val perms = new java.util.HashSet[PosixFilePermission]()
+    def add(perm: PosixFilePermission) = {
+      if((value & PermSet.permToMask(perm)) != 0) perms.add(perm)
     }
-    add(0, OWNER_READ)
-    add(1, OWNER_WRITE)
-    add(2, OWNER_EXECUTE)
-    add(3, GROUP_READ)
-    add(4, GROUP_WRITE)
-    add(5, GROUP_EXECUTE)
-    add(6, OTHERS_READ)
-    add(7, OTHERS_WRITE)
-    add(8, OTHERS_EXECUTE)
-    total
+    add(OWNER_READ)
+    add(OWNER_WRITE)
+    add(OWNER_EXECUTE)
+    add(GROUP_READ)
+    add(GROUP_WRITE)
+    add(GROUP_EXECUTE)
+    add(OTHERS_READ)
+    add(OTHERS_WRITE)
+    add(OTHERS_EXECUTE)
+    perms
   }
+
   override def toString() = {
-    PosixFilePermissions.toString(value.asJava)
+    import PosixFilePermission._
+    def add(perm: PosixFilePermission) = {
+      val c = PermSet. permToChar(perm)
+      if ((PermSet.permToMask(perm) & value) != 0) c else '-'
+    }
+    new String(
+      Array[Char](
+        add(OWNER_READ),
+        add(OWNER_WRITE),
+        add(OWNER_EXECUTE),
+        add(GROUP_READ),
+        add(GROUP_WRITE),
+        add(GROUP_EXECUTE),
+        add(OTHERS_READ),
+        add(OTHERS_WRITE),
+        add(OTHERS_EXECUTE)
+      )
+    )
   }
 }
 
@@ -226,7 +272,6 @@ case class BasicStatInfo(name: String,
 object BasicStatInfo{
 
   def make(name: String, attrs: BasicFileAttributes) = {
-    import collection.JavaConverters._
     new BasicStatInfo(
       name,
       attrs.size(),
@@ -260,13 +305,12 @@ case class StatInfo(name: String,
 object StatInfo{
 
   def make(name: String, attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
-    import collection.JavaConverters._
     new StatInfo(
       name,
       attrs.size(),
       attrs.lastModifiedTime(),
       posixAttrs.map(_.owner).orNull,
-      posixAttrs.map(a => new PermSet(a.permissions.asScala.toSet)).orNull,
+      posixAttrs.map(a => PermSet.fromSet(a.permissions)).orNull,
       if (attrs.isRegularFile) FileType.File
       else if (attrs.isDirectory) FileType.Dir
       else if (attrs.isSymbolicLink) FileType.SymLink
@@ -297,7 +341,6 @@ case class FullStatInfo(name: String,
 object FullStatInfo{
 
   def make(name: String, attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
-    import collection.JavaConverters._
     new os.FullStatInfo(
       name,
       attrs.size(),
@@ -306,7 +349,7 @@ object FullStatInfo{
       attrs.creationTime(),
       posixAttrs.map(_.group()).orNull,
       posixAttrs.map(_.owner()).orNull,
-      posixAttrs.map(a => new PermSet(a.permissions.asScala.toSet)).orNull,
+      posixAttrs.map(a => PermSet.fromSet(a.permissions)).orNull,
       if (attrs.isRegularFile) FileType.File
       else if (attrs.isDirectory) FileType.Dir
       else if (attrs.isSymbolicLink) FileType.SymLink
