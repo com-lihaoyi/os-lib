@@ -362,7 +362,7 @@ is.close()
 os.write(target: Path, 
          data: os.Source, 
          perms: PermSet = null, 
-         createFolders: Boolean = true): Unit
+         createFolders: Boolean = false): Unit
 ```
 
 Writes data from the given file or [os.Source](#ossource) to a file at the
@@ -390,7 +390,7 @@ os.read.bytes(wd / "NewBinary.bin") ==> Array[Byte](0, 1, 2, 3)
 os.write.append(target: Path,
                 data: os.Source,
                 perms: PermSet = null,
-                createFolders: Boolean = true): Unit
+                createFolders: Boolean = false): Unit
 ```
 
 Similar to [os.write](#oswrite), except if the file already exists this appends
@@ -418,7 +418,7 @@ os.write.over(target: Path,
               data: os.Source,
               perms: PermSet = null,
               offset: Long = 0,
-              createFolders: Boolean = true,
+              createFolders: Boolean = false,
               truncate: Boolean = true): Unit
 ```
 
@@ -445,7 +445,7 @@ os.read(wd / "File.txt") ==> "We  are sow"
 ```scala
 os.write.outputStream(target: Path,
                       perms: PermSet = null,
-                      createFolders: Boolean = true,
+                      createFolders: Boolean = false,
                       openOptions: Seq[OpenOption] = Seq(CREATE, WRITE))
 ```
 

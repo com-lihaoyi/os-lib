@@ -110,7 +110,7 @@ object ExampleTests extends TestSuite{
     'comparison{
       import os._
       os.remove.all(pwd/'out/'scratch/'folder/'thing/'file)
-      write(pwd/'out/'scratch/'folder/'thing/'file, "Hello!")
+      write(pwd/'out/'scratch/'folder/'thing/'file, "Hello!", createFolders = true)
 
       def removeAll(path: String) = {
         def getRecursively(f: java.io.File): Seq[java.io.File] = {
@@ -127,7 +127,7 @@ object ExampleTests extends TestSuite{
 
       assert(os.list(pwd/'out/'scratch/'folder).toSeq == Nil)
 
-      write(pwd/'out/'scratch/'folder/'thing/'file, "Hello!")
+      write(pwd/'out/'scratch/'folder/'thing/'file, "Hello!", createFolders = true)
 
       os.remove.all(pwd/'out/'scratch/'folder/'thing)
       assert(os.list(pwd/'out/'scratch/'folder).toSeq == Nil)

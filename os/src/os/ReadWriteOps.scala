@@ -24,7 +24,7 @@ object write{
     */
   def outputStream(target: Path,
                    perms: PermSet = null,
-                   createFolders: Boolean = true,
+                   createFolders: Boolean = false,
                    openOptions: Seq[OpenOption] = Seq(CREATE, WRITE)) = {
     if (createFolders) makeDir.all(target/RelPath.up, perms)
     if (perms != null && !exists(target)){
@@ -73,7 +73,7 @@ object write{
   def apply(target: Path,
             data: Source,
             perms: PermSet = null,
-            createFolders: Boolean = true): Unit = {
+            createFolders: Boolean = false): Unit = {
     if (createFolders) makeDir.all(target/RelPath.up, perms)
     write(target, data, Seq(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE), perms, 0)
   }
@@ -86,7 +86,7 @@ object write{
     def apply(target: Path,
               data: Source,
               perms: PermSet = null,
-              createFolders: Boolean = true): Unit = {
+              createFolders: Boolean = false): Unit = {
       if (createFolders) makeDir.all(target/RelPath.up, perms)
       write(
         target, data,
@@ -101,7 +101,7 @@ object write{
       */
     def outputStream(target: Path,
                      perms: PermSet = null,
-                     createFolders: Boolean = true) = {
+                     createFolders: Boolean = false) = {
       os.write.outputStream(
         target,
         perms,
@@ -125,7 +125,7 @@ object write{
               data: Source,
               perms: PermSet = null,
               offset: Long = 0,
-              createFolders: Boolean = true,
+              createFolders: Boolean = false,
               truncate: Boolean = true): Unit = {
       if (createFolders) makeDir.all(target/RelPath.up, perms)
       write(
@@ -144,7 +144,7 @@ object write{
       */
     def outputStream(target: Path,
                      perms: PermSet = null,
-                     createFolders: Boolean = true) = {
+                     createFolders: Boolean = false) = {
       os.write.outputStream(
         target,
         perms,
@@ -200,17 +200,23 @@ object read extends Function1[ReadablePath, String]{
   object bytes extends Function1[ReadablePath, Array[Byte]]{
     def apply(arg: ReadablePath): Array[Byte] = {
       val out = new java.io.ByteArrayOutputStream()
-      Internals.transfer(arg.toSource.getInputStream(), out)
+      val stream = arg.toSource.getInputStream()
+      try Internals.transfer(stream, out)
+      finally stream.close()
       out.toByteArray
     }
     def apply(arg: Path, offset: Long, count: Int): Array[Byte] = {
       val arr = new Array[Byte](count)
       val buf = ByteBuffer.wrap(arr)
       val channel = arg.toSource.getChannel()
-      channel.position(offset)
-      val finalCount = channel.read(buf)
-      if (finalCount == arr.length) arr
-      else arr.take(finalCount)
+      try{
+        channel.position(offset)
+        val finalCount = channel.read(buf)
+        if (finalCount == arr.length) arr
+        else arr.take(finalCount)
+      } finally{
+        channel.close()
+      }
     }
   }
 

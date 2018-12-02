@@ -120,7 +120,7 @@ object OpTests extends TestSuite{
           )
         }
         'deep{
-          os.write(d/'folderA/'folderB/'file, "Cow")
+          os.write(d/'folderA/'folderB/'file, "Cow", createFolders = true)
           os.copy(d/'folderA, d/'folderC)
           assert(os.read(d/'folderC/'folderB/'file) == "Cow")
         }
@@ -135,6 +135,7 @@ object OpTests extends TestSuite{
         }
         'shallow{
           val d = test/'moving2
+          os.makeDir(d)
           os.write(d/"A.scala", "AScala")
           os.write(d/"B.scala", "BScala")
           os.write(d/"A.py", "APy")
@@ -154,10 +155,14 @@ object OpTests extends TestSuite{
             intercept[MatchError]{ die }
           }
         }
+
         'deep{
           val d = test/'moving2
+          os.makeDir(d)
+          os.makeDir(d/'scala)
           os.write(d/'scala/'A, "AScala")
           os.write(d/'scala/'B, "BScala")
+          os.makeDir(d/'py)
           os.write(d/'py/'A, "APy")
           os.write(d/'py/'B, "BPy")
           'partialMoves{
@@ -229,7 +234,7 @@ object OpTests extends TestSuite{
           assert(os.read(d/'file) == "i am a cow")
         }
         'autoMkdir{
-          os.write(d/'folder/'folder/'file, "i am a cow")
+          os.write(d/'folder/'folder/'file, "i am a cow", createFolders = true)
           assert(os.read(d/'folder/'folder/'file) == "i am a cow")
         }
         'binary{
