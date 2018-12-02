@@ -137,11 +137,11 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.2.2"
+"com.lihaoyi" %% "os-lib" % "0.2.3"
 // Mill
-ivy"com.lihaoyi::os-lib:0.2.2"
+ivy"com.lihaoyi::os-lib:0.2.3"
 // Ammonite
-import ivy.`com.lihaoyi::os-lib:0.2.2`
+import ivy.`com.lihaoyi::os-lib:0.2.3`
 ```
 
 ## Cookbook
@@ -1926,6 +1926,40 @@ string, int or set representations of the `os.PermSet` via:
 - `perms.value: Set[PosixFilePermission]`
 
 ## Changelog
+
+### 0.2.3
+
+- New `os.readLink`/`os.readLink.absolute` methods to read the contents of
+  symbolic links without dereferencing them.
+
+- New `os.read.chunked(p: Path, chunkSize: Int): os.Generator[(Array[Byte],
+  Int)]` method for conveniently iterating over chunks of a file
+
+- New `os.truncate(p: Path, size: Int)` method
+
+- `SubProcess` streams now implement `java.io.DataInput`/`DataOutput` for convenience
+
+- `SubProcess` streams are now synchronized for thread-safety
+
+- `os.write` now has `createFolders` default to `false`
+
+- `os.Generator` now has a `.withFilter` method
+
+- `os.symlink` now allows relative paths
+
+- `os.remove.all` now properly removes broken symlinks, and no longer recurses
+  into the symlink's contents
+
+- `os.SubProcess` now implements `java.lang.AutoCloseable`
+
+- New `write.channel` counterpart to `read.channel` (and `write.over.channel`
+  and `write.append.channel`)
+
+- `os.PermSet` is now modelled internally as a boxed `Int` for performance, and
+  is a case class with proper `equals`/`hashcode`
+
+- `os.read.bytes(arg: Path, offset: Long, count: Int)` no longer leaks open file
+  channels
 
 ### 0.2.2
 
