@@ -174,7 +174,7 @@ object ManipulatingFilesFoldersTests extends TestSuite {
     }
     'hardlink - {
       * - prep{ wd =>
-        os.hardlink(wd / "File.txt", wd / "Linked.txt")
+        os.hardlink(wd / "Linked.txt", wd / "File.txt")
         os.exists(wd / "Linked.txt")
         os.read(wd / "Linked.txt") ==> "I am cow"
         os.isLink(wd / "Linked.txt") ==> false
@@ -182,12 +182,12 @@ object ManipulatingFilesFoldersTests extends TestSuite {
     }
     'symlink - {
       * - prep{ wd =>
-        os.symlink(wd / "File.txt", wd / "Linked.txt")
+        os.symlink(wd / "Linked.txt", wd / "File.txt")
         os.exists(wd / "Linked.txt")
         os.read(wd / "Linked.txt") ==> "I am cow"
         os.isLink(wd / "Linked.txt") ==> true
 
-        os.symlink(os.rel / "File.txt", wd / "Linked2.txt")
+        os.symlink(wd / "Linked2.txt", os.rel / "File.txt")
         os.exists(wd / "Linked2.txt")
         os.read(wd / "Linked2.txt") ==> "I am cow"
         os.isLink(wd / "Linked2.txt") ==> true

@@ -247,8 +247,8 @@ object exists extends Function1[Path, Boolean]{
   * Creates a hardlink between two paths
   */
 object hardlink {
-  def apply(src: Path, dest: Path) = {
-    Files.createLink(dest.wrapped, src.wrapped)
+  def apply(link: Path, dest: Path) = {
+    Files.createLink(link.wrapped, dest.wrapped)
   }
 }
 
@@ -256,12 +256,12 @@ object hardlink {
   * Creates a symbolic link between two paths
   */
 object symlink {
-  def apply(src: FilePath, dest: Path, perms: PermSet = null): Unit = {
+  def apply(link: Path, dest: FilePath, perms: PermSet = null): Unit = {
     val permArray =
       if (perms == null) Array[FileAttribute[_]]()
       else Array(PosixFilePermissions.asFileAttribute(perms.toSet))
 
-    Files.createSymbolicLink(dest.toNIO, src.toNIO, permArray:_*)
+    Files.createSymbolicLink(link.toNIO, dest.toNIO, permArray:_*)
   }
 }
 

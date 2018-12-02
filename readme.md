@@ -137,11 +137,11 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.2.3"
+"com.lihaoyi" %% "os-lib" % "0.2.4"
 // Mill
-ivy"com.lihaoyi::os-lib:0.2.3"
+ivy"com.lihaoyi::os-lib:0.2.4"
 // Ammonite
-import ivy.`com.lihaoyi::os-lib:0.2.3`
+import ivy.`com.lihaoyi::os-lib:0.2.4`
 ```
 
 ## Cookbook
@@ -1018,7 +1018,7 @@ os.isLink(wd / "Linked.txt") ==> false
 #### os.symlink
 
 ```scala
-os.symlink(src: Path, dest: os.FilePath, perms: PermSet = null): Unit
+os.symlink(link: Path, dest: FilePath, perms: PermSet = null): Unit
 ```
 
 Create a symbolic to the source path from the destination path. Optionally takes
@@ -1927,7 +1927,7 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
-### 0.2.3
+### 0.2.4
 
 - New `os.readLink`/`os.readLink.absolute` methods to read the contents of
   symbolic links without dereferencing them.
@@ -1960,6 +1960,9 @@ string, int or set representations of the `os.PermSet` via:
 
 - `os.read.bytes(arg: Path, offset: Long, count: Int)` no longer leaks open file
   channels
+
+- Reversed the order of arguments in `os.symlink` and `os.hardlink`, to match
+  the order of the underlying java NIO functions.
 
 ### 0.2.2
 
