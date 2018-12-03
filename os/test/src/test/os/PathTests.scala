@@ -31,6 +31,22 @@ object PathTests extends TestSuite{
         }
       }
 
+      'BasePath {
+        'baseName {
+          assert((base / "baseName.ext").baseName == "baseName")
+          assert((base / "baseName.v2.0.ext").baseName == "baseName.v2.0")
+          assert((base / "baseOnly").baseName == "baseOnly")
+          assert((base / "baseOnly.").baseName == "baseOnly")
+        }
+
+        'ext {
+          assert((base / "baseName.ext").ext == "ext")
+          assert((base / "baseName.v2.0.ext").ext == "ext")
+          assert((base / "baseOnly").ext == "")
+          assert((base / "baseOnly.").ext == "")
+        }
+      }
+
       'RelPath{
         'Constructors {
           'Symbol {
