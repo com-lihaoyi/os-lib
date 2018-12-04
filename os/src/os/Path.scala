@@ -54,6 +54,11 @@ trait BasePath{
   def ext: String
 
   /**
+    * Gives you the base name of this path, ie without the extension
+    */
+  def baseName: String
+
+  /**
     * The individual path segments of this path.
     */
   def segments: TraversableOnce[String]
@@ -126,8 +131,15 @@ trait BasePathImpl extends BasePath{
   def /(subpath: RelPath): ThisType
 
   def ext = {
-    if (!last.contains('.')) ""
-    else last.split('.').lastOption.getOrElse("")
+    val li = last.lastIndexOf('.')
+    if (li == -1) ""
+    else last.slice(li+1, last.length)
+  }
+
+  override def baseName: String = {
+    val li = last.lastIndexOf('.')
+    if (li == -1) last
+    else last.slice(0, li)
   }
 
   def last: String
