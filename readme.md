@@ -141,7 +141,7 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 // Mill
 ivy"com.lihaoyi::os-lib:0.2.5"
 // Ammonite
-import ivy.`com.lihaoyi::os-lib:0.2.5`
+import $ivy.`com.lihaoyi::os-lib:0.2.5`
 ```
 
 ## Cookbook
