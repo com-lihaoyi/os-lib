@@ -261,8 +261,7 @@ object Shellable{
   *
   * If you want more information, use `stat.full`
   */
-case class BasicStatInfo(name: String,
-                         size: Long,
+case class BasicStatInfo(size: Long,
                          mtime: FileTime,
                          fileType: FileType){
   def isDir = fileType == FileType.Dir
@@ -271,9 +270,8 @@ case class BasicStatInfo(name: String,
 }
 object BasicStatInfo{
 
-  def make(name: String, attrs: BasicFileAttributes) = {
+  def make(attrs: BasicFileAttributes) = {
     new BasicStatInfo(
-      name,
       attrs.size(),
       attrs.lastModifiedTime(),
       if (attrs.isRegularFile) FileType.File
@@ -292,8 +290,7 @@ object BasicStatInfo{
   *
   * If you want more information, use `stat.full`
   */
-case class StatInfo(name: String,
-                    size: Long,
+case class StatInfo(size: Long,
                     mtime: FileTime,
                     owner: UserPrincipal,
                     permissions: PermSet,
@@ -304,9 +301,8 @@ case class StatInfo(name: String,
 }
 object StatInfo{
 
-  def make(name: String, attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
+  def make(attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
     new StatInfo(
-      name,
       attrs.size(),
       attrs.lastModifiedTime(),
       posixAttrs.map(_.owner).orNull,
@@ -324,8 +320,7 @@ object StatInfo{
   *
   * Created using `stat.full! filePath`
   */
-case class FullStatInfo(name: String,
-                        size: Long,
+case class FullStatInfo(size: Long,
                         mtime: FileTime,
                         ctime: FileTime,
                         atime: FileTime,
@@ -340,9 +335,8 @@ case class FullStatInfo(name: String,
 }
 object FullStatInfo{
 
-  def make(name: String, attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
+  def make(attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
     new os.FullStatInfo(
-      name,
       attrs.size(),
       attrs.lastModifiedTime(),
       attrs.lastAccessTime(),

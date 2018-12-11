@@ -625,7 +625,7 @@ os.walk(wd / "folder2", skip = _.last == "nestedA") ==> Seq(
 
 ```scala
 os.walk.attrs(path: Path,
-              skip: Path => Boolean = _ => false,
+              skip: (Path, os.BasicStatInfo) => Boolean = (_, _) => false,
               preOrder: Boolean = true,
               followLinks: Boolean = false,
               maxDepth: Int = Int.MaxValue,
@@ -681,7 +681,7 @@ os.walk.stream(wd / "folder2", skip = _.last == "nestedA").count() ==> 2
 
 ```scala
 os.walk.stream.attrs(path: Path,
-                     skip: Path => Boolean = _ => false,
+                     skip: (Path, os.BasicStatInfo) => Boolean = (_, _) => false,
                      preOrder: Boolean = true,
                      followLinks: Boolean = false,
                      maxDepth: Int = Int.MaxValue,
@@ -1926,6 +1926,18 @@ string, int or set representations of the `os.PermSet` via:
 - `perms.value: Set[PosixFilePermission]`
 
 ## Changelog
+
+### 0.2.6
+
+- Remove `os.StatInfo#name`, `os.BasicStatInfo#name` and `os.FullStatInfo#name`,
+  since it is just the last path segment of the stat call and doesn't properly
+  reflect the actual name of the file on disk (e.g. on case-insensitive filesystems)
+
+- `os.walk.attrs` and `os.walk.stream.attrs` now provides a `os.BasicFileInfo`
+  to the `skip` predicate.
+
+- Add `os.BasePath#baseName`, which returns the section of the path before the
+  `os.BasePath#ext` extension.
 
 ### 0.2.5
 
