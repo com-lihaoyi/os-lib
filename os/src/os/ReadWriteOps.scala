@@ -24,14 +24,13 @@ object write{
     */
   def outputStream(target: Path,
                    perms: PermSet = null,
-                   createFolders: Boolean = true,
+                   createFolders: Boolean = false,
                    openOptions: Seq[OpenOption] = Seq(CREATE, WRITE)) = {
     if (createFolders) makeDir.all(target/RelPath.up, perms)
     if (perms != null && !exists(target)){
-      import collection.JavaConverters._
       val permArray =
         if (perms == null) Array[FileAttribute[PosixFilePermission]]()
-        else Array(PosixFilePermissions.asFileAttribute(perms.value.asJava))
+        else Array(PosixFilePermissions.asFileAttribute(perms.toSet))
       java.nio.file.Files.createFile(target.toNIO, permArray:_*)
     }
     java.nio.file.Files.newOutputStream(
@@ -54,7 +53,7 @@ object write{
     import collection.JavaConverters._
     val permArray =
       if (perms == null) Array[FileAttribute[PosixFilePermission]]()
-      else Array(PosixFilePermissions.asFileAttribute(perms.value.asJava))
+      else Array(PosixFilePermissions.asFileAttribute(perms.toSet))
 
     val out = Files.newByteChannel(
       target.wrapped,
@@ -73,7 +72,7 @@ object write{
   def apply(target: Path,
             data: Source,
             perms: PermSet = null,
-            createFolders: Boolean = true): Unit = {
+            createFolders: Boolean = false): Unit = {
     if (createFolders) makeDir.all(target/RelPath.up, perms)
     write(target, data, Seq(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE), perms, 0)
   }
@@ -86,7 +85,7 @@ object write{
     def apply(target: Path,
               data: Source,
               perms: PermSet = null,
-              createFolders: Boolean = true): Unit = {
+              createFolders: Boolean = false): Unit = {
       if (createFolders) makeDir.all(target/RelPath.up, perms)
       write(
         target, data,
@@ -101,7 +100,7 @@ object write{
       */
     def outputStream(target: Path,
                      perms: PermSet = null,
-                     createFolders: Boolean = true) = {
+                     createFolders: Boolean = false) = {
       os.write.outputStream(
         target,
         perms,
@@ -125,7 +124,7 @@ object write{
               data: Source,
               perms: PermSet = null,
               offset: Long = 0,
-              createFolders: Boolean = true,
+              createFolders: Boolean = false,
               truncate: Boolean = true): Unit = {
       if (createFolders) makeDir.all(target/RelPath.up, perms)
       write(
@@ -144,7 +143,7 @@ object write{
       */
     def outputStream(target: Path,
                      perms: PermSet = null,
-                     createFolders: Boolean = true) = {
+                     createFolders: Boolean = false) = {
       os.write.outputStream(
         target,
         perms,
@@ -157,8 +156,60 @@ object write{
       )
     }
   }
+
+  /**
+    * Opens a [[SeekableByteChannel]] to write to the given file.
+    */
+  object channel extends Function1[Path, SeekableByteChannel]{
+    def write(p: Path, options: Seq[StandardOpenOption]) = {
+      java.nio.file.Files.newByteChannel(p.toNIO, options.toArray:_*)
+    }
+    def apply(p: Path): SeekableByteChannel = {
+      write(p, Seq(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE))
+    }
+
+    /**
+      * Opens a [[SeekableByteChannel]] to write to the given file.
+      */
+    object append extends Function1[Path, SeekableByteChannel]{
+      def apply(p: Path): SeekableByteChannel = {
+        write(p,
+          Seq(
+            StandardOpenOption.CREATE,
+            StandardOpenOption.APPEND,
+            StandardOpenOption.WRITE
+          )
+        )
+      }
+    }
+    /**
+      * Opens a [[SeekableByteChannel]] to write to the given file.
+      */
+    object over extends Function1[Path, SeekableByteChannel]{
+      def apply(p: Path): SeekableByteChannel = {
+        write(p,
+          Seq(
+            StandardOpenOption.CREATE,
+            StandardOpenOption.TRUNCATE_EXISTING,
+            StandardOpenOption.WRITE
+          )
+        )
+      }
+    }
+  }
 }
 
+/**
+  * Truncate the given file to the given size. If the file is smaller than the
+  * given size, does nothing.
+  */
+object truncate{
+  def apply(p: Path, size: Long): Unit = {
+    val channel = FileChannel.open(p.toNIO, StandardOpenOption.WRITE)
+    try channel.truncate(size)
+    finally channel.close()
+  }
+}
 
 /**
   * Reads the contents of a [[os.Path]] or other [[os.Source]] as a
@@ -200,17 +251,71 @@ object read extends Function1[ReadablePath, String]{
   object bytes extends Function1[ReadablePath, Array[Byte]]{
     def apply(arg: ReadablePath): Array[Byte] = {
       val out = new java.io.ByteArrayOutputStream()
-      Internals.transfer(arg.toSource.getInputStream(), out)
+      val stream = arg.toSource.getInputStream()
+      try Internals.transfer(stream, out)
+      finally stream.close()
       out.toByteArray
     }
     def apply(arg: Path, offset: Long, count: Int): Array[Byte] = {
       val arr = new Array[Byte](count)
       val buf = ByteBuffer.wrap(arr)
       val channel = arg.toSource.getChannel()
-      channel.position(offset)
-      val finalCount = channel.read(buf)
-      if (finalCount == arr.length) arr
-      else arr.take(finalCount)
+      try{
+        channel.position(offset)
+        val finalCount = channel.read(buf)
+        if (finalCount == arr.length) arr
+        else arr.take(finalCount)
+      } finally{
+        channel.close()
+      }
+    }
+  }
+
+  /**
+    * Reads the contents of the given [[os.Path]] in chunks of the given size;
+    * returns a generator which provides a byte array and an offset into that
+    * array which contains the data for that chunk. All chunks will be of the
+    * given size, except for the last chunk which may be smaller.
+    *
+    * Note that the array returned by the generator is shared between each
+    * callback; make sure you copy the bytes/array somewhere else if you want
+    * to keep them around.
+    *
+    * Optionally takes in a provided input `buffer` instead of a `chunkSize`,
+    * allowing you to re-use the buffer between invocations.
+    */
+  object chunks {
+    def apply(p: ReadablePath, chunkSize: Int): geny.Generator[(Array[Byte], Int)] = {
+      apply(p, new Array[Byte](chunkSize))
+    }
+    def apply(p: ReadablePath, buffer: Array[Byte]): geny.Generator[(Array[Byte], Int)] = {
+      new Generator[(Array[Byte], Int)] {
+        def generate(handleItem: ((Array[Byte], Int)) => Generator.Action): Generator.Action = {
+          val is = os.read.inputStream(p)
+          try{
+            var bufferOffset = 0
+            var lastAction: Generator.Action = Generator.Continue
+            while ( {
+              is.read(buffer, bufferOffset, buffer.length - bufferOffset) match {
+                case -1 =>
+                  if (bufferOffset != 0) lastAction = handleItem((buffer, bufferOffset))
+                  false
+                case n =>
+                  if (n + bufferOffset == buffer.length) {
+                    lastAction = handleItem((buffer, buffer.length))
+                    bufferOffset = 0
+                  } else {
+                    bufferOffset += n
+                  }
+                  lastAction == Generator.Continue
+              }
+            }) ()
+            lastAction
+          } finally{
+            is.close()
+          }
+        }
+      }
     }
   }
 

@@ -118,7 +118,7 @@ object walk {
     *                      simple file and not a folder
     */
   def attrs(path: Path,
-            skip: Path => Boolean = _ => false,
+            skip: (Path, os.BasicStatInfo) => Boolean = (_, _) => false,
             preOrder: Boolean = true,
             followLinks: Boolean = false,
             maxDepth: Int = Int.MaxValue,
@@ -158,7 +158,7 @@ object walk {
               maxDepth: Int = Int.MaxValue,
               includeTarget: Boolean = false): Generator[Path] = {
 
-      attrs(path, skip, preOrder, followLinks, maxDepth, includeTarget).map(_._1)
+      attrs(path, (p, _) => skip(p), preOrder, followLinks, maxDepth, includeTarget).map(_._1)
     }
 
     /**
@@ -184,7 +184,7 @@ object walk {
       *                      simple file and not a folder
       */
     def attrs(path: Path,
-              skip: Path => Boolean = _ => false,
+              skip: (Path, os.BasicStatInfo) => Boolean = (_, _) => false,
               preOrder: Boolean = true,
               followLinks: Boolean = false,
               maxDepth: Int = Int.MaxValue,
@@ -211,7 +211,6 @@ object walk {
             (
               path,
               os.BasicStatInfo.make(
-                if (path.segmentCount == 0) "/" else path.last,
                 java.nio.file.Files.readAttributes(path.toNIO, classOf[BasicFileAttributes])
               )
             )
@@ -233,14 +232,12 @@ object walk {
                 new FileVisitor[java.nio.file.Path] {
                   def preVisitDirectory(dir: file.Path, attrs: BasicFileAttributes) = {
                     val dirP = Path(dir.toAbsolutePath)
-                    if (skip(dirP)) FileVisitResult.SKIP_SUBTREE
+                    val info = os.BasicStatInfo.make(attrs)
+                    if (skip(dirP, info)) FileVisitResult.SKIP_SUBTREE
                     else actionToResult {
-                      val stated = os.BasicStatInfo.make(
-                        if (path.segmentCount == 0) "/" else path.last, attrs
-                      )
-                      if (preOrder && dirP != path) handleItem((dirP, stated))
+                      if (preOrder && dirP != path) handleItem((dirP, info))
                       else {
-                        attrsStack.append(stated)
+                        attrsStack.append(info)
                         currentAction
                       }
                     }
@@ -248,16 +245,10 @@ object walk {
 
                   def visitFile(file: java.nio.file.Path, attrs: BasicFileAttributes) = {
                     val fileP = Path(file.toAbsolutePath)
+                    val info = os.BasicStatInfo.make(attrs)
                     actionToResult(
-                      if (skip(fileP)) currentAction
-                      else handleItem(
-                        (
-                          fileP,
-                          os.BasicStatInfo.make(
-                            if (path.segmentCount == 0) "/" else path.last, attrs
-                          )
-                        )
-                      )
+                      if (skip(fileP, info)) currentAction
+                      else handleItem((fileP, info))
                     )
                   }
 
@@ -287,7 +278,6 @@ object walk {
             (
               path,
               os.BasicStatInfo.make(
-                if (path.segmentCount == 0) "/" else path.last,
                 java.nio.file.Files.readAttributes(path.toNIO, classOf[BasicFileAttributes])
               )
             )

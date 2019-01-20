@@ -24,10 +24,9 @@ import scala.util.Try
 object makeDir extends Function1[Path, Unit]{
   def apply(path: Path): Unit = Files.createDirectory(path.wrapped)
   def apply(path: Path, perms: PermSet): Unit = {
-    import collection.JavaConverters._
     Files.createDirectory(
       path.wrapped,
-      PosixFilePermissions.asFileAttribute(perms.value.asJava)
+      PosixFilePermissions.asFileAttribute(perms.toSet)
     )
   }
   /**
@@ -45,11 +44,9 @@ object makeDir extends Function1[Path, Unit]{
       if (os.isDir(path) && os.isLink(path) && acceptLinkedDirectory) () // do nothing
       else if (perms == null) Files.createDirectories(path.wrapped)
       else {
-        import collection.JavaConverters._
-
         Files.createDirectories(
           path.wrapped,
-          PosixFilePermissions.asFileAttribute(perms.value.asJava)
+          PosixFilePermissions.asFileAttribute(perms.toSet)
         )
       }
     }
@@ -225,8 +222,8 @@ object remove extends Function1[Path, Unit]{
       require(target.segmentCount != 0, s"Cannot remove a root directory: $target")
 
       val nioTarget = target.wrapped
-      if (Files.exists(nioTarget)) {
-        if (Files.isDirectory(nioTarget)) {
+      if (Files.exists(nioTarget, LinkOption.NOFOLLOW_LINKS)) {
+        if (Files.isDirectory(nioTarget, LinkOption.NOFOLLOW_LINKS)) {
           walk.stream(target, preOrder = false).foreach(remove)
         }
         Files.delete(nioTarget)
@@ -250,8 +247,8 @@ object exists extends Function1[Path, Boolean]{
   * Creates a hardlink between two paths
   */
 object hardlink {
-  def apply(src: Path, dest: Path) = {
-    Files.createLink(dest.wrapped, src.wrapped)
+  def apply(link: Path, dest: Path) = {
+    Files.createLink(link.wrapped, dest.wrapped)
   }
 }
 
@@ -259,13 +256,21 @@ object hardlink {
   * Creates a symbolic link between two paths
   */
 object symlink {
-  def apply(src: Path, dest: Path, perms: PermSet = null): Unit = {
-    import collection.JavaConverters._
+  def apply(link: Path, dest: FilePath, perms: PermSet = null): Unit = {
     val permArray =
       if (perms == null) Array[FileAttribute[_]]()
-      else Array(PosixFilePermissions.asFileAttribute(perms.value.asJava))
+      else Array(PosixFilePermissions.asFileAttribute(perms.toSet))
 
-    Files.createSymbolicLink(dest.wrapped, src.wrapped, permArray:_*)
+    Files.createSymbolicLink(
+      link.toNIO,
+      dest match{
+        // Special case empty relative paths, because for some reason `createSymbolicLink`
+        // doesn't like it when the path is "" (most other Files.* functions are fine)
+        case p: RelPath if p.segments.isEmpty && p.ups == 0 => java.nio.file.Paths.get(".")
+        case _ => dest.toNIO
+      },
+      permArray:_*
+    )
   }
 }
 
@@ -277,5 +282,14 @@ object symlink {
   */
 object followLink extends Function1[Path, Option[Path]]{
   def apply(src: Path): Option[Path] = Try(Path(src.wrapped.toRealPath())).toOption
+}
+
+
+/**
+  * Reads the destination that the given symbolic link is pointed to
+  */
+object readLink extends Function1[Path, os.FilePath]{
+  def apply(src: Path): FilePath = os.FilePath(Files.readSymbolicLink(src.toNIO))
+  def absolute(src: Path): FilePath = os.Path(Files.readSymbolicLink(src.toNIO), src / up)
 }
 

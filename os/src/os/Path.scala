@@ -54,6 +54,11 @@ trait BasePath{
   def ext: String
 
   /**
+    * Gives you the base name of this path, ie without the extension
+    */
+  def baseName: String
+
+  /**
     * The individual path segments of this path.
     */
   def segments: TraversableOnce[String]
@@ -126,8 +131,15 @@ trait BasePathImpl extends BasePath{
   def /(subpath: RelPath): ThisType
 
   def ext = {
-    if (!last.contains('.')) ""
-    else last.split('.').lastOption.getOrElse("")
+    val li = last.lastIndexOf('.')
+    if (li == -1) ""
+    else last.slice(li+1, last.length)
+  }
+
+  override def baseName: String = {
+    val li = last.lastIndexOf('.')
+    if (li == -1) last
+    else last.slice(0, li)
   }
 
   def last: String
@@ -152,7 +164,9 @@ object PathError{
   * relative [[RelPath]], and can be constructed from a
   * java.nio.file.Path or java.io.File
   */
-trait FilePath extends BasePath
+sealed trait FilePath extends BasePath{
+  def toNIO: java.nio.file.Path
+}
 object FilePath {
   def apply[T: PathConvertible](f0: T) = {
     val f = implicitly[PathConvertible[T]].apply(f0)
@@ -203,6 +217,8 @@ class RelPath private[os](segments0: Array[String], val ups: Int)
     case p: RelPath => segments == p.segments && p.ups == ups
     case _ => false
   }
+
+  def toNIO = java.nio.file.Paths.get(toString)
 }
 
 object RelPath {

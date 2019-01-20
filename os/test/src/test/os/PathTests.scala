@@ -31,6 +31,22 @@ object PathTests extends TestSuite{
         }
       }
 
+      'BasePath {
+        'baseName {
+          assert((base / "baseName.ext").baseName == "baseName")
+          assert((base / "baseName.v2.0.ext").baseName == "baseName.v2.0")
+          assert((base / "baseOnly").baseName == "baseOnly")
+          assert((base / "baseOnly.").baseName == "baseOnly")
+        }
+
+        'ext {
+          assert((base / "baseName.ext").ext == "ext")
+          assert((base / "baseName.v2.0.ext").ext == "ext")
+          assert((base / "baseOnly").ext == "")
+          assert((base / "baseOnly.").ext == "")
+        }
+      }
+
       'RelPath{
         'Constructors {
           'Symbol {
@@ -329,9 +345,9 @@ object PathTests extends TestSuite{
           if(Unix()) {
             names.foreach(p => os.remove.all(twd/p))
             os.makeDir.all(twd/'test123)
-            os.symlink(twd/'test123, twd/'test124)
-            os.symlink(twd/'test124, twd/'test125)
-            os.symlink(twd/'test125, twd/'test126)
+            os.symlink(twd/'test124, twd/'test123)
+            os.symlink(twd/'test125, twd/'test124)
+            os.symlink(twd/'test126, twd/'test125)
             assert(followLink(twd/'test126).get == followLink(twd/'test123).get)
             names.foreach(p => os.remove(twd/p))
             names.foreach(p => assert(!exists(twd/p)))
@@ -342,9 +358,9 @@ object PathTests extends TestSuite{
           if(Unix()) {
             names.foreach(p => os.remove.all(twd/p))
             os.makeDir.all(twd/'test123)
-            os.symlink(twd/'test123, twd/'test124)
-            os.symlink(twd/'test124, twd/'test125)
-            os.symlink(twd/'test125, twd/'test126)
+            os.symlink(twd/'test124, twd/'test123)
+            os.symlink(twd/'test125, twd/'test124)
+            os.symlink(twd/'test126, twd/'test125)
             os.remove(twd / 'test123)
             assert(followLink(twd / 'test126).isEmpty)
             names.foreach(p => os.remove.all(twd / p))

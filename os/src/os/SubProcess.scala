@@ -1,6 +1,6 @@
 package os
 
-import java.io.{BufferedReader, BufferedWriter, ByteArrayOutputStream, OutputStreamWriter}
+import java.io._
 import java.nio.charset.{Charset, StandardCharsets}
 import java.util.concurrent.TimeUnit
 
@@ -13,7 +13,7 @@ import scala.annotation.tailrec
 class SubProcess(val wrapped: java.lang.Process,
                  val inputPumperThread: Option[Thread],
                  val outputPumperThread: Option[Thread],
-                 val errorPumperThread: Option[Thread]){
+                 val errorPumperThread: Option[Thread]) extends java.lang.AutoCloseable{
   val stdin: SubProcess.InputStream = new SubProcess.InputStream(wrapped.getOutputStream)
   val stdout: SubProcess.OutputStream = new SubProcess.OutputStream(wrapped.getInputStream)
   val stderr: SubProcess.OutputStream = new SubProcess.OutputStream(wrapped.getErrorStream)
@@ -42,6 +42,11 @@ class SubProcess(val wrapped: java.lang.Process,
   def destroyForcibly(): Unit = wrapped.destroyForcibly()
 
   /**
+    * Alias for [[destroy]]
+    */
+  def close() = wrapped.destroy()
+
+  /**
     * Wait up to `millis` for the subprocess to terminate, by default waits
     * indefinitely. Returns `true` if the subprocess has terminated by the time
     * this method returns
@@ -61,39 +66,67 @@ object SubProcess{
 
   /**
     * A [[BufferedWriter]] with the underlying [[java.io.OutputStream]] exposed
+    *
+    * Note that all writes that occur through this class are thread-safe and
+    * synchronized. If you wish to perform writes without the synchronization
+    * overhead, you can use the underlying [[wrapped]] stream directly
     */
-  class InputStream(val wrapped: java.io.OutputStream) extends java.io.OutputStream{
-    def write(b: Int) = wrapped.write(b)
+  class InputStream(val wrapped: java.io.OutputStream)
+    extends java.io.OutputStream with java.io.DataOutput{
 
-    override def write(b: Array[Byte]): Unit = wrapped.write(b)
-    override def write(b: Array[Byte], offset: Int, len: Int): Unit = wrapped.write(b, offset, len)
+    private[this] val data = new DataOutputStream(wrapped)
+
+    override def write(b: Int) = synchronized{ wrapped.write(b) }
+    override def write(b: Array[Byte]): Unit = synchronized{ wrapped.write(b) }
+    override def write(b: Array[Byte], offset: Int, len: Int): Unit = synchronized{
+      wrapped.write(b, offset, len)
+    }
 
 
     def write(s: String,
-              charSet: Charset = StandardCharsets.UTF_8): Unit = {
+              charSet: Charset = StandardCharsets.UTF_8): Unit = synchronized{
       val writer = new OutputStreamWriter(wrapped, charSet)
       writer.write(s)
       writer.flush()
     }
     def writeLine(s: String,
-                  charSet: Charset = StandardCharsets.UTF_8): Unit = {
+                  charSet: Charset = StandardCharsets.UTF_8): Unit = synchronized{
       val writer = new OutputStreamWriter(wrapped, charSet)
       writer.write(s)
       writer.write("\n")
       writer.flush()
     }
 
-    override def flush() = wrapped.flush()
-    override def close() = wrapped.close()
+    override def flush() = synchronized{ wrapped.flush() }
+    override def close() = synchronized{ wrapped.close() }
+
+    override def writeBoolean(v: Boolean) = synchronized{ data.writeBoolean(v) }
+    override def writeByte(v: Int) = synchronized{ data.writeByte(v) }
+    override def writeShort(v: Int) = synchronized{ data.writeShort(v) }
+    override def writeChar(v: Int) = synchronized{ data.writeChar(v) }
+    override def writeInt(v: Int) = synchronized{ data.writeInt(v) }
+    override def writeLong(v: Long) = synchronized{ data.writeLong(v) }
+    override def writeFloat(v: Float) = synchronized{ data.writeFloat(v) }
+    override def writeDouble(v: Double) = synchronized{ data.writeDouble(v) }
+    override def writeBytes(s: String) = synchronized{ data.writeBytes(s) }
+    override def writeChars(s: String) = synchronized{ data.writeChars(s) }
+    override def writeUTF(s: String) = synchronized{ data.writeUTF(s) }
   }
 
   /**
     * A combination [[BufferedReader]] and [[java.io.InputStream]], this allows
     * you to read both bytes and lines, without worrying about the buffer used
     * for reading lines messing up your reading of bytes.
+    *
+    * Note that all reads that occur through this class are thread-safe and
+    * synchronized. If you wish to perform writes without the synchronization
+    * overhead, you can use the underlying [[wrapped]] stream directly
     */
   class OutputStream(val wrapped: java.io.InputStream,
-                     bufferSize: Int = 8192) extends java.io.InputStream with StreamValue {
+                     bufferSize: Int = 8192)
+    extends java.io.InputStream with java.io.DataInput with StreamValue {
+
+    private[this] val data = new DataInputStream(wrapped)
     // We maintain our own buffer internally, in order to make readLine
     // efficient by avoiding reading character by character. As a consequence
     // all the other read methods have to check the buffer for data and using
@@ -110,13 +143,13 @@ object SubProcess{
       * Read all bytes from this pipe from the subprocess, blocking until it is
       * complete, and returning it as a byte array
       */
-    def bytes(): Array[Byte] = {
+    def bytes(): Array[Byte] = synchronized{
       val out = new ByteArrayOutputStream()
       Internals.transfer(this, out)
       out.toByteArray
     }
 
-    def read() = {
+    override def read() = synchronized{
       lastSeenSlashR = false
       if (bufferOffset < bufferEnd){
         val res = buffer(bufferOffset)
@@ -127,11 +160,11 @@ object SubProcess{
       }
     }
 
-    override def read(b: Array[Byte]) = {
+    override def read(b: Array[Byte]) = synchronized{
       lastSeenSlashR = false
       this.read(b, 0, b.length)
     }
-    override def read(b: Array[Byte], offset: Int, len: Int) = {
+    override def read(b: Array[Byte], offset: Int, len: Int) = synchronized{
       lastSeenSlashR = false
       val bufferedCount = bufferEnd - bufferOffset
       if (bufferedCount > len){
@@ -150,7 +183,7 @@ object SubProcess{
       * \r or \r\n. The returned string does *not* return the trailing
       * delimiter.
       */
-    def readLine(charSet: Charset = StandardCharsets.UTF_8): String = {
+    def readLine(charSet: Charset = StandardCharsets.UTF_8): String = synchronized{
       val output = new ByteArrayOutputStream()
       // Reads the buffer for a newline, returning the index of the newline
       // (if any). Returns the length of the buffer if no newline is found
@@ -205,7 +238,26 @@ object SubProcess{
       else null
     }
 
-    override def close() = wrapped.close()
+    override def close() = synchronized{ wrapped.close() }
+
+    override def readFully(b: Array[Byte], off: Int, len: Int) = synchronized{
+      data.read(b, off, len)
+    }
+    override def readFully(b: Array[Byte]) = synchronized{ data.read(b) }
+    override def skipBytes(n: Int) = synchronized{ data.skipBytes(n) }
+    override def readBoolean() = synchronized{ data.readBoolean() }
+    override def readByte() = synchronized{ data.readByte() }
+    override def readUnsignedByte() = synchronized{ data.readUnsignedByte() }
+    override def readShort() = synchronized{ data.readShort() }
+    override def readUnsignedShort() = synchronized{ data.readUnsignedShort() }
+    override def readChar() = synchronized{ data.readChar() }
+    override def readInt() = synchronized{ data.readInt() }
+    override def readLong() = synchronized{ data.readLong() }
+    override def readFloat() = synchronized{ data.readFloat() }
+    override def readDouble() = synchronized{ data.readDouble() }
+    override def readUTF() = synchronized{ data.readUTF() }
+
+    override def readLine() = this.readLine(StandardCharsets.UTF_8)
   }
 }
 

@@ -79,8 +79,6 @@ object stat extends Function1[os.Path, os.StatInfo]{
   def apply(p: os.Path, followLinks: Boolean = true): os.StatInfo = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
     os.StatInfo.make(
-      // Don't blow up if we stat `root`
-      if (p.segmentCount == 0) "/" else p.last,
       Files.readAttributes(
         p.wrapped,
         classOf[BasicFileAttributes],
@@ -105,7 +103,6 @@ object stat extends Function1[os.Path, os.StatInfo]{
     def apply(p: os.Path, followLinks: Boolean = true): os.FullStatInfo = {
       val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
       os.FullStatInfo.make(
-        if (p.segmentCount == 0) "/" else p.last,
         Files.readAttributes(
           p.wrapped,
           classOf[BasicFileAttributes],

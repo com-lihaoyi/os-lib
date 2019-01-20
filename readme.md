@@ -61,6 +61,7 @@ own idiosyncrasies, quirks, or clever DSLs.
 
     - [os.read](#osread)
     - [os.read.bytes](#osreadbytes)
+    - [os.read.chunks](#osreadchunks)
     - [os.read.lines](#osreadlines)
     - [os.read.lines.stream](#osreadlinesstream)
     - [os.read.inputStream](#osreadinputstream)
@@ -68,8 +69,9 @@ own idiosyncrasies, quirks, or clever DSLs.
     - [os.write.append](#oswriteappend)
     - [os.write.over](#oswriteover)
     - [os.write.outputStream](#oswriteoutputstream)
+    - [os.truncate](#ostruncate)
 
-    Listing & Walking
+  Listing & Walking
 
     - [os.list](#oslist)
     - [os.list.stream](#osliststream)
@@ -135,11 +137,11 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.2.2"
+"com.lihaoyi" %% "os-lib" % "0.2.5"
 // Mill
-ivy"com.lihaoyi::os-lib:0.2.2"
+ivy"com.lihaoyi::os-lib:0.2.5"
 // Ammonite
-import ivy.`com.lihaoyi::os-lib:0.2.2`
+import $ivy.`com.lihaoyi::os-lib:0.2.5`
 ```
 
 ## Cookbook
@@ -291,6 +293,37 @@ supports seeking.
 os.read.bytes(wd / "File.txt") ==> "I am cow".getBytes
 os.read.bytes(wd / "misc" / "binary.png").length ==> 711
 ```
+#### os.read.chunks
+
+```scala
+os.read.chunks(p: ReadablePath, chunkSize: Int): os.Generator[(Array[Byte], Int)]
+os.read.chunks(p: ReadablePath, buffer: Array[Byte]): os.Generator[(Array[Byte], Int)]
+```
+
+Reads the contents of the given path in chunks of the given size;
+returns a generator which provides a byte array and an offset into that
+array which contains the data for that chunk. All chunks will be of the
+given size, except for the last chunk which may be smaller.
+
+Note that the array returned by the generator is shared between each
+callback; make sure you copy the bytes/array somewhere else if you want
+to keep them around.
+
+Optionally takes in a provided input `buffer` instead of a `chunkSize`,
+allowing you to re-use the buffer between invocations.
+
+```scala
+val chunks = os.read.chunks(wd / "File.txt", chunkSize = 2)
+  .map{case (buf, n) => buf.take(n).toSeq } // copy the buffer to save the data
+  .toSeq
+
+chunks ==> Seq(
+  Seq[Byte]('I', ' '),
+  Seq[Byte]('a', 'm'),
+  Seq[Byte](' ', 'c'),
+  Seq[Byte]('o', 'w')
+)
+```
 
 #### os.read.lines
 
@@ -362,7 +395,7 @@ is.close()
 os.write(target: Path, 
          data: os.Source, 
          perms: PermSet = null, 
-         createFolders: Boolean = true): Unit
+         createFolders: Boolean = false): Unit
 ```
 
 Writes data from the given file or [os.Source](#ossource) to a file at the
@@ -390,7 +423,7 @@ os.read.bytes(wd / "NewBinary.bin") ==> Array[Byte](0, 1, 2, 3)
 os.write.append(target: Path,
                 data: os.Source,
                 perms: PermSet = null,
-                createFolders: Boolean = true): Unit
+                createFolders: Boolean = false): Unit
 ```
 
 Similar to [os.write](#oswrite), except if the file already exists this appends
@@ -418,7 +451,7 @@ os.write.over(target: Path,
               data: os.Source,
               perms: PermSet = null,
               offset: Long = 0,
-              createFolders: Boolean = true,
+              createFolders: Boolean = false,
               truncate: Boolean = true): Unit
 ```
 
@@ -445,7 +478,7 @@ os.read(wd / "File.txt") ==> "We  are sow"
 ```scala
 os.write.outputStream(target: Path,
                       perms: PermSet = null,
-                      createFolders: Boolean = true,
+                      createFolders: Boolean = false,
                       openOptions: Seq[OpenOption] = Seq(CREATE, WRITE))
 ```
 
@@ -461,6 +494,22 @@ out.write('o')
 out.close()
 
 os.read(wd / "New File.txt") ==> "Hello"
+```
+
+#### os.truncate
+
+```scala
+os.truncate(p: Path, size: Long): Unit
+```
+
+Truncate the given file to the given size. If the file is smaller than the
+given size, does nothing.
+
+```scala
+os.read(wd / "File.txt") ==> "I am cow"
+
+os.truncate(wd / "File.txt", 4)
+os.read(wd / "File.txt") ==> "I am"
 ```
 
 ### Listing & Walking
@@ -576,7 +625,7 @@ os.walk(wd / "folder2", skip = _.last == "nestedA") ==> Seq(
 
 ```scala
 os.walk.attrs(path: Path,
-              skip: Path => Boolean = _ => false,
+              skip: (Path, os.BasicStatInfo) => Boolean = (_, _) => false,
               preOrder: Boolean = true,
               followLinks: Boolean = false,
               maxDepth: Int = Int.MaxValue,
@@ -632,7 +681,7 @@ os.walk.stream(wd / "folder2", skip = _.last == "nestedA").count() ==> 2
 
 ```scala
 os.walk.stream.attrs(path: Path,
-                     skip: Path => Boolean = _ => false,
+                     skip: (Path, os.BasicStatInfo) => Boolean = (_, _) => false,
                      preOrder: Boolean = true,
                      followLinks: Boolean = false,
                      maxDepth: Int = Int.MaxValue,
@@ -894,6 +943,27 @@ os.remove(wd / "folder1")
 os.exists(wd / "folder1" / "one.txt") ==> false
 os.exists(wd / "folder1") ==> false
 ```
+
+When removing symbolic links, it is the link that gets removed, and not it's
+destination:
+
+```scala
+os.remove(wd / "misc" / "file-symlink")
+os.exists(wd / "misc" / "file-symlink", followLinks = false) ==> false
+os.exists(wd / "File.txt", followLinks = false) ==> true
+
+os.remove(wd / "misc" / "folder-symlink")
+os.exists(wd / "misc" / "folder-symlink", followLinks = false) ==> false
+os.exists(wd / "folder1", followLinks = false) ==> true
+os.exists(wd / "folder1" / "one.txt", followLinks = false) ==> true
+
+os.remove(wd / "misc" / "broken-symlink")
+os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
+```
+
+If you wish to remove the destination of a symlink, use
+[os.readLink](#osreadlink).
+
 #### os.remove.all
 
 ```scala
@@ -909,6 +979,26 @@ os.remove.all(wd / "folder1")
 os.exists(wd / "folder1" / "one.txt") ==> false
 os.exists(wd / "folder1") ==> false
 ```
+
+When removing symbolic links, it is the links that gets removed, and not it's
+destination:
+
+```scala
+os.remove.all(wd / "misc" / "file-symlink")
+os.exists(wd / "misc" / "file-symlink", followLinks = false) ==> false
+os.exists(wd / "File.txt", followLinks = false) ==> true
+
+os.remove.all(wd / "misc" / "folder-symlink")
+os.exists(wd / "misc" / "folder-symlink", followLinks = false) ==> false
+os.exists(wd / "folder1", followLinks = false) ==> true
+os.exists(wd / "folder1" / "one.txt", followLinks = false) ==> true
+
+os.remove.all(wd / "misc" / "broken-symlink")
+os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
+```
+
+If you wish to remove the destination of a symlink, use
+[os.readLink](#osreadlink).
 
 #### os.hardlink
 
@@ -928,12 +1018,13 @@ os.isLink(wd / "Linked.txt") ==> false
 #### os.symlink
 
 ```scala
-os.symlink(src: Path, dest: Path, perms: PermSet = null): Unit
+os.symlink(link: Path, dest: FilePath, perms: PermSet = null): Unit
 ```
 
 Create a symbolic to the source path from the destination path. Optionally takes
 a [os.PermSet](#ospermset) to customize the filesystem permissions of the symbolic
 link.
+
 ```scala
 os.symlink(wd / "File.txt", wd / "Linked.txt")
 os.exists(wd / "Linked.txt")
@@ -941,15 +1032,56 @@ os.read(wd / "Linked.txt") ==> "I am cow"
 os.isLink(wd / "Linked.txt") ==> true
 ```
 
+You can create symlinks with either absolute `os.Path`s or relative `os.RelPath`s:
+
+```scala
+os.symlink(wd / "File.txt", os.rel/ "Linked2.txt")
+os.exists(wd / "Linked2.txt")
+os.read(wd / "Linked2.txt") ==> "I am cow"
+os.isLink(wd / "Linked2.txt") ==> true
+```
+
+Creating absolute and relative symlinks respectively. Relative symlinks are
+resolved relative to the enclosing folder of the link.
+
+#### os.readLink
+
+```scala
+os.readLink(src: Path): os.FilePath
+os.readLink.absolute(src: Path): os.Path
+```
+
+Returns the immediate destination of the given symbolic link.
+
+```scala
+os.readLink(wd / "misc" / "file-symlink") ==> os.up / "File.txt"
+os.readLink(wd / "misc" / "folder-symlink") ==> os.up / "folder1"
+os.readLink(wd / "misc" / "broken-symlink") ==> os.rel / "broken"
+os.readLink(wd / "misc" / "broken-abs-symlink") ==> os.root / "doesnt" / "exist"
+```
+
+Note that symbolic links can be either absolute `os.Path`s or relative
+`os.RelPath`s, represented by `os.FilePath`. You can also use `os.readLink.all`
+to automatically resolve relative symbolic links to their absolute destination:
+
+```scala
+os.readLink.absolute(wd / "misc" / "file-symlink") ==> wd / "File.txt"
+os.readLink.absolute(wd / "misc" / "folder-symlink") ==> wd / "folder1"
+os.readLink.absolute(wd / "misc" / "broken-symlink") ==> wd / "misc" / "broken"
+os.readLink.absolute(wd / "misc" / "broken-abs-symlink") ==> os.root / "doesnt" / "exist"
+```
+
+
+
 #### os.followLink
 
 ```scala
 os.followLink(src: Path): Option[Path]
 ```
 
-Attempts to any symbolic links in the given path and return the canonical path.
-Returns `None` if the path cannot be resolved (i.e. some symbolic link in the
-given path is broken)
+Attempts to any deference symbolic links in the given path, recursively, and return the
+canonical path. Returns `None` if the path cannot be resolved (i.e. some
+symbolic link in the given path is broken)
 
 ```scala
 os.followLink(wd / "misc" / "file-symlink") ==> Some(wd / "File.txt")
@@ -1422,6 +1554,11 @@ sub.stdin.writeLine("+ 4")
 sub.stdin.flush()
 sub.stdout.readLine() ==> "7"
 
+sub.stdin.write("'1' + '2'")
+sub.stdin.writeLine("+ '4'")
+sub.stdin.flush()
+sub.stdout.readLine() ==> "124"
+
 // Sending some bytes to the subprocess
 sub.stdin.write("1 * 2".getBytes)
 sub.stdin.write("* 4\n".getBytes)
@@ -1789,6 +1926,55 @@ string, int or set representations of the `os.PermSet` via:
 - `perms.value: Set[PosixFilePermission]`
 
 ## Changelog
+
+### 0.2.6
+
+- Remove `os.StatInfo#name`, `os.BasicStatInfo#name` and `os.FullStatInfo#name`,
+  since it is just the last path segment of the stat call and doesn't properly
+  reflect the actual name of the file on disk (e.g. on case-insensitive filesystems)
+
+- `os.walk.attrs` and `os.walk.stream.attrs` now provides a `os.BasicFileInfo`
+  to the `skip` predicate.
+
+- Add `os.BasePath#baseName`, which returns the section of the path before the
+  `os.BasePath#ext` extension.
+
+### 0.2.5
+
+- New `os.readLink`/`os.readLink.absolute` methods to read the contents of
+  symbolic links without dereferencing them.
+
+- New `os.read.chunked(p: Path, chunkSize: Int): os.Generator[(Array[Byte],
+  Int)]` method for conveniently iterating over chunks of a file
+
+- New `os.truncate(p: Path, size: Int)` method
+
+- `SubProcess` streams now implement `java.io.DataInput`/`DataOutput` for convenience
+
+- `SubProcess` streams are now synchronized for thread-safety
+
+- `os.write` now has `createFolders` default to `false`
+
+- `os.Generator` now has a `.withFilter` method
+
+- `os.symlink` now allows relative paths
+
+- `os.remove.all` now properly removes broken symlinks, and no longer recurses
+  into the symlink's contents
+
+- `os.SubProcess` now implements `java.lang.AutoCloseable`
+
+- New `write.channel` counterpart to `read.channel` (and `write.over.channel`
+  and `write.append.channel`)
+
+- `os.PermSet` is now modelled internally as a boxed `Int` for performance, and
+  is a case class with proper `equals`/`hashcode`
+
+- `os.read.bytes(arg: Path, offset: Long, count: Int)` no longer leaks open file
+  channels
+
+- Reversed the order of arguments in `os.symlink` and `os.hardlink`, to match
+  the order of the underlying java NIO functions.
 
 ### 0.2.2
 
