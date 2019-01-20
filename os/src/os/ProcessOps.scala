@@ -218,19 +218,9 @@ case class proc(command: Shellable*) {
 
     builder.directory(Option(cwd).getOrElse(os.pwd).toIO)
 
-    // for details see https://github.com/lihaoyi/os-lib/pull/2#issuecomment-437873821
-    val cmds = command.flatMap(_.value)
-    val cmd = cmds(0)
-    val preparedCmds = if(!scala.util.Properties.isWin)
-      cmds
-    else if(os.proc.WinInternalCmdCommands contains cmd.toUpperCase) 
-      Vector("CMD.EXE", "/C") ++ cmds
-    else
-      cmds
-
     lazy val proc: SubProcess = new SubProcess(
       builder
-        .command(preparedCmds:_*)
+        .command(command.flatMap(_.value):_*)
         .redirectInput(stdin.redirectFrom)
         .redirectOutput(stdout.redirectTo)
         .redirectError(stderr.redirectTo)
@@ -246,13 +236,4 @@ case class proc(command: Shellable*) {
     proc.errorPumperThread.foreach(_.start())
     proc
   }
-}
-
-object proc {
-  // https://blog.brainasoft.com/all-internal-commands-of-cmd/
-  val WinInternalCmdCommands = Set(
-    "ASSOC","CALL","CD","CLS","COLOR","COPY","DATE","DEL","DIR","ECHO","ERASE","EXIT",
-    "FOR","FTYPE","MD","MKLINK","MOVE","PATH","PAUSE","POPD","PROMPT","PUSHD",
-    "REN","RD","SET","START","TIME","TITLE","TYPE","VER","VOL"
-  )
 }

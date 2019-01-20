@@ -14,6 +14,14 @@ object TestUtil {
     os.proc(getPathCmd, executable).call(check = false).exitCode == 0
   }
 
+  // run Unix command normally, Windows in CMD context
+  def proc(command: os.Shellable*) = {
+    if(scala.util.Properties.isWin) {
+      val cmd = ("CMD.EXE": os.Shellable) :: ("/C": os.Shellable) :: command.toList
+      os.proc(cmd: _*)
+    } else os.proc(command)
+  }
+
   // 1. when using Git "core.autocrlf true" 
   //    some tests would fail when comparing with only \n
   // 2. when using Git "core.autocrlf false" 

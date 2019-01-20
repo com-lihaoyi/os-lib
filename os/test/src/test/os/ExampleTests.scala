@@ -44,7 +44,7 @@ object ExampleTests extends TestSuite{
     'subprocessConcat - TestUtil.prep{wd =>
       val catCmd = if(scala.util.Properties.isWin) "type" else "cat"
       // Find and concatenate all .txt files directly in the working directory
-      os.proc(catCmd, os.list(wd).filter(_.ext == "txt"))
+      TestUtil.proc(catCmd, os.list(wd).filter(_.ext == "txt"))
         .call(stdout = wd/"all.txt")
 
       os.read(wd/"all.txt") ==>

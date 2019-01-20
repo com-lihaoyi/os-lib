@@ -46,7 +46,7 @@ object SubprocessTests extends TestSuite{
     }
     'listMixAndMatch{
       val stuff = List("I", "am", "bovine")
-      val result = proc('echo, "Hello,", stuff, "hear me roar").call()
+      val result = TestUtil.proc('echo, "Hello,", stuff, "hear me roar").call()
       if(Unix())
         assert(result.out.string.contains("Hello, " + stuff.mkString(" ") + " hear me roar"))
       else // win quotes multiword args
