@@ -6,10 +6,11 @@ import test.os.TestUtil.prep
 import utest._
 
 object SpawningSubprocessesTests extends TestSuite {
+
   def tests = Tests{
     'proc - {
       'call - {
-        * - prep { wd =>
+        * - prep { wd => if(Unix()){
           val res = os.proc('ls, wd/"folder2").call()
 
           res.exitCode ==> 0
@@ -57,10 +58,10 @@ object SpawningSubprocessesTests extends TestSuite {
           if (false){
             os.proc("vim").call(stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit)
           }
-        }
+        }}
       }
       'stream - {
-        * - prep { wd =>
+        * - prep { wd => if(Unix()){
           var lineCount = 1
           os.proc('find, ".").stream(
             cwd = wd,
@@ -68,10 +69,10 @@ object SpawningSubprocessesTests extends TestSuite {
             onErr = (buf, len) => () // do nothing
           )
           lineCount ==> 22
-        }
+        }}
       }
       'spawn - {
-        * - prep { wd =>
+        * - prep { wd => if(TestUtil.isInstalled("python") && Unix()) {
           // Start a long-lived python process which you can communicate with
           val sub = os.proc("python", "-u", "-c", "while True: print(eval(raw_input()))")
                       .spawn(cwd = wd)
@@ -100,7 +101,7 @@ object SpawningSubprocessesTests extends TestSuite {
           val gzip = os.proc("gzip", "-n").spawn(stdin = curl.stdout)
           val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
           sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
-        }
+        }}
       }
     }
   }

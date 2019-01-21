@@ -201,7 +201,7 @@ object ManipulatingFilesFoldersTests extends TestSuite {
       }
     }
     'readLink - {
-      * - prep{ wd =>
+      * - prep{ wd =>  if(Unix()){
         os.readLink(wd / "misc" / "file-symlink") ==> os.up / "File.txt"
         os.readLink(wd / "misc" / "folder-symlink") ==> os.up / "folder1"
         os.readLink(wd / "misc" / "broken-symlink") ==> os.rel / "broken"
@@ -211,7 +211,7 @@ object ManipulatingFilesFoldersTests extends TestSuite {
         os.readLink.absolute(wd / "misc" / "folder-symlink") ==> wd / "folder1"
         os.readLink.absolute(wd / "misc" / "broken-symlink") ==> wd / "misc" / "broken"
         os.readLink.absolute(wd / "misc" / "broken-abs-symlink") ==> os.root / "doesnt" / "exist"
-      }
+      }}
     }
     'temp - {
       * - prep{ wd =>

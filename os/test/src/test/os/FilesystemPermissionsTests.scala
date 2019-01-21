@@ -6,7 +6,7 @@ import utest._
 object FilesystemPermissionsTests extends TestSuite {
   def tests = Tests{
     'perms - {
-      * - prep { wd =>
+      * - prep { wd => if (Unix()){
         os.perms.set(wd / "File.txt", "rwxrwxrwx")
         os.perms(wd / "File.txt").toString() ==> "rwxrwxrwx"
         os.perms(wd / "File.txt").toInt() ==> Integer.parseInt("777", 8)
@@ -16,10 +16,10 @@ object FilesystemPermissionsTests extends TestSuite {
 
         os.perms.set(wd / "File.txt", "r-xr-xr-x")
         os.perms.set(wd / "File.txt", Integer.parseInt("555", 8))
-      }
+      }}
     }
     'owner - {
-      * - prep { wd =>
+      * - prep { wd => if (Unix()){
         // Only works as root :(
         if(false){
           val originalOwner = os.owner(wd / "File.txt")
@@ -29,10 +29,10 @@ object FilesystemPermissionsTests extends TestSuite {
 
           os.owner.set(wd / "File.txt", originalOwner)
         }
-      }
+      }}
     }
     'group - {
-      * - prep { wd =>
+      * - prep { wd => if (Unix()){
         // Only works as root :(
         if (false){
           val originalOwner = os.owner(wd / "File.txt")
@@ -42,7 +42,7 @@ object FilesystemPermissionsTests extends TestSuite {
 
           os.owner.set(wd / "File.txt", originalOwner)
         }
-      }
+      }}
     }
   }
 }
