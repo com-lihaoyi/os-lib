@@ -241,9 +241,18 @@ object SubProcess{
     override def close() = synchronized{ wrapped.close() }
 
     override def readFully(b: Array[Byte], off: Int, len: Int) = synchronized{
-      data.read(b, off, len)
+      var n = 0
+      while({
+        if (len == n) false
+        else data.read(b, off + n, len - n) match{
+          case -1 => throw new EOFException(s"Insufficient bytes, expected: $len, read: $n")
+          case d =>
+            n += d
+            true
+        }
+      })()
     }
-    override def readFully(b: Array[Byte]) = synchronized{ data.read(b) }
+    override def readFully(b: Array[Byte]) = readFully(b, 0, b.length)
     override def skipBytes(n: Int) = synchronized{ data.skipBytes(n) }
     override def readBoolean() = synchronized{ data.readBoolean() }
     override def readByte() = synchronized{ data.readByte() }

@@ -1,5 +1,7 @@
 package test.os
 
+import java.io.ByteArrayOutputStream
+
 import os._
 import utest._
 
@@ -139,6 +141,92 @@ object SubprocessTests extends TestSuite{
       if(Unix()){
         val output = proc(scriptFolder/'misc/'echo_with_wd, 'HELLO).call(cwd = root/'usr)
         assert(output.out.lines == Seq("HELLO /usr"))
+      }
+    }
+
+    'fuzz - {
+      'inAndOut - {
+        val random = new scala.util.Random(313373)
+
+        val cat = proc('cat).spawn()
+
+        for (n <- Range(0, 20000)) {
+          val chunk = new Array[Byte](n)
+          random.nextBytes(chunk)
+          cat.stdin.write(chunk)
+          cat.stdin.flush()
+          val out = new Array[Byte](n)
+          cat.stdout.readFully(out)
+
+          assert {
+            identity(n)
+            java.util.Arrays.equals(chunk, out)
+          }
+        }
+        cat.stdin.close()
+      }
+      'uneven - {
+        val random = new scala.util.Random(313373)
+
+        val cat = proc('cat).spawn()
+        val output = new ByteArrayOutputStream()
+        val input = new ByteArrayOutputStream()
+        val drainer = new Thread({() =>
+          val readBuffer = new Array[Byte](1337)
+          while({
+            cat.stdout.read(readBuffer) match{
+              case -1 => false
+              case n =>
+                output.write(readBuffer, 0, n)
+                true
+            }
+          })()
+        })
+
+        drainer.start()
+        for (n <- Range(0, 20000)) {
+          val chunk = new Array[Byte](n)
+          random.nextBytes(chunk)
+          cat.stdin.write(chunk)
+          cat.stdin.flush()
+          input.write(chunk)
+        }
+        cat.stdin.close()
+        drainer.join()
+        assert(java.util.Arrays.equals(input.toByteArray, output.toByteArray))
+      }
+      'lines - {
+        val random = new scala.util.Random(313373)
+
+        val cat = proc('cat).spawn()
+        val output = new StringBuilder()
+        val input = new StringBuilder()
+        val drainer = new Thread({() =>
+          while({
+            cat.stdout.readLine() match{
+              case null => false
+              case line =>
+                output.append(line)
+                output.append('\n')
+                true
+            }
+          })()
+        })
+
+        drainer.start()
+        for (n <- Range(0, 2000)) {
+          for(_ <- Range(0, n)){
+            val c = random.nextPrintableChar()
+            cat.stdin.write(c)
+            input.append(c)
+          }
+          cat.stdin.write('\n')
+          input.append('\n')
+          cat.stdin.flush()
+        }
+        cat.stdin.close()
+        drainer.join()
+        assert(output.toString == input.toString)
       }
     }
   }
