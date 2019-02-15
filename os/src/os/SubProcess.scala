@@ -244,7 +244,7 @@ object SubProcess{
       var n = 0
       while({
         if (len == n) false
-        else data.read(b, off + n, len - n) match{
+        else wrapped.read(b, off + n, len - n) match{
           case -1 => throw new EOFException(s"Insufficient bytes, expected: $len, read: $n")
           case d =>
             n += d
