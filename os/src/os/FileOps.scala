@@ -290,6 +290,6 @@ object followLink extends Function1[Path, Option[Path]]{
   */
 object readLink extends Function1[Path, os.FilePath]{
   def apply(src: Path): FilePath = os.FilePath(Files.readSymbolicLink(src.toNIO))
-  def absolute(src: Path): FilePath = os.Path(Files.readSymbolicLink(src.toNIO), src / up)
+  def absolute(src: Path): os.Path = os.Path(Files.readSymbolicLink(src.toNIO), src / up)
 }
 

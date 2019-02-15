@@ -1927,6 +1927,10 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
+### master
+
+- Narrow return type of `readLink.absolute` from `FilePath` to `Path`
+
 ### 0.2.6
 
 - Remove `os.StatInfo#name`, `os.BasicStatInfo#name` and `os.FullStatInfo#name`,
