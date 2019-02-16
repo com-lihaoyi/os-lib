@@ -199,6 +199,7 @@ object SubProcess{
           lastSeenSlashR = true
           (i, skipFirst)
         } else{
+          lastSeenSlashR = false
           recChar(i + 1, skipFirst)
         }
       }

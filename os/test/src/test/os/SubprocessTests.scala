@@ -145,11 +145,10 @@ object SubprocessTests extends TestSuite{
     }
 
     'output - {
-      // Make sure the os.SubProcess.OutputStream matches the behavior of java.io.BufferedReader
-      // when run on tricky combinations of \r and \n
+      // Make sure the os.SubProcess.OutputStream matches the behavior of
+      // java.io.BufferedReader, when run on tricky combinations of \r and \n
       def check(s: String) = {
-        val stream1 = new os.SubProcess.OutputStream(new ByteArrayInputStream(s.getBytes), 2)
-        val stream2 = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(s.getBytes())))
+        val stream1 = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(s.getBytes())))
         def lines(f: () => String) = {
           val list = collection.mutable.Buffer.empty[String]
           while({
@@ -162,19 +161,19 @@ object SubprocessTests extends TestSuite{
           })()
           list
         }
+
         val list1 = lines(stream1.readLine)
-        val list2 = lines(stream2.readLine)
+        for(bufferSize <- Range.inclusive(1, 10)){
+          val stream2 = new os.SubProcess.OutputStream(new ByteArrayInputStream(s.getBytes), bufferSize)
+          val list2 = lines(stream2.readLine)
+          assert(list1 == list2)
+        }
+
         val p = os.proc("cat").spawn()
-
         p.stdin.write(s)
-
         p.stdin.close()
 
-
-        assert(list1 == list2)
-        pprint.log(list1.map(_.toCharArray))
         val list3 = lines(p.stdout.readLine)
-        pprint.log(list3.map(_.toCharArray))
         assert(list1 == list3)
       }
       check("\r")
@@ -183,28 +182,85 @@ object SubprocessTests extends TestSuite{
       check("\n\r")
       check("\n\n")
       check("\n")
+
       check("a\r")
       check("a\r\r")
       check("a\r\n")
       check("a\n\r")
       check("a\n\n")
       check("a\n")
+
       check("\rb")
       check("\r\rb")
       check("\r\nb")
       check("\n\rb")
       check("\n\nb")
       check("\nb")
+
       check("a\rb")
       check("a\r\rb")
       check("a\r\nb")
       check("a\n\rb")
       check("a\n\nb")
       check("a\nb")
-      check("a\rc\rb")
-      check("a\rc\nb")
+
+
       check("a\nc\rb")
+      check("a\nc\r\rb")
       check("a\nc\nb")
+      check("a\nc\n\nb")
+      check("a\nc\r\nb")
+      check("a\nc\n\rb")
+
+      check("a\rc\rb")
+      check("a\rc\r\rb")
+      check("a\rc\nb")
+      check("a\rc\n\nb")
+      check("a\rc\r\nb")
+      check("a\rc\n\rb")
+
+      check("a\n\rc\rb")
+      check("a\n\rc\r\rb")
+      check("a\n\rc\nb")
+      check("a\n\rc\n\nb")
+      check("a\n\rc\r\nb")
+      check("a\n\rc\n\rb")
+
+      check("a\r\nc\rb")
+      check("a\r\nc\r\rb")
+      check("a\r\nc\nb")
+      check("a\r\nc\n\nb")
+      check("a\r\nc\r\nb")
+      check("a\r\nc\n\rb")
+
+
+      check("\na\r")
+      check("\na\r\r")
+      check("\na\r\n")
+      check("\na\n\r")
+      check("\na\n\n")
+      check("\na\n")
+
+      check("\ra\r")
+      check("\ra\r\r")
+      check("\ra\r\n")
+      check("\ra\n\r")
+      check("\ra\n\n")
+      check("\ra\n")
+
+      check("\n\ra\r")
+      check("\n\ra\r\r")
+      check("\n\ra\r\n")
+      check("\n\ra\n\r")
+      check("\n\ra\n\n")
+      check("\n\ra\n")
+
+      check("\r\na\r")
+      check("\r\na\r\r")
+      check("\r\na\r\n")
+      check("\r\na\n\r")
+      check("\r\na\n\n")
+      check("\r\na\n")
     }
     'fuzz - {
       'inAndOut - {
@@ -258,25 +314,6 @@ object SubprocessTests extends TestSuite{
         assert(java.util.Arrays.equals(input.toByteArray, output.toByteArray))
       }
       'lines - {
-        /*
-        @ val br = new java.io.BufferedReader(new java.io.StringReader("123\n456\r789\n\rabc\r\ndef"))
-        br: java.io.BufferedReader = java.io.BufferedReader@2313052e
-
-        @ br.readLine()
-        res1: String = "123"
-
-        @ br.readLine()
-        res2: String = "456"
-
-        @ br.readLine()
-        res3: String = "789"
-
-        @ br.readLine()
-        res4: String = ""
-
-        @ br.readLine()
-        res5: String = "abc"
-        */
         val random = new scala.util.Random(313373)
 
         val cat = proc('cat).spawn()
@@ -295,13 +332,18 @@ object SubprocessTests extends TestSuite{
         })
 
         drainer.start()
-        for (n <- Range(0, 1)) {
+        for (n <- Range(0, 1000)) {
           for(_ <- Range(0, n)){
             val c = random.nextPrintableChar()
             cat.stdin.write(c)
             input.append(c)
           }
-          val newline = "\r"
+          val newline = random.nextInt(4) match{
+            case 0 => "\n"
+            case 1 => "\r"
+            case 2 => "\r\n"
+            case 3 => "\n\r"
+          }
 
           cat.stdin.write(newline)
           input.append(newline)
@@ -316,7 +358,7 @@ object SubprocessTests extends TestSuite{
           val outputLine = outputLines.next
 
           if (inputLine != outputLine){
-            throw new Exception(pprint.apply(inputLine) + "\n" + pprint.apply(outputLine))
+            throw new Exception(pprint.apply(inputLine.toCharArray) + "\n" + pprint.apply(outputLine.toCharArray))
           }
         }
         if (inputLines.hasNext || outputLines.hasNext){
