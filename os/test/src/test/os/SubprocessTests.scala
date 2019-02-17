@@ -1,9 +1,12 @@
 package test.os
 
-import java.io.{BufferedReader, ByteArrayInputStream, ByteArrayOutputStream, InputStreamReader}
+import java.io._
+import java.nio.charset.StandardCharsets
 
 import os._
 import utest._
+
+import scala.collection.mutable
 
 object SubprocessTests extends TestSuite{
   val scriptFolder = pwd/'os/'test/'resources/'test
@@ -143,29 +146,33 @@ object SubprocessTests extends TestSuite{
         assert(output.out.lines == Seq("HELLO /usr"))
       }
     }
-
+    def readUntilNull(f: () => String) = {
+      val list = collection.mutable.Buffer.empty[String]
+      while({
+        f() match{
+          case null => false
+          case s =>
+            list.append(s)
+            true
+        }
+      })()
+      list
+    }
     'output - {
       // Make sure the os.SubProcess.OutputStream matches the behavior of
       // java.io.BufferedReader, when run on tricky combinations of \r and \n
       def check(s: String) = {
-        val stream1 = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(s.getBytes())))
-        def lines(f: () => String) = {
-          val list = collection.mutable.Buffer.empty[String]
-          while({
-            f() match{
-              case null => false
-              case s =>
-                list.append(s)
-                true
-            }
-          })()
-          list
-        }
+        val stream1 = new BufferedReader(new InputStreamReader(
+          new ByteArrayInputStream(s.getBytes())
+        ))
 
-        val list1 = lines(stream1.readLine)
+        val list1 = readUntilNull(stream1.readLine)
         for(bufferSize <- Range.inclusive(1, 10)){
-          val stream2 = new os.SubProcess.OutputStream(new ByteArrayInputStream(s.getBytes), bufferSize)
-          val list2 = lines(stream2.readLine)
+          val stream2 = new os.SubProcess.OutputStream(
+            new ByteArrayInputStream(s.getBytes),
+            bufferSize
+          )
+          val list2 = readUntilNull(stream2.readLine)
           assert(list1 == list2)
         }
 
@@ -173,7 +180,7 @@ object SubprocessTests extends TestSuite{
         p.stdin.write(s)
         p.stdin.close()
 
-        val list3 = lines(p.stdout.readLine)
+        val list3 = readUntilNull(p.stdout.readLine)
         assert(list1 == list3)
       }
       check("\r")
@@ -268,7 +275,8 @@ object SubprocessTests extends TestSuite{
 
         val cat = proc('cat).spawn()
 
-        for (n <- Range(0, 20000)) {
+        for (n0 <- Range(0, 20000)) {
+          val n = random.nextInt(n0 + 1)
           val chunk = new Array[Byte](n)
           random.nextBytes(chunk)
           cat.stdin.write(chunk)
@@ -302,7 +310,8 @@ object SubprocessTests extends TestSuite{
         })
 
         drainer.start()
-        for (n <- Range(0, 20000)) {
+        for (n0 <- Range(0, 20000)) {
+          val n = random.nextInt(n0 + 1)
           val chunk = new Array[Byte](n)
           random.nextBytes(chunk)
           cat.stdin.write(chunk)
@@ -317,26 +326,25 @@ object SubprocessTests extends TestSuite{
         val random = new scala.util.Random(313373)
 
         val cat = proc('cat).spawn()
-        val output = new StringBuilder()
-        val input = new StringBuilder()
+        val output = mutable.Buffer.empty[String]
+        val input = new ByteArrayOutputStream()
         val drainer = new Thread({() =>
           while({
-            cat.stdout.readLine() match{
+            cat.stdout.readLine(StandardCharsets.UTF_8) match{
               case null => false
               case line =>
                 output.append(line)
-                output.append('\n')
                 true
             }
           })()
         })
 
         drainer.start()
-        for (n <- Range(0, 1000)) {
-          for(_ <- Range(0, n)){
-            val c = random.nextPrintableChar()
+        for (n <- Range(0, 5000)) {
+          for(_ <- Range(0, random.nextInt(n + 1))){
+            val c = random.nextInt()
             cat.stdin.write(c)
-            input.append(c)
+            input.write(c)
           }
           val newline = random.nextInt(4) match{
             case 0 => "\n"
@@ -346,24 +354,24 @@ object SubprocessTests extends TestSuite{
           }
 
           cat.stdin.write(newline)
-          input.append(newline)
+          input.write(newline.getBytes)
           cat.stdin.flush()
         }
+
+        val inputReader = new BufferedReader(
+          new InputStreamReader(
+            new ByteArrayInputStream(
+              input.toByteArray
+            ),
+            StandardCharsets.UTF_8
+          )
+        )
+        val inputLines = readUntilNull(inputReader.readLine)
+
         cat.stdin.close()
         drainer.join()
-        val inputLines = input.toString.linesIterator
-        val outputLines = output.toString.linesIterator
-        while (inputLines.hasNext && outputLines.hasNext){
-          val inputLine = inputLines.next
-          val outputLine = outputLines.next
 
-          if (inputLine != outputLine){
-            throw new Exception(pprint.apply(inputLine.toCharArray) + "\n" + pprint.apply(outputLine.toCharArray))
-          }
-        }
-        if (inputLines.hasNext || outputLines.hasNext){
-          throw new Exception("inputLines and outputLines has unequal lengths")
-        }
+        assert(inputLines == output)
       }
     }
   }
