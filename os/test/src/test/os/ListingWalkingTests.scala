@@ -66,7 +66,7 @@ object ListingWalkingTests extends TestSuite {
         )
       }
       'attrs - {
-        * - prep{ wd =>
+        * - prep{ wd => if(Unix()){
           val filesSortedBySize = os.walk.attrs(wd / "misc", followLinks = true)
             .sortBy{case (p, attrs) => attrs.size}
             .collect{case (p, attrs) if attrs.isFile => p}
@@ -78,7 +78,7 @@ object ListingWalkingTests extends TestSuite {
             wd / "misc" / "folder-symlink" / "one.txt",
             wd / "misc" / "binary.png"
           )
-        }
+        }}
       }
       'stream - {
         * - prep{ wd =>

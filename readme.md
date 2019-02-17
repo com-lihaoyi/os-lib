@@ -45,6 +45,10 @@ performant way. OS-Lib has no dependencies and is unopinionated: it exposes the
 underlying APIs is a concise but straightforward way, without introducing it's
 own idiosyncrasies, quirks, or clever DSLs.
 
+If you use OS-Lib and like it, please support it by donating to our Patreon:
+
+- [https://www.patreon.com/lihaoyi](https://www.patreon.com/lihaoyi)
+
 - [Getting Started](#getting-started)
 - [Cookbook](#cookbook)
     - [Concatenate text files](#concatenate-text-files)

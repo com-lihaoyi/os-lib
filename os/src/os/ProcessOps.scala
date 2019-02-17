@@ -237,4 +237,3 @@ case class proc(command: Shellable*) {
     proc
   }
 }
-
