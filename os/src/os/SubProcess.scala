@@ -298,7 +298,7 @@ object ProcessInput{
   * Represents the configuration of a SubProcess's output or error stream. Can
   * either be [[os.Inherit]], [[os.Pipe]], [[os.Path]] or a [[os.ProcessOutput]]
   */
-sealed trait ProcessOutput{
+trait ProcessOutput{
   def redirectTo: ProcessBuilder.Redirect
   def processOutput(out: => SubProcess.OutputStream): Option[Runnable]
 }
