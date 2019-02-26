@@ -1931,6 +1931,10 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
+### 0.2.8
+
+- `os.ProcessOutput` trait is no longer sealed
+
 ### 0.2.7
 
 - Narrow return type of `readLink.absolute` from `FilePath` to `Path`
