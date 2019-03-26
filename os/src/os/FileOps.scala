@@ -6,7 +6,7 @@
  */
 package os
 
-import java.nio.file._
+import java.nio.file.{Path => _, _}
 import java.nio.file.attribute.{FileAttribute, PosixFilePermission, PosixFilePermissions}
 
 import scala.util.Try

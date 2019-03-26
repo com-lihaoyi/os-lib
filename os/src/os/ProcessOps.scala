@@ -69,7 +69,7 @@ case class proc(command: Shellable*) {
       timeout,
       propagateEnv
     )
-    val res = CommandResult(exitCode, chunks)
+    val res = CommandResult(exitCode, chunks.toSeq)
     if (exitCode == 0 || !check) res
     else throw SubprocessException(res)
   }

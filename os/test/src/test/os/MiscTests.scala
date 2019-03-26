@@ -26,7 +26,7 @@ object MiscTests extends TestSuite{
           if (line != null) output.append(line)
           else continue = false
         }
-        output
+        output.toSeq
       }
       def check(input: String, expected: String*) = {
         val bufferSizes = Seq(

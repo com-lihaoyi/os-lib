@@ -2,7 +2,7 @@ package os
 
 import java.io.IOException
 import java.nio.file
-import java.nio.file._
+import java.nio.file.{Path => _, _}
 import java.nio.file.attribute.BasicFileAttributes
 
 import geny.Generator

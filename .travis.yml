@@ -3,6 +3,7 @@ language: scala
 scala:
   - 2.11.12
   - 2.12.7
+  - 2.13.0-M5
 
 script:
 - curl -L -o ~/bin/mill https://github.com/lihaoyi/mill/releases/download/0.3.3/0.3.3 && chmod +x ~/bin/mill
