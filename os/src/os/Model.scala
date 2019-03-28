@@ -191,7 +191,7 @@ case class CommandResult(exitCode: Int,
       case Left(s) => outChunks.append(s)
       case Right(s) => errChunks.append(s)
     }
-    (StreamValue.ChunkStreamValue(outChunks), StreamValue.ChunkStreamValue(errChunks))
+    (StreamValue.ChunkStreamValue(outChunks.toSeq), StreamValue.ChunkStreamValue(errChunks.toSeq))
   }
 
   override def toString() = {

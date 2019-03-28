@@ -249,6 +249,7 @@ object RelPath {
 
   implicit def ArrayPath[T](s: Array[T])(implicit conv: T => RelPath): RelPath = IterablePath(s)
 
+  import Ordering.Implicits._
   implicit val relPathOrdering: Ordering[RelPath] =
     Ordering.by((rp: RelPath) => (rp.ups, rp.segments.length, rp.segments.toIterable))
 

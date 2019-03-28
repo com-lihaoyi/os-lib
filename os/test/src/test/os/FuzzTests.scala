@@ -31,13 +31,13 @@ object FuzzTests extends TestSuite{
           new ByteArrayInputStream(s.getBytes())
         ))
 
-        val list1 = readUntilNull(stream1.readLine)
+        val list1 = readUntilNull(stream1.readLine _)
         for(bufferSize <- Range.inclusive(1, 10)){
           val stream2 = new os.SubProcess.OutputStream(
             new ByteArrayInputStream(s.getBytes),
             bufferSize
           )
-          val list2 = readUntilNull(stream2.readLine)
+          val list2 = readUntilNull(stream2.readLine _)
           assert(list1 == list2)
         }
 
@@ -45,7 +45,7 @@ object FuzzTests extends TestSuite{
         p.stdin.write(s)
         p.stdin.close()
 
-        val list3 = readUntilNull(p.stdout.readLine)
+        val list3 = readUntilNull(p.stdout.readLine _)
         assert(list1 == list3)
       }
       check("\r")
@@ -238,7 +238,7 @@ object FuzzTests extends TestSuite{
           StandardCharsets.UTF_8
         )
       )
-      val inputLines = readUntilNull(inputReader.readLine)
+      val inputLines = readUntilNull(inputReader.readLine _)
 
       cat.stdin.close()
       drainer.join()
