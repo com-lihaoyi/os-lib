@@ -1,6 +1,6 @@
 import mill._, scalalib._, publish._
 
-object os extends Cross[OsModule]("2.11.12", "2.12.7")
+object os extends Cross[OsModule]("2.11.12", "2.12.7", "2.13.0-M5")
 class OsModule(val crossScalaVersion: String) extends CrossScalaModule with PublishModule{
   def artifactName = "os-lib"
   def publishVersion = "0.2.8"
@@ -18,17 +18,17 @@ class OsModule(val crossScalaVersion: String) extends CrossScalaModule with Publ
     )
   )
 
-  def compileIvyDeps = Agg(ivy"com.lihaoyi::acyclic:0.1.7")
+  def compileIvyDeps = Agg(ivy"com.lihaoyi::acyclic:0.1.8")
   def scalacOptions = Seq("-P:acyclic:force")
-  def scalacPluginIvyDeps = Agg(ivy"com.lihaoyi::acyclic:0.1.7")
+  def scalacPluginIvyDeps = Agg(ivy"com.lihaoyi::acyclic:0.1.8")
 
-  def ivyDeps = Agg(ivy"com.lihaoyi::geny:0.1.5")
+  def ivyDeps = Agg(ivy"com.lihaoyi::geny:0.1.6")
 
   object test extends Tests {
     def ivyDeps = Agg(
-      ivy"com.lihaoyi::utest::0.6.5",
+      ivy"com.lihaoyi::utest::0.6.6",
       ivy"com.lihaoyi::sourcecode::0.1.5",
-      ivy"com.lihaoyi::pprint::0.5.3"
+      ivy"com.lihaoyi::pprint::0.5.4"
     )
 
     def testFrameworks = Seq("utest.runner.Framework")
