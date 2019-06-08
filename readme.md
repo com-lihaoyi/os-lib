@@ -1931,6 +1931,10 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
+### 0.2.9
+
+- Support for Scala 2.13.0 final
+
 ### 0.2.8
 
 - `os.ProcessOutput` trait is no longer sealed

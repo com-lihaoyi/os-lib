@@ -108,7 +108,7 @@ object ExampleTests extends TestSuite{
     'frequency - TestUtil.prep{ wd =>
       // Calculate the word frequency of all the text files in the folder tree
       def txt = os.walk(wd).filter(_.ext == "txt").map(os.read)
-      def freq(s: Seq[String]) = s groupBy (x => x) mapValues (_.length) toSeq
+      def freq(s: Seq[String]) = s.groupBy(x => x).mapValues(_.length).toSeq
       val map = freq(txt.flatMap(_.split("[^a-zA-Z0-9_]"))).sortBy(-_._2)
       map
     }
