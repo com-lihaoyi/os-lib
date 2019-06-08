@@ -141,11 +141,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.2.7"
+"com.lihaoyi" %% "os-lib" % "0.3.0"
 // Mill
-ivy"com.lihaoyi::os-lib:0.2.7"
-// Ammonite
-import $ivy.`com.lihaoyi::os-lib:0.2.7`
+ivy"com.lihaoyi::os-lib:0.3.0"
 ```
 
 ## Cookbook
@@ -1931,7 +1929,7 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
-### 0.2.9
+### 0.3.0
 
 - Support for Scala 2.13.0 final
 

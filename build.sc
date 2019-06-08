@@ -3,7 +3,7 @@ import mill._, scalalib._, publish._
 object os extends Cross[OsModule]("2.12.7", "2.13.0")
 class OsModule(val crossScalaVersion: String) extends CrossScalaModule with PublishModule{
   def artifactName = "os-lib"
-  def publishVersion = "0.2.9"
+  def publishVersion = "0.3.0"
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "com.lihaoyi",
