@@ -23,7 +23,7 @@ object FuzzTests extends TestSuite{
       })()
       list
     }
-    'output - {
+    test("output"){
       // Make sure the os.SubProcess.OutputStream matches the behavior of
       // java.io.BufferedReader, when run on tricky combinations of \r and \n
       def check(s: String) = {
@@ -134,7 +134,7 @@ object FuzzTests extends TestSuite{
       check("\r\na\n\n")
       check("\r\na\n")
     }
-    'inAndOut - {
+    test("inAndOut"){
       val random = new scala.util.Random(313373)
 
       val cat = proc('cat).spawn()
@@ -155,7 +155,7 @@ object FuzzTests extends TestSuite{
       }
       cat.stdin.close()
     }
-    'uneven - {
+    test("uneven"){
       val random = new scala.util.Random(313373)
 
       val cat = proc('cat).spawn()
@@ -190,7 +190,7 @@ object FuzzTests extends TestSuite{
       drainer.join()
       assert(java.util.Arrays.equals(input.toByteArray, output.toByteArray))
     }
-    'lines - {
+    test("lines"){
       val random = new scala.util.Random(313373)
 
       val cat = proc('cat).spawn()

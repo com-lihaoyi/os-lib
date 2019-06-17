@@ -3,8 +3,8 @@ import utest._
 import TestUtil._
 object ReadingWritingTests extends TestSuite {
   def tests = Tests{
-    'read - {
-      * - prep{ wd =>
+    test("read"){
+      test - prep{ wd =>
         os.read(wd / "File.txt") ==> "I am cow"
         os.read(wd / "folder1" / "one.txt") ==> "Contents of folder one"
         os.read(wd / "Multi Line.txt") ==>
@@ -13,8 +13,8 @@ object ReadingWritingTests extends TestSuite {
             |I weigh twice as much as you
             |And I look good on the barbecue""".stripMargin
       }
-      'inputStream - {
-        * - prep{wd =>
+      test("inputStream"){
+        test - prep{wd =>
           val is = os.read.inputStream(wd / "File.txt") // ==> "I am cow"
           is.read() ==> 'I'
           is.read() ==> ' '
@@ -28,14 +28,14 @@ object ReadingWritingTests extends TestSuite {
           is.close()
         }
       }
-      'bytes - {
-        * - prep{ wd =>
+      test("bytes"){
+        test - prep{ wd =>
           os.read.bytes(wd / "File.txt") ==> "I am cow".getBytes
           os.read.bytes(wd / "misc" / "binary.png").length ==> 711
         }
       }
-      'chunks - {
-        * - prep{ wd =>
+      test("chunks"){
+        test - prep{ wd =>
           val chunks = os.read.chunks(wd / "File.txt", chunkSize = 2)
             .map{case (buf, n) => buf.take(n).toSeq } // copy the buffer to save the data
             .toSeq
@@ -49,8 +49,8 @@ object ReadingWritingTests extends TestSuite {
         }
       }
 
-      'lines - {
-        * - prep{ wd =>
+      test("lines"){
+        test - prep{ wd =>
           os.read.lines(wd / "File.txt") ==> Seq("I am cow")
           os.read.lines(wd / "Multi Line.txt") ==> Seq(
             "I am cow",
@@ -59,8 +59,8 @@ object ReadingWritingTests extends TestSuite {
             "And I look good on the barbecue"
           )
         }
-        'stream - {
-          * - prep{ wd =>
+        test("stream"){
+          test - prep{ wd =>
             os.read.lines.stream(wd / "File.txt").count() ==> 1
             os.read.lines.stream(wd / "Multi Line.txt").count() ==> 4
 
@@ -73,16 +73,16 @@ object ReadingWritingTests extends TestSuite {
       }
     }
 
-    'write - {
-      * - prep{ wd =>
+    test("write"){
+      test - prep{ wd =>
         os.write(wd / "New File.txt", "New File Contents")
         os.read(wd / "New File.txt") ==> "New File Contents"
 
         os.write(wd / "NewBinary.bin", Array[Byte](0, 1, 2, 3))
         os.read.bytes(wd / "NewBinary.bin") ==> Array[Byte](0, 1, 2, 3)
       }
-      'append - {
-        * - prep{ wd =>
+      test("append"){
+        test - prep{ wd =>
           os.read(wd / "File.txt") ==> "I am cow"
 
           os.write.append(wd / "File.txt", ", hear me moo")
@@ -97,8 +97,8 @@ object ReadingWritingTests extends TestSuite {
           os.read.bytes(wd / "misc" / "binary.png").length ==> 714
         }
       }
-      'over - {
-        * - prep{ wd =>
+      test("over"){
+        test - prep{ wd =>
           os.read(wd / "File.txt") ==> "I am cow"
           os.write.over(wd / "File.txt", "You are cow")
 
@@ -111,8 +111,8 @@ object ReadingWritingTests extends TestSuite {
           os.read(wd / "File.txt") ==> "We  are sow"
         }
       }
-      'inputStream - {
-        * - prep{ wd =>
+      test("inputStream"){
+        test - prep{ wd =>
           val out = os.write.outputStream(wd / "New File.txt")
           out.write('H')
           out.write('e')
@@ -125,8 +125,8 @@ object ReadingWritingTests extends TestSuite {
         }
       }
     }
-    'truncate - {
-      * - prep{ wd =>
+    test("truncate"){
+      test - prep{ wd =>
         os.read(wd / "File.txt") ==> "I am cow"
 
         os.truncate(wd / "File.txt", 4)

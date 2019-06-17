@@ -8,9 +8,9 @@ import utest._
 object SpawningSubprocessesTests extends TestSuite {
 
   def tests = Tests{
-    'proc - {
-      'call - {
-        * - prep { wd => if(Unix()){
+    test("proc"){
+      test("call"){
+        test - prep { wd => if(Unix()){
           val res = os.proc('ls, wd/"folder2").call()
 
           res.exitCode ==> 0
@@ -60,8 +60,8 @@ object SpawningSubprocessesTests extends TestSuite {
           }
         }}
       }
-      'stream - {
-        * - prep { wd => if(Unix()){
+      test("stream"){
+        test - prep { wd => if(Unix()){
           var lineCount = 1
           os.proc('find, ".").stream(
             cwd = wd,
@@ -71,8 +71,8 @@ object SpawningSubprocessesTests extends TestSuite {
           lineCount ==> 22
         }}
       }
-      'spawn - {
-        * - prep { wd => if(TestUtil.isInstalled("python") && Unix()) {
+      test("spawn"){
+        test - prep { wd => if(TestUtil.isInstalled("python") && Unix()) {
           // Start a long-lived python process which you can communicate with
           val sub = os.proc("python", "-u", "-c", "while True: print(eval(raw_input()))")
                       .spawn(cwd = wd)

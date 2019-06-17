@@ -5,8 +5,8 @@ import utest._
 
 object ListingWalkingTests extends TestSuite {
   def tests = Tests{
-    'list - {
-      * - prep{ wd =>
+    test("list"){
+      test - prep{ wd =>
         os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
         os.list(wd / "folder2") ==> Seq(
           wd / "folder2" / "nestedA",
@@ -17,8 +17,8 @@ object ListingWalkingTests extends TestSuite {
           wd / "misc" / "folder-symlink" / "one.txt"
         )
       }
-      'stream - {
-        * - prep{ wd =>
+      test("stream"){
+        test - prep{ wd =>
           os.list.stream(wd / "folder2").count() ==> 2
 
           // Streaming the listed files to the console
@@ -28,8 +28,8 @@ object ListingWalkingTests extends TestSuite {
         }
       }
     }
-    'walk - {
-      * - prep{ wd =>
+    test("walk"){
+      test - prep{ wd =>
         os.walk(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
 
         os.walk(wd / "folder1", includeTarget = true) ==> Seq(
@@ -65,8 +65,8 @@ object ListingWalkingTests extends TestSuite {
           wd / "misc" / "folder-symlink" / "one.txt"
         )
       }
-      'attrs - {
-        * - prep{ wd => if(Unix()){
+      test("attrs"){
+        test - prep{ wd => if(Unix()){
           val filesSortedBySize = os.walk.attrs(wd / "misc", followLinks = true)
             .sortBy{case (p, attrs) => attrs.size}
             .collect{case (p, attrs) if attrs.isFile => p}
@@ -80,16 +80,16 @@ object ListingWalkingTests extends TestSuite {
           )
         }}
       }
-      'stream - {
-        * - prep{ wd =>
+      test("stream"){
+        test - prep{ wd =>
           os.walk.stream(wd / "folder1").count() ==> 1
 
           os.walk.stream(wd / "folder2").count() ==> 4
 
           os.walk.stream(wd / "folder2", skip = _.last == "nestedA").count() ==> 2
         }
-        'attrs - {
-          * - prep{ wd =>
+        test("attrs"){
+          test - prep{ wd =>
             def totalFileSizes(p: os.Path) = os.walk.stream.attrs(p)
               .collect{case (p, attrs) if attrs.isFile => attrs.size}
               .sum

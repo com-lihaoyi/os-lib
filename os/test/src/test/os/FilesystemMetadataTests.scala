@@ -9,22 +9,22 @@ object FilesystemMetadataTests extends TestSuite {
   private val multilineSizes = Set[Long](81, 84)
 
   def tests = Tests{
-    'stat - {
-      * - prep{ wd =>
+    test("stat"){
+      test - prep{ wd =>
         os.stat(wd / "File.txt").size ==> 8
         assert(multilineSizes contains os.stat(wd / "Multi Line.txt").size)
         os.stat(wd / "folder1").fileType ==> os.FileType.Dir
       }
-      'full - {
-        * - prep{ wd =>
+      test("full"){
+        test - prep{ wd =>
           os.stat.full(wd / "File.txt").size ==> 8
           assert(multilineSizes contains os.stat.full(wd / "Multi Line.txt").size)
           os.stat.full(wd / "folder1").fileType ==> os.FileType.Dir
         }
       }
     }
-    'isFile - {
-      * - prep{ wd =>
+    test("isFile"){
+      test - prep{ wd =>
         os.isFile(wd / "File.txt") ==> true
         os.isFile(wd / "folder1") ==> false
 
@@ -33,8 +33,8 @@ object FilesystemMetadataTests extends TestSuite {
         os.isFile(wd / "misc" / "file-symlink", followLinks = false) ==> false
       }
     }
-    'isDir - {
-      * - prep{ wd =>
+    test("isDir"){
+      test - prep{ wd =>
         os.isDir(wd / "File.txt") ==> false
         os.isDir(wd / "folder1") ==> true
 
@@ -43,21 +43,21 @@ object FilesystemMetadataTests extends TestSuite {
         os.isDir(wd / "misc" / "folder-symlink", followLinks = false) ==> false
       }
     }
-    'isLink- {
-      * - prep{ wd =>
+    test("isLink"){
+      test - prep{ wd =>
         os.isLink(wd / "misc" / "file-symlink") ==> true
         os.isLink(wd / "misc" / "folder-symlink") ==> true
         os.isLink(wd / "folder1") ==> false
       }
     }
-    'size  {
-      * - prep{ wd =>
+    test("size"){
+      test - prep{ wd =>
         os.size(wd / "File.txt") ==> 8
         assert(multilineSizes contains os.size(wd / "Multi Line.txt"))
       }
     }
-    'mtime - {
-      * - prep{ wd =>
+    test("mtime"){
+      test - prep{ wd =>
         os.mtime.set(wd / "File.txt", 0)
         os.mtime(wd / "File.txt") ==> 0
 

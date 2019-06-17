@@ -6,7 +6,7 @@ import utest._
 object ExampleTests extends TestSuite{
 
   val tests = Tests {
-    'splash - TestUtil.prep{wd => if (Unix()){
+    test("splash") - TestUtil.prep{wd => if (Unix()){
       // Make sure working directory exists and is empty
       val wd = os.pwd/"out"/"splash"
       os.remove.all(wd)
@@ -27,7 +27,7 @@ object ExampleTests extends TestSuite{
       sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
     }}
 
-    'concatTxt - TestUtil.prep{wd =>
+    test("concatTxt") - TestUtil.prep{wd =>
       // Find and concatenate all .txt files directly in the working directory
       os.write(
         wd/"all.txt",
@@ -41,7 +41,7 @@ object ExampleTests extends TestSuite{
           |And I look good on the barbecue""".stripMargin
     }
 
-    'subprocessConcat - TestUtil.prep{wd =>
+    test("subprocessConcat") - TestUtil.prep{wd =>
       val catCmd = if(scala.util.Properties.isWin) "type" else "cat"
       // Find and concatenate all .txt files directly in the working directory
       TestUtil.proc(catCmd, os.list(wd).filter(_.ext == "txt"))
@@ -54,7 +54,7 @@ object ExampleTests extends TestSuite{
           |And I look good on the barbecue""".stripMargin
     }
 
-    'curlToTempFile- TestUtil.prep{wd => if (Unix()){
+    test("curlToTempFile") - TestUtil.prep{wd => if (Unix()){
       // Curl to temporary file
       val temp = os.temp()
       os.proc("curl", "-L" , "https://git.io/fpfTs")
@@ -70,7 +70,7 @@ object ExampleTests extends TestSuite{
       os.size(temp2) ==> 53814
     }}
 
-    'lineCount - TestUtil.prep{wd =>
+    test("lineCount") - TestUtil.prep{wd =>
       // Line-count of all .txt files recursively in wd
       val lineCount = os.walk(wd)
         .filter(_.ext == "txt")
@@ -81,7 +81,7 @@ object ExampleTests extends TestSuite{
       lineCount ==> 9
     }
 
-    'largestThree - TestUtil.prep{ wd =>
+    test("largestThree") - TestUtil.prep{ wd =>
       // Find the largest three files in the given folder tree
       val largestThree = os.walk(wd)
         .filter(os.isFile(_, followLinks = false))
@@ -99,20 +99,20 @@ object ExampleTests extends TestSuite{
       )
     }
 
-    'moveOut - TestUtil.prep{ wd =>
+    test("moveOut") - TestUtil.prep{ wd =>
       // Move all files inside the "misc" folder out of it
       import os.{GlobSyntax, /}
       os.list(wd/"misc").map(os.move.matching{case p/"misc"/x => p/x })
     }
 
-    'frequency - TestUtil.prep{ wd =>
+    test("frequency") - TestUtil.prep{ wd =>
       // Calculate the word frequency of all the text files in the folder tree
       def txt = os.walk(wd).filter(_.ext == "txt").map(os.read)
       def freq(s: Seq[String]) = s.groupBy(x => x).mapValues(_.length).toSeq
       val map = freq(txt.flatMap(_.split("[^a-zA-Z0-9_]"))).sortBy(-_._2)
       map
     }
-    'comparison{
+    test("comparison"){
       import os._
       os.remove.all(pwd/'out/'scratch/'folder/'thing/'file)
       write(pwd/'out/'scratch/'folder/'thing/'file, "Hello!", createFolders = true)
@@ -138,7 +138,7 @@ object ExampleTests extends TestSuite{
       assert(os.list(pwd/'out/'scratch/'folder).toSeq == Nil)
     }
 
-    'constructingPaths{
+    test("constructingPaths"){
       import os._
       // Get the process' Current Working Directory. As a convention
       // the directory that "this" code cares about (which may differ
@@ -160,11 +160,11 @@ object ExampleTests extends TestSuite{
       // Up two levels from the wd
       wd/up/up
     }
-    'newPath{
+    test("newPath"){
       import os._
       val target = pwd/'out/'scratch
     }
-    'relPaths{
+    test("relPaths"){
       import os._
       // The path "folder/file"
       val rel1 = rel/'folder/'file
@@ -185,19 +185,19 @@ object ExampleTests extends TestSuite{
       rel2: RelPath
       rel3: RelPath
     }
-    'relPathCombine{
+    test("relPathCombine"){
       import os._
       val target = pwd/'out/'scratch/'file
       val rel = target relativeTo pwd
       val newBase = root/'code/'server
       assert(newBase/rel == root/'code/'server/'out/'scratch/'file)
     }
-    'relPathUp{
+    test("relPathUp"){
       import os._
       val target = root/'out/'scratch/'file
       assert(target/up == root/'out/'scratch)
     }
-    'canonical - {if (Unix()){
+    test("canonical"){if (Unix()){
       import os._
       assert((root/'folder/'file/up).toString == "/folder")
       // not "/folder/file/.."
@@ -205,7 +205,7 @@ object ExampleTests extends TestSuite{
       assert((rel/'folder/'file/up).toString == "folder")
       // not "folder/file/.."
     }}
-    'findWc{
+    test("findWc"){
       import os._
       val wd = pwd/'os/'test/'resources/'test
 
@@ -219,7 +219,7 @@ object ExampleTests extends TestSuite{
       assert(lines == 9)
     }
 
-    'noLongLines{
+    test("noLongLines"){
       import os._
       // Ensure that we don't have any Scala files in the current working directory
       // which have lines more than 100 characters long, excluding generated sources
@@ -238,12 +238,12 @@ object ExampleTests extends TestSuite{
 
       assert(filesWithTooLongLines.length == 0)
     }
-    'rename{
+    test("rename"){
 //      val d1/"omg"/x1 = wd
 //      val d2/"omg"/x2 = wd
 //      ls! wd |? (_.ext == "scala") | (x => mv! x ! x.pref)
     }
-    'allSubpathsResolveCorrectly{
+    test("allSubpathsResolveCorrectly"){
       import os._
       for(abs <- os.walk(pwd)){
         val rel = abs.relativeTo(pwd)

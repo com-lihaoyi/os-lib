@@ -5,8 +5,8 @@ import utest._
 
 object ManipulatingFilesFoldersTests extends TestSuite {
   def tests = Tests{
-    'exists - {
-      * - prep{ wd =>
+    test("exists"){
+      test - prep{ wd =>
         os.exists(wd / "File.txt") ==> true
         os.exists(wd / "folder1") ==> true
         os.exists(wd / "doesnt-exist") ==> false
@@ -17,8 +17,8 @@ object ManipulatingFilesFoldersTests extends TestSuite {
         os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> true
       }
     }
-    'move - {
-      * - prep{ wd =>
+    test("move"){
+      test - prep{ wd =>
         os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
         os.move(wd / "folder1" / "one.txt", wd / "folder1" / "first.txt")
         os.list(wd / "folder1") ==> Seq(wd / "folder1" / "first.txt")
@@ -35,8 +35,8 @@ object ManipulatingFilesFoldersTests extends TestSuite {
             |I weigh twice as much as you
             |And I look good on the barbecue""".stripMargin
       }
-      'matching - {
-        * - prep{ wd =>
+      test("matching"){
+        test - prep{ wd =>
           import os.{GlobSyntax, /}
           os.walk(wd / "folder2") ==> Seq(
             wd / "folder2" / "nestedA",
@@ -55,23 +55,23 @@ object ManipulatingFilesFoldersTests extends TestSuite {
           )
         }
       }
-      'into - {
-        * - prep{ wd =>
+      test("into"){
+        test - prep{ wd =>
           os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
           os.move.into(wd / "File.txt", wd / "folder1")
           os.list(wd / "folder1") ==> Seq(wd / "folder1" / "File.txt", wd / "folder1" / "one.txt")
         }
       }
-      'over - {
-        * - prep{ wd =>
+      test("over"){
+        test - prep{ wd =>
           os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
           os.move.over(wd / "folder1", wd / "folder2")
           os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
         }
       }
     }
-    'copy - {
-      * - prep{ wd =>
+    test("copy"){
+      test - prep{ wd =>
         os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
         os.copy(wd / "folder1" / "one.txt", wd / "folder1" / "first.txt")
         os.list(wd / "folder1") ==> Seq(wd / "folder1" / "first.txt", wd / "folder1" / "one.txt")
@@ -92,37 +92,37 @@ object ManipulatingFilesFoldersTests extends TestSuite {
             |I weigh twice as much as you
             |And I look good on the barbecue""".stripMargin
       }
-      'into - {
-        * - prep{ wd =>
+      test("into"){
+        test - prep{ wd =>
           os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
           os.copy.into(wd / "File.txt", wd / "folder1")
           os.list(wd / "folder1") ==> Seq(wd / "folder1" / "File.txt", wd / "folder1" / "one.txt")
         }
       }
-      'over - {
-        * - prep{ wd =>
+      test("over"){
+        test - prep{ wd =>
           os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
           os.copy.over(wd / "folder1", wd / "folder2")
           os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
         }
       }
     }
-    'makeDir - {
-      * - prep{ wd =>
+    test("makeDir"){
+      test - prep{ wd =>
         os.exists(wd / "new_folder") ==> false
         os.makeDir(wd / "new_folder")
         os.exists(wd / "new_folder") ==> true
       }
-      'all - {
-        * - prep{ wd =>
+      test("all"){
+        test - prep{ wd =>
           os.exists(wd / "new_folder") ==> false
           os.makeDir.all(wd / "new_folder" / "inner" / "deep")
           os.exists(wd / "new_folder" / "inner" / "deep") ==> true
         }
       }
     }
-    'remove - {
-      * - prep{ wd =>
+    test("remove"){
+      test - prep{ wd =>
         os.exists(wd / "File.txt") ==> true
         os.remove(wd / "File.txt")
         os.exists(wd / "File.txt") ==> false
@@ -133,8 +133,8 @@ object ManipulatingFilesFoldersTests extends TestSuite {
         os.exists(wd / "folder1" / "one.txt") ==> false
         os.exists(wd / "folder1") ==> false
       }
-      'link - {
-        * - prep{ wd =>
+      test("link"){
+        test - prep{ wd =>
           os.remove(wd / "misc" / "file-symlink")
           os.exists(wd / "misc" / "file-symlink", followLinks = false) ==> false
           os.exists(wd / "File.txt", followLinks = false) ==> true
@@ -148,15 +148,15 @@ object ManipulatingFilesFoldersTests extends TestSuite {
           os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
         }
       }
-      'all - {
-        * - prep{ wd =>
+      test("all"){
+        test - prep{ wd =>
           os.exists(wd / "folder1" / "one.txt") ==> true
           os.remove.all(wd / "folder1")
           os.exists(wd / "folder1" / "one.txt") ==> false
           os.exists(wd / "folder1") ==> false
         }
-        'link - {
-          * - prep{ wd =>
+        test("link"){
+          test - prep{ wd =>
             os.remove.all(wd / "misc" / "file-symlink")
             os.exists(wd / "misc" / "file-symlink", followLinks = false) ==> false
             os.exists(wd / "File.txt", followLinks = false) ==> true
@@ -172,16 +172,16 @@ object ManipulatingFilesFoldersTests extends TestSuite {
         }
       }
     }
-    'hardlink - {
-      * - prep{ wd =>
+    test("hardlink"){
+      test - prep{ wd =>
         os.hardlink(wd / "Linked.txt", wd / "File.txt")
         os.exists(wd / "Linked.txt")
         os.read(wd / "Linked.txt") ==> "I am cow"
         os.isLink(wd / "Linked.txt") ==> false
       }
     }
-    'symlink - {
-      * - prep{ wd =>
+    test("symlink"){
+      test - prep{ wd =>
         os.symlink(wd / "Linked.txt", wd / "File.txt")
         os.exists(wd / "Linked.txt")
         os.read(wd / "Linked.txt") ==> "I am cow"
@@ -193,15 +193,15 @@ object ManipulatingFilesFoldersTests extends TestSuite {
         os.isLink(wd / "Linked2.txt") ==> true
       }
     }
-    'followLink - {
-      * - prep{ wd =>
+    test("followLink"){
+      test - prep{ wd =>
         os.followLink(wd / "misc" / "file-symlink") ==> Some(wd / "File.txt")
         os.followLink(wd / "misc" / "folder-symlink") ==> Some(wd / "folder1")
         os.followLink(wd / "misc" / "broken-symlink") ==> None
       }
     }
-    'readLink - {
-      * - prep{ wd =>  if(Unix()){
+    test("readLink"){
+      test - prep{ wd =>  if(Unix()){
         os.readLink(wd / "misc" / "file-symlink") ==> os.up / "File.txt"
         os.readLink(wd / "misc" / "folder-symlink") ==> os.up / "folder1"
         os.readLink(wd / "misc" / "broken-symlink") ==> os.rel / "broken"
@@ -213,15 +213,15 @@ object ManipulatingFilesFoldersTests extends TestSuite {
         os.readLink.absolute(wd / "misc" / "broken-abs-symlink") ==> os.root / "doesnt" / "exist"
       }}
     }
-    'temp - {
-      * - prep{ wd =>
+    test("temp"){
+      test - prep{ wd =>
         val tempOne = os.temp("default content")
         os.read(tempOne) ==> "default content"
         os.write.over(tempOne, "Hello")
         os.read(tempOne) ==> "Hello"
       }
-      'dir - {
-        * - prep{ wd =>
+      test("dir"){
+        test - prep{ wd =>
           val tempDir = os.temp.dir()
           os.list(tempDir) ==> Nil
           os.write(tempDir / "file", "Hello")

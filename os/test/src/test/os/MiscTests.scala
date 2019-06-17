@@ -17,7 +17,7 @@ object MiscTests extends TestSuite{
       culpa qui officia deserunt mollit anim id est laborum.
     """
 
-    'SubprocessOutput - {
+    test("SubprocessOutput"){
       def readLines(readLine: () => String): Seq[String] = {
         val output = collection.mutable.ArrayBuffer[String]()
         var continue = true
@@ -53,38 +53,38 @@ object MiscTests extends TestSuite{
         }
       }
 
-      'hello - {
-        * - check("hello world", "hello world")
-        * - check("hello\nworld", "hello", "world")
-        * - check("hello\rworld", "hello", "world")
-        * - check("hello\r\nworld", "hello", "world")
-        * - check("hello\r\nworld\r", "hello", "world")
-        * - check("hello\r\nworld\r\n", "hello", "world")
-        * - check("hello\r\nworld\n", "hello", "world")
-        * - check("hello\r\nworld\n\n", "hello", "world", "")
-        * - check("hello\r\nworld\n\r", "hello", "world", "")
-        * - check("hello\r\nworld\r\r", "hello", "world", "")
+      test("hello"){
+        test - check("hello world", "hello world")
+        test - check("hello\nworld", "hello", "world")
+        test - check("hello\rworld", "hello", "world")
+        test - check("hello\r\nworld", "hello", "world")
+        test - check("hello\r\nworld\r", "hello", "world")
+        test - check("hello\r\nworld\r\n", "hello", "world")
+        test - check("hello\r\nworld\n", "hello", "world")
+        test - check("hello\r\nworld\n\n", "hello", "world", "")
+        test - check("hello\r\nworld\n\r", "hello", "world", "")
+        test - check("hello\r\nworld\r\r", "hello", "world", "")
       }
       // Fuzz testing various combinations of \n and \r
-      'newlines - {
+      test("newlines"){
         val random = new Random(0)
-        * - check(Seq.fill(1)(if (random.nextBoolean()) '\n' else '\r').mkString)
-        * - check(Seq.fill(4)(if (random.nextBoolean()) '\n' else '\r').mkString)
-        * - check(Seq.fill(16)(if (random.nextBoolean()) '\n' else '\r').mkString)
-        * - check(Seq.fill(64)(if (random.nextBoolean()) '\n' else '\r').mkString)
-        * - check(Seq.fill(256)(if (random.nextBoolean()) '\n' else '\r').mkString)
-        * - check(Seq.fill(1024)(if (random.nextBoolean()) '\n' else '\r').mkString)
-        * - check(Seq.fill(4096)(if (random.nextBoolean()) '\n' else '\r').mkString)
-        * - check(Seq.fill(16384)(if (random.nextBoolean()) '\n' else '\r').mkString)
+        test - check(Seq.fill(1)(if (random.nextBoolean()) '\n' else '\r').mkString)
+        test - check(Seq.fill(4)(if (random.nextBoolean()) '\n' else '\r').mkString)
+        test - check(Seq.fill(16)(if (random.nextBoolean()) '\n' else '\r').mkString)
+        test - check(Seq.fill(64)(if (random.nextBoolean()) '\n' else '\r').mkString)
+        test - check(Seq.fill(256)(if (random.nextBoolean()) '\n' else '\r').mkString)
+        test - check(Seq.fill(1024)(if (random.nextBoolean()) '\n' else '\r').mkString)
+        test - check(Seq.fill(4096)(if (random.nextBoolean()) '\n' else '\r').mkString)
+        test - check(Seq.fill(16384)(if (random.nextBoolean()) '\n' else '\r').mkString)
       }
       // Fuzz testing various lengths of lorem ipsum
-      'lorem - {
-        * - check(loremIpsum)
-        * - check(loremIpsum * 4)
-        * - check(loremIpsum * 16)
-        * - check(loremIpsum * 64)
-        * - check(loremIpsum * 256)
-        * - check(loremIpsum * 1024)
+      test("lorem"){
+        test - check(loremIpsum)
+        test - check(loremIpsum * 4)
+        test - check(loremIpsum * 16)
+        test - check(loremIpsum * 64)
+        test - check(loremIpsum * 256)
+        test - check(loremIpsum * 1024)
       }
     }
   }
