@@ -5,5 +5,4 @@ scala:
   - 2.13.0
 
 script:
-- curl -L -o ~/bin/mill https://github.com/lihaoyi/mill/releases/download/0.3.6/0.3.6-92-68505a && chmod +x ~/bin/mill
-- mill __[$TRAVIS_SCALA_VERSION].test
+- ./mill __[$TRAVIS_SCALA_VERSION].test
