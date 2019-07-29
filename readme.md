@@ -49,6 +49,13 @@ If you use OS-Lib and like it, please support it by donating to our Patreon:
 
 - [https://www.patreon.com/lihaoyi](https://www.patreon.com/lihaoyi)
 
+For a hands-on introduction to the library, take a look at these two blog posts:
+
+- [How to work with Files in Scala](http://www.lihaoyi.com/post/HowtoworkwithFilesinScala.html)
+- [How to work with Subprocesses in Scala](http://www.lihaoyi.com/post/HowtoworkwithSubprocessesinScala.html)
+
+Or browse the documentation:
+
 - [Getting Started](#getting-started)
 - [Cookbook](#cookbook)
     - [Concatenate text files](#concatenate-text-files)
