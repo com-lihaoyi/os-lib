@@ -308,7 +308,8 @@ object ProcessOutput{
   def apply(f: (Array[Byte], Int) => Unit, preReadCallback: () => Unit = () => ()) =
     CallbackOutput(f, preReadCallback)
 
-  case class CallbackOutput(f: (Array[Byte], Int) => Unit, preReadCallback: () => Unit){
+  case class CallbackOutput(f: (Array[Byte], Int) => Unit, preReadCallback: () => Unit)
+    extends ProcessOutput {
     def redirectTo = ProcessBuilder.Redirect.PIPE
     def processOutput(stdin: => SubProcess.OutputStream) = Some{
       new Runnable {def run(): Unit = os.Internals.transfer0(stdin, preReadCallback, f)}
