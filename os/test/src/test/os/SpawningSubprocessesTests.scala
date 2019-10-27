@@ -1,6 +1,9 @@
 package test.os
 
 import java.io.{BufferedReader, InputStreamReader}
+import os.ProcessOutput
+
+import scala.collection.mutable
 
 import test.os.TestUtil.prep
 import utest._
@@ -101,6 +104,17 @@ object SpawningSubprocessesTests extends TestSuite {
           val gzip = os.proc("gzip", "-n").spawn(stdin = curl.stdout)
           val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
           sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
+        }}
+      }
+      test("spawn callback"){
+        test - prep { wd => if(TestUtil.isInstalled("python") && Unix()) {
+          val output: mutable.Buffer[String] = mutable.Buffer()
+          val sub = os.proc("echo", "output")
+            .spawn(stdout = ProcessOutput((bytes, count) => output += new String(bytes, 0, count)))
+          val finished = sub.waitFor(5000)
+          assert(finished)
+          assert(output.mkString("") == "output\n")
+          sub.destroy()
         }}
       }
     }
