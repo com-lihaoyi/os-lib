@@ -217,6 +217,7 @@ object PathError{
   */
 sealed trait FilePath extends BasePath{
   def toNIO: java.nio.file.Path
+  def resolveFrom(base: os.Path): os.Path
 }
 object FilePath {
   def apply[T: PathConvertible](f0: T) = {
@@ -270,6 +271,8 @@ class RelPath private[os](segments0: Array[String], val ups: Int)
     require(ups == 0)
     new SubPath(segments0)
   }
+
+  def resolveFrom(base: os.Path) = base / this
 }
 
 object RelPath {
@@ -323,6 +326,8 @@ class SubPath private[os](val segments0: Array[String])
   }
 
   def toNIO = java.nio.file.Paths.get(toString)
+
+  def resolveFrom(base: os.Path) = base / this
 }
 
 object SubPath {
@@ -462,6 +467,8 @@ class Path private[os](val wrapped: java.nio.file.Path)
 
   def toIO: java.io.File = wrapped.toFile
   def toNIO: java.nio.file.Path = wrapped
+
+  def resolveFrom(base: os.Path) = this
 }
 
 sealed trait PathConvertible[T]{

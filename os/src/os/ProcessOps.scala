@@ -218,17 +218,19 @@ case class proc(command: Shellable*) {
 
     builder.directory(Option(cwd).getOrElse(os.pwd).toIO)
 
+    val commandChunks = command.flatMap(_.value)
+    val commandStr = commandChunks.mkString(" ")
     lazy val proc: SubProcess = new SubProcess(
       builder
-        .command(command.flatMap(_.value):_*)
+        .command(commandChunks:_*)
         .redirectInput(stdin.redirectFrom)
         .redirectOutput(stdout.redirectTo)
         .redirectError(stderr.redirectTo)
         .redirectErrorStream(mergeErrIntoOut)
         .start(),
-      stdin.processInput(proc.stdin).map(new Thread(_)),
-      stdout.processOutput(proc.stdout).map(new Thread(_)),
-      stderr.processOutput(proc.stderr).map(new Thread(_))
+      stdin.processInput(proc.stdin).map(new Thread(_, commandStr + " stdin thread")),
+      stdout.processOutput(proc.stdout).map(new Thread(_, commandStr + " stdout thread")),
+      stderr.processOutput(proc.stderr).map(new Thread(_, commandStr + " stderr thread"))
     )
 
     proc.inputPumperThread.foreach(_.start())
