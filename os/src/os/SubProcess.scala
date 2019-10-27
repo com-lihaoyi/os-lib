@@ -186,10 +186,34 @@ object ProcessOutput{
     CallbackOutput(f, preReadCallback)
 
   case class CallbackOutput(f: (Array[Byte], Int) => Unit, preReadCallback: () => Unit)
-    extends ProcessOutput {
+  extends ProcessOutput {
     def redirectTo = ProcessBuilder.Redirect.PIPE
-    def processOutput(stdin: => SubProcess.OutputStream) = Some{
-      new Runnable {def run(): Unit = os.Internals.transfer0(stdin, preReadCallback, f)}
+    def processOutput(out: => SubProcess.OutputStream) = Some{
+      new Runnable {def run(): Unit = os.Internals.transfer0(out, preReadCallback, f)}
+    }
+  }
+
+  case class ReadlineOutput(f: String => Unit)
+  extends ProcessOutput {
+    def redirectTo = ProcessBuilder.Redirect.PIPE
+    def processOutput(out: => SubProcess.OutputStream) = Some{
+      new Runnable {def run(): Unit = {
+        val buffered = new BufferedReader(new InputStreamReader(out))
+        while({
+          val lineOpt = try {
+            buffered.readLine() match{
+              case null => None
+              case line => Some(line)
+            }
+          }catch{case e: Throwable => None}
+          lineOpt match{
+            case None => false
+            case Some(s) =>
+              f(s)
+              true
+          }
+        })()
+      }}
     }
   }
 }
