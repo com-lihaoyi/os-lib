@@ -2,7 +2,51 @@ package os
 
 import collection.JavaConverters._
 
+trait PathChunk{
+  def segments: Seq[String]
+  def ups: Int
+}
+object PathChunk{
+  implicit class RelPathChunk(r: RelPath) extends PathChunk {
+    def segments = r.segments
+    def ups = r.ups
+    override def toString() = r.toString
+  }
+  implicit class SubPathChunk(r: SubPath) extends PathChunk {
+    def segments = r.segments
+    def ups = 0
+    override def toString() = r.toString
+  }
+  implicit class StringPathChunk(s: String) extends PathChunk {
+    BasePath.checkSegment(s)
+    def segments = Seq(s)
+    def ups = 0
+    override def toString() = s
+  }
+  implicit class SymbolPathChunk(s: Symbol) extends PathChunk {
+    BasePath.checkSegment(s.name)
+    def segments = Seq(s.name)
+    def ups = 0
+    override def toString() = s.name
+  }
+  implicit class ArrayPathChunk[T](a: Array[T])(implicit f: T => PathChunk) extends PathChunk {
+    val inner = SeqPathChunk(a)(f)
+    def segments = inner.segments
+    def ups = inner.ups
 
+    override def toString() = inner.toString
+  }
+  implicit class SeqPathChunk[T](a: Seq[T])(implicit f: T => PathChunk) extends PathChunk {
+    var segments0 = Nil
+    var ups0 = 0
+    val (segments, ups) = a.map(f).foldLeft((Seq[String](), 0)){ case ((segments, ups), chunk) =>
+      (segments.dropRight(chunk.ups) ++ chunk.segments,
+      math.max(chunk.ups - segments.length, 0))
+    }
+
+    override def toString() = segments.mkString("/")
+  }
+}
 /**
   * A path which is either an absolute [[Path]], a relative [[RelPath]],
   * or a [[ResourcePath]] with shared APIs and implementations.
@@ -17,10 +61,10 @@ trait BasePath{
     * a path of the same type as this one (e.g. `Path` returns `Path`,
     * `RelPath` returns `RelPath`
     */
-  def /(subpath: RelPath): ThisType
+  def /(chunk: PathChunk): ThisType
 
   /**
-    * Relativizes this path with the given `base` path, finding a
+    * Relativizes this path with the given `target` path, finding a
     * relative path `p` such that base/p == this.
     *
     * Note that you can only relativize paths of the same type, e.g.
@@ -30,6 +74,12 @@ trait BasePath{
     * case.
     */
   def relativeTo(target: ThisType): RelPath
+
+  /**
+    * Relativizes this path with the given `target` path, finding a
+    * sub path `p` such that base/p == this.
+    */
+  def subRelativeTo(target: ThisType): SubPath = relativeTo(target).asSubPath
 
   /**
     * This path starts with the target path, including if it's identical
@@ -118,17 +168,18 @@ trait SegmentedPath extends BasePath{
     */
   def segments: IndexedSeq[String]
 
-  def /(subpath: RelPath) = make(
-    segments.dropRight(subpath.ups) ++ subpath.segments,
-    math.max(subpath.ups - segments.length, 0)
+  def /(chunk: PathChunk) = make(
+    segments.dropRight(chunk.ups) ++ chunk.segments,
+    math.max(chunk.ups - segments.length, 0)
   )
 
   def endsWith(target: RelPath): Boolean = {
     this == target || (target.ups == 0 && this.segments.endsWith(target.segments))
   }
 }
+
 trait BasePathImpl extends BasePath{
-  def /(subpath: RelPath): ThisType
+  def /(chunk: PathChunk): ThisType
 
   def ext = {
     val li = last.lastIndexOf('.')
@@ -171,7 +222,11 @@ object FilePath {
   def apply[T: PathConvertible](f0: T) = {
     val f = implicitly[PathConvertible[T]].apply(f0)
     if (f.isAbsolute) Path(f0)
-    else RelPath(f0)
+    else {
+      val r = RelPath(f0)
+      if (r.ups == 0) r.asSubPath
+      else r
+    }
   }
 }
 
@@ -192,19 +247,9 @@ class RelPath private[os](segments0: Array[String], val ups: Int)
   }
 
   def relativeTo(base: RelPath): RelPath = {
-    if (base.ups < ups) {
-      new RelPath(segments0, ups + base.segments.length)
-    } else if (base.ups == ups) {
-      val commonPrefix = {
-        val maxSize = scala.math.min(segments0.length, base.segments.length)
-        var i = 0
-        while ( i < maxSize && segments0(i) == base.segments(i)) i += 1
-        i
-      }
-      val newUps = base.segments.length - commonPrefix
-
-      new RelPath(segments0.drop(commonPrefix), ups + newUps)
-    } else throw PathError.NoRelativePath(this, base)
+    if (base.ups < ups) new RelPath(segments0, ups + base.segments.length)
+    else if (base.ups == ups) SubPath.relativeTo0(segments0, base.segments)
+    else throw PathError.NoRelativePath(this, base)
   }
 
   def startsWith(target: RelPath) = {
@@ -215,10 +260,16 @@ class RelPath private[os](segments0: Array[String], val ups: Int)
   override def hashCode = segments.hashCode() + ups.hashCode()
   override def equals(o: Any): Boolean = o match {
     case p: RelPath => segments == p.segments && p.ups == ups
+    case p: SubPath => segments == p.segments && ups == 0
     case _ => false
   }
 
   def toNIO = java.nio.file.Paths.get(toString)
+
+  def asSubPath = {
+    require(ups == 0)
+    new SubPath(segments0)
+  }
 }
 
 object RelPath {
@@ -232,22 +283,10 @@ object RelPath {
     new RelPath(rest, ups.length)
   }
 
-  implicit def SymPath(s: Symbol): RelPath = StringPath(s.name)
-  implicit def StringPath(s: String): RelPath = {
-    BasePath.checkSegment(s)
-    new RelPath(Array(s), 0)
-
-  }
   def apply(segments0: IndexedSeq[String], ups: Int) = {
     segments0.foreach(BasePath.checkSegment)
     new RelPath(segments0.toArray, ups)
   }
-
-  implicit def IterablePath[T](s: Iterable[T])(implicit conv: T => RelPath): RelPath = {
-    s.foldLeft(rel){_ / _}
-  }
-
-  implicit def ArrayPath[T](s: Array[T])(implicit conv: T => RelPath): RelPath = IterablePath(s)
 
   import Ordering.Implicits._
   implicit val relPathOrdering: Ordering[RelPath] =
@@ -255,11 +294,68 @@ object RelPath {
 
   val up: RelPath = new RelPath(Internals.emptyStringArray, 1)
   val rel: RelPath = new RelPath(Internals.emptyStringArray, 0)
+  implicit def SubRelPath(p: SubPath) = new RelPath(p.segments0, 0)
+}
+
+/**
+  * A relative path on the filesystem, without any `..` or `.` segments
+  */
+class SubPath private[os](val segments0: Array[String])
+  extends FilePath with BasePathImpl with SegmentedPath {
+  def last = segments.last
+  val segments: IndexedSeq[String] = segments0
+  type ThisType = SubPath
+  protected[this] def make(p: Seq[String], ups: Int) = {
+    require(ups == 0)
+    new SubPath(p.toArray[String])
+  }
+
+  def relativeTo(base: SubPath): RelPath = SubPath.relativeTo0(segments0, base.segments0)
+
+  def startsWith(target: SubPath) = this.segments0.startsWith(target.segments)
+
+  override def toString = segments0.mkString("/")
+  override def hashCode = segments.hashCode()
+  override def equals(o: Any): Boolean = o match {
+    case p: SubPath => segments == p.segments
+    case p: RelPath => segments == p.segments && p.ups == 0
+    case _ => false
+  }
+
+  def toNIO = java.nio.file.Paths.get(toString)
+}
+
+object SubPath {
+  private[os] def relativeTo0(segments0: Array[String], segments: IndexedSeq[String]): RelPath = {
+
+    val commonPrefix = {
+      val maxSize = scala.math.min(segments0.length, segments.length)
+      var i = 0
+      while ( i < maxSize && segments0(i) == segments(i)) i += 1
+      i
+    }
+    val newUps = segments.length - commonPrefix
+
+    new RelPath(segments0.drop(commonPrefix), newUps)
+  }
+  def apply[T: PathConvertible](f0: T): SubPath = RelPath.apply[T](f0).asSubPath
+
+  def apply(segments0: IndexedSeq[String]): SubPath = {
+    segments0.foreach(BasePath.checkSegment)
+    new SubPath(segments0.toArray)
+  }
+
+  import Ordering.Implicits._
+  implicit val subPathOrdering: Ordering[SubPath] =
+    Ordering.by((rp: SubPath) => (rp.segments.length, rp.segments.toIterable))
+
+  val sub: SubPath = new SubPath(Internals.emptyStringArray)
 }
 
 object Path {
   def apply(p: FilePath, base: Path) = p match{
-    case p: RelPath => base/p
+    case p: RelPath => base / p
+    case p: SubPath => base / p
     case p: Path => p
   }
 
@@ -332,9 +428,9 @@ class Path private[os](val wrapped: java.nio.file.Path)
 
   def last = wrapped.getFileName.toString
 
-  def /(subpath: RelPath): ThisType = {
-    if (subpath.ups > wrapped.getNameCount) throw PathError.AbsolutePathOutsideRoot
-    val resolved = wrapped.resolve(subpath.toString).normalize()
+  def /(chunk: PathChunk): ThisType = {
+    if (chunk.ups > wrapped.getNameCount) throw PathError.AbsolutePathOutsideRoot
+    val resolved = wrapped.resolve(chunk.toString).normalize()
     new Path(resolved)
   }
   override def toString = wrapped.toString

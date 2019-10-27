@@ -113,9 +113,9 @@ object ExampleTests extends TestSuite{
       map
     }
     test("comparison"){
-      import os._
-      os.remove.all(pwd/'out/'scratch/'folder/'thing/'file)
-      write(pwd/'out/'scratch/'folder/'thing/'file, "Hello!", createFolders = true)
+      
+      os.remove.all(os.pwd/'out/'scratch/'folder/'thing/'file)
+      os.write(os.pwd/'out/'scratch/'folder/'thing/'file, "Hello!", createFolders = true)
 
       def removeAll(path: String) = {
         def getRecursively(f: java.io.File): Seq[java.io.File] = {
@@ -130,89 +130,119 @@ object ExampleTests extends TestSuite{
       }
       removeAll("out/scratch/folder/thing")
 
-      assert(os.list(pwd/'out/'scratch/'folder).toSeq == Nil)
+      assert(os.list(os.pwd/'out/'scratch/'folder).toSeq == Nil)
 
-      write(pwd/'out/'scratch/'folder/'thing/'file, "Hello!", createFolders = true)
+      os.write(os.pwd/'out/'scratch/'folder/'thing/'file, "Hello!", createFolders = true)
 
-      os.remove.all(pwd/'out/'scratch/'folder/'thing)
-      assert(os.list(pwd/'out/'scratch/'folder).toSeq == Nil)
+      os.remove.all(os.pwd/'out/'scratch/'folder/'thing)
+      assert(os.list(os.pwd/'out/'scratch/'folder).toSeq == Nil)
     }
 
     test("constructingPaths"){
-      import os._
+      
       // Get the process' Current Working Directory. As a convention
       // the directory that "this" code cares about (which may differ
       // from the pwd) is called `wd`
-      val wd = pwd
+      val wd = os.pwd
 
       // A path nested inside `wd`
       wd/'folder/'file
 
       // A path starting from the root
-      root/'folder/'file
+      os.root/'folder/'file
 
       // A path with spaces or other special characters
       wd/"My Folder"/"My File.txt"
 
       // Up one level from the wd
-      wd/up
+      wd/os.up
 
       // Up two levels from the wd
-      wd/up/up
+      wd/os.up/os.up
     }
     test("newPath"){
-      import os._
-      val target = pwd/'out/'scratch
+      
+      val target = os.pwd/'out/'scratch
     }
     test("relPaths"){
-      import os._
+      
       // The path "folder/file"
-      val rel1 = rel/'folder/'file
-      val rel2 = rel/'folder/'file
-
-      // The path "file"; will get converted to a RelPath by an implicit
-      val rel3 = 'file
+      val rel1 = os.rel/'folder/'file
+      val rel2 = os.rel/'folder/'file
 
       // The relative difference between two paths
-      val target = pwd/'out/'scratch/'file
-      assert((target relativeTo pwd) == rel/'out/'scratch/'file)
+      val target = os.pwd/'out/'scratch/'file
+      assert((target relativeTo os.pwd) == os.rel/'out/'scratch/'file)
 
       // `up`s get resolved automatically
-      val minus = pwd relativeTo target
-      val ups = up/up/up
+      val minus = os.pwd relativeTo target
+      val ups = os.up/os.up/os.up
       assert(minus == ups)
-      rel1: RelPath
-      rel2: RelPath
-      rel3: RelPath
+      rel1: os.RelPath
+      rel2: os.RelPath
+    }
+    test("subPaths"){
+      
+      // The path "folder/file"
+      val rel1 = os.sub/'folder/'file
+      val rel2 = os.sub/'folder/'file
+
+      // The relative difference between two paths
+      val target = os.pwd/'out/'scratch/'file
+      assert((target subRelativeTo os.pwd) == os.sub/'out/'scratch/'file)
+
+      // `up`s are not allowed in sub paths
+      intercept[Exception](os.pwd subRelativeTo target)
+    }
+    test("relSubPathEquality"){
+      assert(
+        (os.sub/'hello/'world) == (os.rel/'hello/'world),
+        os.sub == os.rel
+      )
     }
     test("relPathCombine"){
-      import os._
-      val target = pwd/'out/'scratch/'file
-      val rel = target relativeTo pwd
-      val newBase = root/'code/'server
-      assert(newBase/rel == root/'code/'server/'out/'scratch/'file)
+      val target = os.pwd/'out/'scratch/'file
+      val rel = target relativeTo os.pwd
+      val newBase = os.root/'code/'server
+      assert(newBase/rel == os.root/'code/'server/'out/'scratch/'file)
+    }
+    test("subPathCombine"){
+      val target = os.pwd/'out/'scratch/'file
+      val sub = target subRelativeTo os.pwd
+      val newBase = os.root/'code/'server
+      assert(
+        newBase/sub == os.root/'code/'server/'out/'scratch/'file,
+        sub / sub == os.sub/'out/'scratch/'file/'out/'scratch/'file
+      )
+    }
+    test("pathUp"){
+      val target = os.root/'out/'scratch/'file
+      assert(target/os.up == os.root/'out/'scratch)
     }
     test("relPathUp"){
-      import os._
-      val target = root/'out/'scratch/'file
-      assert(target/up == root/'out/'scratch)
+      val target = os.rel/'out/'scratch/'file
+      assert(target/os.up == os.rel/'out/'scratch)
+    }
+    test("relPathUp"){
+      val target = os.sub/'out/'scratch/'file
+      assert(target/os.up == os.sub/'out/'scratch)
     }
     test("canonical"){if (Unix()){
-      import os._
-      assert((root/'folder/'file/up).toString == "/folder")
+      
+      assert((os.root/'folder/'file/os.up).toString == "/folder")
       // not "/folder/file/.."
 
-      assert((rel/'folder/'file/up).toString == "folder")
+      assert((os.rel/'folder/'file/os.up).toString == "folder")
       // not "folder/file/.."
     }}
     test("findWc"){
-      import os._
-      val wd = pwd/'os/'test/'resources/'test
+      
+      val wd = os.pwd/'os/'test/'resources/'test
 
       // find . -name '*.txt' | xargs wc -l
       val lines = os.walk(wd)
         .filter(_.ext == "txt")
-        .map(read.lines)
+        .map(os.read.lines)
         .map(_.length)
         .sum
 
@@ -220,17 +250,17 @@ object ExampleTests extends TestSuite{
     }
 
     test("noLongLines"){
-      import os._
+      
       // Ensure that we don't have any Scala files in the current working directory
       // which have lines more than 100 characters long, excluding generated sources
       // in `src_managed` folders.
 
-      def longLines(p: Path) =
-        (p, read.lines(p).zipWithIndex.filter(_._1.length > 100).map(_._2))
+      def longLines(p: os.Path) =
+        (p, os.read.lines(p).zipWithIndex.filter(_._1.length > 100).map(_._2))
 
       val filesWithTooLongLines =
-        proc("git", "ls-files").call(cwd = os.pwd).out.lines
-            .map(Path(_, os.pwd))
+        os.proc("git", "ls-files").call(cwd = os.pwd).out.lines
+            .map(os.Path(_, os.pwd))
             .filter(_.ext == "scala")
             .map(longLines)
             .filter(_._2.length > 0)
@@ -244,11 +274,11 @@ object ExampleTests extends TestSuite{
 //      ls! wd |? (_.ext == "scala") | (x => mv! x ! x.pref)
     }
     test("allSubpathsResolveCorrectly"){
-      import os._
-      for(abs <- os.walk(pwd)){
-        val rel = abs.relativeTo(pwd)
+      
+      for(abs <- os.walk(os.pwd)){
+        val rel = abs.relativeTo(os.pwd)
         assert(rel.ups == 0)
-        assert(pwd / rel == abs)
+        assert(os.pwd / rel == abs)
       }
     }
   }

@@ -26,6 +26,8 @@ package object os{
   val up: RelPath = RelPath.up
 
   val rel: RelPath = RelPath.rel
+
+  val sub: SubPath = SubPath.sub
   /**
     * Extractor to let you easily pattern match on [[os.Path]]s. Lets you do
     *

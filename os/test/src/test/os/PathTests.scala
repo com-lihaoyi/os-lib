@@ -8,6 +8,7 @@ object PathTests extends TestSuite{
   val tests = Tests {
     test("Basic"){
       val base = rel/'src/'main/'scala
+      val subBase = sub/'src/'main/'scala
       test("Transformers"){
         if(Unix()){
           assert(
@@ -17,16 +18,19 @@ object PathTests extends TestSuite{
             // java.nio.file.Path to ammonite.Path
             root/'omg == Path(Paths.get("/omg")),
             rel/'omg == RelPath(Paths.get("omg")),
+            sub/'omg == SubPath(Paths.get("omg")),
 
             // ammonite.Path to String
             (root/'omg).toString == "/omg",
             (rel/'omg).toString == "omg",
+            (sub/'omg).toString == "omg",
             (up/'omg).toString == "../omg",
             (up/up/'omg).toString == "../../omg",
 
             // String to ammonite.Path
             root/'omg == Path("/omg"),
-            rel/'omg == RelPath("omg")
+            rel/'omg == RelPath("omg"),
+            sub/'omg == SubPath("omg")
           )
         }
       }
@@ -109,6 +113,67 @@ object PathTests extends TestSuite{
           test - intercept[PathError.NoRelativePath](rel/'omg/'bbq relativeTo up/'omg/'bbq)
         }
       }
+      test("SubPath"){
+        test("Constructors"){
+          test("Symbol"){
+            if (Unix()){
+              val rel1 = subBase / 'ammonite
+              assert(
+                rel1.segments == Seq("src", "main", "scala", "ammonite"),
+                rel1.toString == "src/main/scala/ammonite"
+              )
+            }
+          }
+          test("String"){
+            if (Unix()){
+              val rel1 = subBase / "Path.scala"
+              assert(
+                rel1.segments == Seq("src", "main", "scala", "Path.scala"),
+                rel1.toString == "src/main/scala/Path.scala"
+              )
+            }
+          }
+          test("Combos"){
+            def check(rel1: SubPath) = assert(
+              rel1.segments == Seq("src", "main", "scala", "sub1", "sub2"),
+              rel1.toString == "src/main/scala/sub1/sub2"
+            )
+            test("ArrayString"){
+              if (Unix()){
+                val arr = Array("sub1", "sub2")
+                check(subBase / arr)
+              }
+            }
+            test("ArraySymbol"){
+              if (Unix()){
+                val arr = Array('sub1, 'sub2)
+                check(subBase / arr)
+              }
+            }
+            test("SeqString"){
+              if (Unix()) check(subBase / Seq("sub1", "sub2"))
+            }
+            test("SeqSymbol"){
+              if (Unix()) check(subBase / Seq('sub1, 'sub2))
+            }
+            test("SeqSeqSeqSymbol"){
+              if (Unix()){
+                check(
+                  subBase / Seq(Seq(Seq('sub1), Seq()), Seq(Seq('sub2)), Seq())
+                )
+              }
+            }
+          }
+        }
+        test("Relativize"){
+          def eq[T](p: T, q: T) = assert(p == q)
+          test - eq(sub/'omg/'bbq/'wtf relativeTo sub/'omg/'bbq/'wtf, rel)
+          test - eq(sub/'omg/'bbq relativeTo sub/'omg/'bbq/'wtf, up)
+          test - eq(sub/'omg/'bbq/'wtf relativeTo sub/'omg/'bbq, rel/'wtf)
+          test - eq(sub/'omg/'bbq relativeTo sub/'omg/'bbq/'wtf, up)
+        }
+      }
+
       test("AbsPath"){
         val d = pwd
         val abs = d / base
