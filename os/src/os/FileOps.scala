@@ -267,6 +267,7 @@ object symlink {
         // Special case empty relative paths, because for some reason `createSymbolicLink`
         // doesn't like it when the path is "" (most other Files.* functions are fine)
         case p: RelPath if p.segments.isEmpty && p.ups == 0 => java.nio.file.Paths.get(".")
+        case p: SubPath if p.segments.isEmpty => java.nio.file.Paths.get(".")
         case _ => dest.toNIO
       },
       permArray:_*
