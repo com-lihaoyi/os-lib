@@ -50,7 +50,7 @@ case class proc(command: Shellable*) {
            env: Map[String, String] = null,
            stdin: ProcessInput = Pipe,
            stdout: ProcessOutput = Pipe,
-           stderr: ProcessOutput = Pipe,
+           stderr: ProcessOutput = os.Inherit,
            mergeErrIntoOut: Boolean = false,
            timeout: Long = Long.MaxValue,
            check: Boolean = true,
@@ -94,7 +94,7 @@ case class proc(command: Shellable*) {
              onErr: (Array[Byte], Int) => Unit,
              stdin: ProcessInput = Pipe,
              stdout: ProcessOutput = Pipe,
-             stderr: ProcessOutput = Pipe,
+             stderr: ProcessOutput = os.Inherit,
              mergeErrIntoOut: Boolean = false,
              timeout: Long = Long.MaxValue,
              propagateEnv: Boolean = true): Int = {
@@ -203,7 +203,7 @@ case class proc(command: Shellable*) {
             env: Map[String, String] = null,
             stdin: ProcessInput = Pipe,
             stdout: ProcessOutput = Pipe,
-            stderr: ProcessOutput = Pipe,
+            stderr: ProcessOutput = os.Inherit,
             mergeErrIntoOut: Boolean = false,
             propagateEnv: Boolean = true): SubProcess = {
     val builder = new java.lang.ProcessBuilder()
