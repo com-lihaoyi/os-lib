@@ -263,6 +263,8 @@ object Shellable{
   */
 case class BasicStatInfo(size: Long,
                          mtime: FileTime,
+                         ctime: FileTime,
+                         atime: FileTime,
                          fileType: FileType){
   def isDir = fileType == FileType.Dir
   def isSymLink = fileType == FileType.SymLink
@@ -274,6 +276,8 @@ object BasicStatInfo{
     new BasicStatInfo(
       attrs.size(),
       attrs.lastModifiedTime(),
+      attrs.lastAccessTime(),
+      attrs.creationTime(),
       if (attrs.isRegularFile) FileType.File
       else if (attrs.isDirectory) FileType.Dir
       else if (attrs.isSymbolicLink) FileType.SymLink
@@ -316,44 +320,6 @@ object PosixStatInfo{
     PosixStatInfo(
       posixAttrs.owner,
       PermSet.fromSet(posixAttrs.permissions)
-    )
-  }
-}
-
-/**
-  * A richer, more informative version of the [[stat]] object.
-  *
-  * Created using `stat.full! filePath`
-  */
-case class FullStatInfo(size: Long,
-                        mtime: FileTime,
-                        ctime: FileTime,
-                        atime: FileTime,
-                        group: GroupPrincipal,
-                        owner: UserPrincipal,
-                        permissions: PermSet,
-                        fileType: FileType){
-  override def productPrefix = "stat.full"
-  def isDir = fileType == FileType.Dir
-  def isSymLink = fileType == FileType.SymLink
-  def isFile = fileType == FileType.File
-}
-object FullStatInfo{
-
-  def make(attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
-    new os.FullStatInfo(
-      attrs.size(),
-      attrs.lastModifiedTime(),
-      attrs.lastAccessTime(),
-      attrs.creationTime(),
-      posixAttrs.map(_.group()).orNull,
-      posixAttrs.map(_.owner()).orNull,
-      posixAttrs.map(a => PermSet.fromSet(a.permissions)).orNull,
-      if (attrs.isRegularFile) FileType.File
-      else if (attrs.isDirectory) FileType.Dir
-      else if (attrs.isSymbolicLink) FileType.SymLink
-      else if (attrs.isOther) FileType.Other
-      else ???
     )
   }
 }

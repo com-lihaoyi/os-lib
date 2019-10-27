@@ -90,7 +90,7 @@ object ExampleTests extends TestSuite{
       
       // on unix it is 81 bytes, win adds 3 bytes (3 \r characters)
       val multilineSizes = Set[Long](81, 84)
-      assert(multilineSizes contains os.stat.full(wd / "Multi Line.txt").size)
+      assert(multilineSizes contains os.stat(wd / "Multi Line.txt").size)
 
       // ignore multiline (second file) because its size varies
       largestThree.filterNot(_._2.last == "Multi Line.txt") ==> Seq(
