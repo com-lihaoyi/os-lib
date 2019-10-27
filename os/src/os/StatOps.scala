@@ -78,20 +78,15 @@ object stat extends Function1[os.Path, os.StatInfo]{
   def apply(p: os.Path): os.StatInfo = apply(p, followLinks = true)
   def apply(p: os.Path, followLinks: Boolean = true): os.StatInfo = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
-    os.StatInfo.make(
-      Files.readAttributes(
-        p.wrapped,
-        classOf[BasicFileAttributes],
-        opts:_*
-      ),
-      Try(Files.readAttributes(
-        p.wrapped,
-        classOf[PosixFileAttributes],
-        opts:_*
-      )).toOption
-    )
+    os.StatInfo.make(Files.readAttributes(p.wrapped, classOf[BasicFileAttributes], opts:_*))
   }
-
+  object posix{
+    def apply(p: os.Path): os.PosixStatInfo = apply(p, followLinks = true)
+    def apply(p: os.Path, followLinks: Boolean = true): os.PosixStatInfo = {
+      val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
+      os.PosixStatInfo.make(Files.readAttributes(p.wrapped, classOf[PosixFileAttributes], opts:_*))
+    }
+  }
   /**
     * Reads in the full filesystem metadata for the given file. By default follows
     * symbolic links to read the metadata of whatever the link is pointing at; set

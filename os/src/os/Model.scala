@@ -290,23 +290,17 @@ object BasicStatInfo{
   *
   * If you want more information, use `stat.full`
   */
-case class StatInfo(size: Long,
-                    mtime: FileTime,
-                    owner: UserPrincipal,
-                    permissions: PermSet,
-                    fileType: FileType){
+case class StatInfo(size: Long, mtime: FileTime, fileType: FileType){
   def isDir = fileType == FileType.Dir
   def isSymLink = fileType == FileType.SymLink
   def isFile = fileType == FileType.File
 }
 object StatInfo{
 
-  def make(attrs: BasicFileAttributes, posixAttrs: Option[PosixFileAttributes]) = {
+  def make(attrs: BasicFileAttributes) = {
     new StatInfo(
       attrs.size(),
       attrs.lastModifiedTime(),
-      posixAttrs.map(_.owner).orNull,
-      posixAttrs.map(a => PermSet.fromSet(a.permissions)).orNull,
       if (attrs.isRegularFile) FileType.File
       else if (attrs.isDirectory) FileType.Dir
       else if (attrs.isSymbolicLink) FileType.SymLink
@@ -315,6 +309,17 @@ object StatInfo{
     )
   }
 }
+
+case class PosixStatInfo(owner: UserPrincipal, permissions: PermSet)
+object PosixStatInfo{
+  def make(posixAttrs: PosixFileAttributes) = {
+    PosixStatInfo(
+      posixAttrs.owner,
+      PermSet.fromSet(posixAttrs.permissions)
+    )
+  }
+}
+
 /**
   * A richer, more informative version of the [[stat]] object.
   *
