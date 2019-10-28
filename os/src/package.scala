@@ -7,7 +7,7 @@ package object os{
   /**
    * The root of the filesystem
    */
-  val root: Path = Path(java.nio.file.Paths.get("").toAbsolutePath.getRoot)
+  val root: Path = Path(java.nio.file.Paths.get(".").toAbsolutePath.getRoot)
 
   def resource(implicit resRoot: ResourceRoot = Thread.currentThread().getContextClassLoader) ={
     os.ResourcePath.resource(resRoot)
@@ -21,7 +21,7 @@ package object os{
   /**
    * The current working directory for this process.
    */
-  val pwd: Path = os.Path(new java.io.File("").getCanonicalPath)
+  val pwd: Path = os.Path(java.nio.file.Paths.get(".").toAbsolutePath)
 
   val up: RelPath = RelPath.up
 
