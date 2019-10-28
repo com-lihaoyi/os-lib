@@ -1,7 +1,7 @@
 import mill._, scalalib._, publish._
 
 trait OsLibModule extends CrossScalaModule with PublishModule{
-  def publishVersion = "0.3.1"
+  def publishVersion = "0.4.0"
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "com.lihaoyi",
@@ -31,6 +31,7 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
 object os extends Cross[OsModule]("2.12.7", "2.13.0"){
   object watch extends Cross[WatchModule]("2.12.7", "2.13.0")
   class WatchModule(val crossScalaVersion: String) extends OsLibModule{
+    def artifactName = "os-lib-watch"
     def moduleDeps = Seq(os())
     def ivyDeps = Agg(
       ivy"net.java.dev.jna:jna:5.0.0"
