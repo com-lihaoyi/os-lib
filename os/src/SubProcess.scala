@@ -46,16 +46,34 @@ class SubProcess(val wrapped: java.lang.Process,
   /**
     * Wait up to `millis` for the subprocess to terminate, by default waits
     * indefinitely. Returns `true` if the subprocess has terminated by the time
-    * this method returns
+    * this method returns.
     */
-  def waitFor(millis: Long = -1): Boolean =
-    if(millis == -1) {
+  def waitFor(timeout: Long = -1): Boolean = {
+    if (timeout == -1) {
       wrapped.waitFor()
       true
     } else {
-      wrapped.waitFor(millis, TimeUnit.MILLISECONDS)
+      wrapped.waitFor(timeout, TimeUnit.MILLISECONDS)
     }
+  }
 
+  /**
+    * Wait up to `millis` for the subprocess to terminate and all stdout and stderr
+    * from the subprocess to be handled. By default waits indefinitely; if a time
+    * limit is given, explicitly destroys the subprocess if it has not completed by
+    * the time the timeout has occurred
+    */
+  def join(timeout: Long = -1): Boolean = {
+    val exitedCleanly = waitFor(timeout)
+    if (!exitedCleanly) {
+      destroy()
+      destroyForcibly()
+      waitFor(-1)
+    }
+    outputPumperThread.foreach(_.join())
+    errorPumperThread.foreach(_.join())
+    exitedCleanly
+  }
 }
 
 
@@ -182,18 +200,17 @@ trait ProcessOutput{
 object ProcessOutput{
   implicit def makePathRedirect(p: Path): ProcessOutput = PathRedirect(p)
 
-  def apply(f: (Array[Byte], Int) => Unit, preReadCallback: () => Unit = () => ()) =
-    CallbackOutput(f, preReadCallback)
+  def apply(f: (Array[Byte], Int) => Unit) = ReadBytes(f)
 
-  case class CallbackOutput(f: (Array[Byte], Int) => Unit, preReadCallback: () => Unit)
+  case class ReadBytes(f: (Array[Byte], Int) => Unit)
   extends ProcessOutput {
     def redirectTo = ProcessBuilder.Redirect.PIPE
     def processOutput(out: => SubProcess.OutputStream) = Some{
-      new Runnable {def run(): Unit = os.Internals.transfer0(out, preReadCallback, f)}
+      new Runnable {def run(): Unit = os.Internals.transfer0(out, f)}
     }
   }
 
-  case class ReadlineOutput(f: String => Unit)
+  case class Readlines(f: String => Unit)
   extends ProcessOutput {
     def redirectTo = ProcessBuilder.Redirect.PIPE
     def processOutput(out: => SubProcess.OutputStream) = Some{

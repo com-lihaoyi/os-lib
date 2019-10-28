@@ -52,138 +52,35 @@ case class proc(command: Shellable*) {
            stdout: ProcessOutput = Pipe,
            stderr: ProcessOutput = os.Inherit,
            mergeErrIntoOut: Boolean = false,
-           timeout: Long = Long.MaxValue,
+           timeout: Long = -1,
            check: Boolean = true,
            propagateEnv: Boolean = true)
             : CommandResult = {
 
-    val chunks = collection.mutable.Buffer.empty[Either[Bytes, Bytes]]
-    val exitCode = stream(
+    val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[Bytes, Bytes]]
+
+    val sub = spawn(
       cwd, env,
-      (arr, i) => chunks.append(Left(new Bytes(arr.take(i)))),
-      (arr, i) => chunks.append(Right(new Bytes(arr.take(i)))),
       stdin,
-      stdout,
-      stderr,
+      if (stdout ne os.Pipe) stdout
+      else os.ProcessOutput.ReadBytes(
+        (buf, n) => chunks.add(Left(new Bytes(java.util.Arrays.copyOf(buf, n))))
+      ),
+      if (stderr ne os.Pipe) stderr
+      else os.ProcessOutput.ReadBytes(
+        (buf, n) => chunks.add(Right(new Bytes(java.util.Arrays.copyOf(buf, n))))
+      ),
       mergeErrIntoOut,
-      timeout,
       propagateEnv
     )
-    val res = CommandResult(exitCode, chunks.toSeq)
-    if (exitCode == 0 || !check) res
+    import collection.JavaConverters._
+
+    sub.join(timeout)
+
+    val chunksArr = chunks.iterator.asScala.toArray
+    val res = CommandResult(sub.exitCode(), chunksArr)
+    if (res.exitCode == 0 || !check) res
     else throw SubprocessException(res)
-  }
-
-  /**
-    * Similar to [[os.proc.call]], but instead of aggregating the process's
-    * standard output/error streams for you, you pass in `onOut`/`onErr` callbacks to
-    * receive the data as it is generated.
-    *
-    * Note that the Array[Byte] buffer you are passed in `onOut`/`onErr` are
-    * shared from callback to callback, so if you want to preserve the data make
-    * sure you read the it out of the array rather than storing the array (which
-    * will have its contents over-written next callback.
-    *
-    * All calls to the `onOut`/`onErr` callbacks take place on the main thread.
-    *
-    * Returns the exit code of the subprocess once it terminates.
-    */
-  def stream(cwd: Path = null,
-             env: Map[String, String] = null,
-             onOut: (Array[Byte], Int) => Unit,
-             onErr: (Array[Byte], Int) => Unit,
-             stdin: ProcessInput = Pipe,
-             stdout: ProcessOutput = Pipe,
-             stderr: ProcessOutput = os.Inherit,
-             mergeErrIntoOut: Boolean = false,
-             timeout: Long = Long.MaxValue,
-             propagateEnv: Boolean = true): Int = {
-    val process = spawn(
-      cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv
-    )
-
-    // While reading from the subprocess takes place on separate threads, we end
-    // up serializing the received data and running the `onOut` and `onErr`
-    // callbacks on the main thread to avoid the multithreaded nature of this
-    // function being visible to the user (and possibly causing multithreading bugs!)
-    val callbackQueue = new ArrayBlockingQueue[(Boolean, Array[Byte], Int)](1)
-
-    // Ensure we do not start reading another block of data into the
-    // outReader/errReader buffers until the main thread's user callback has
-    // finished processing the data in that buffer and returns
-    val errCallbackLock = new Semaphore(1, true)
-    val outCallbackLock = new Semaphore(1, true)
-
-    val outReader = new Thread(new Runnable {
-      def run() = {
-        Internals.transfer0(
-          process.stdout,
-          () => outCallbackLock.acquire(),
-          (arr, n) => callbackQueue.put((true, arr, n))
-        )
-      }
-    })
-
-    val errReader = new Thread(new Runnable {
-      def run() = {
-        Internals.transfer0(
-          process.stderr,
-          () => errCallbackLock.acquire(),
-          (arr, n) => callbackQueue.put((false, arr, n))
-        )
-      }
-    })
-
-    outReader.start()
-    errReader.start()
-    val startTime = System.currentTimeMillis()
-
-    // We only check if the out/err readers and process are alive, and not the
-    // inWriter. If the out/err readers and process are all dead, it doesn't
-    // matter if there's more stuff waiting to be sent to the process's stdin:
-    // it's already all over
-    while ((outReader.isAlive || errReader.isAlive || process.isAlive)
-           && System.currentTimeMillis() - startTime < timeout){
-      callbackQueue.poll(1, TimeUnit.MILLISECONDS) match{
-        case null => // do nothing
-        case (out, arr, n) =>
-          val callback = if (out) onOut else onErr
-          callback(arr, n)
-          val lock = if (out) outCallbackLock else errCallbackLock
-          lock.release()
-      }
-    }
-
-    if (System.currentTimeMillis() - startTime > timeout){
-      process.destroy()
-      process.destroyForcibly()
-    }
-
-    // If someone `Ctrl C`s the Ammonite REPL while we are waiting on a
-    // subprocess, don't stop waiting!
-    //
-    // - For "well behaved" subprocess like `ls` or `yes`, they will terminate
-    //   on their own and return control to us when they receive a `Ctrl C`
-    //
-    // - For "capturing" processes like `vim` or `python` or `bash`, those
-    //   should *not* exit on Ctrl-C, and in fact we do not even receive an
-    //   interrupt because they do terminal magic
-    //
-    // - For weird processes like `less` or `git log`, without this
-    //   ignore-exceptions tail recursion it would stop waiting for the
-    //   subprocess but the *less* subprocess will still be around! This messes
-    //   up all our IO for as long as the subprocess lives. We can't force-quit
-    //   the subprocess because *it's* children may hand around and do the same
-    //   thing (e.g. in the case of `git log`, which leaves a `less` grandchild
-    //   hanging around). Thus we simply don't let `Ctrl C` interrupt these
-    //   fellas, and force you to use e.g. `q` to exit `less` gracefully.
-    @tailrec def run(): Int =
-      try {
-        process.waitFor()
-        process.exitCode()
-      } catch {case e: Throwable => run() }
-
-    run()
   }
 
   /**

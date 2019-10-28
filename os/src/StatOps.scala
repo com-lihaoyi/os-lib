@@ -8,6 +8,8 @@ import scala.util.Try
 
 /**
   * Checks whether the given path is a symbolic link
+  *
+  * Returns `false` if the path does not exist
   */
 object isLink extends Function1[Path, Boolean]{
   def apply(p: Path): Boolean = Files.isSymbolicLink(p.wrapped)
@@ -15,6 +17,8 @@ object isLink extends Function1[Path, Boolean]{
 
 /**
   * Checks whether the given path is a regular file
+  *
+  * Returns `false` if the path does not exist
   */
 object isFile extends Function1[Path, Boolean]{
   def apply(p: Path): Boolean = Files.isRegularFile(p.wrapped)
@@ -27,6 +31,8 @@ object isFile extends Function1[Path, Boolean]{
 
 /**
   * Checks whether the given path is a directory
+  *
+  * Returns `false` if the path does not exist
   */
 object isDir extends Function1[Path, Boolean]{
   def apply(p: Path): Boolean = Files.isDirectory(p.wrapped)
@@ -37,14 +43,21 @@ object isDir extends Function1[Path, Boolean]{
 }
 
 /**
-  * Gets the size of the given file
+  * Gets the size of the given file or folder
+  *
+  * Throws an exception if the file or folder does not exist
+  *
+  * When called on folders, returns the size of the folder metadata
+  * (i.e. the list of children names), and not the size of the folder's
+  * recursive contents. Use [[os.walk]] if you want to sum up the total
+  * size of a directory tree.
   */
 object size extends Function1[Path, Long]{
   def apply(p: Path): Long = Files.size(p.wrapped)
 }
 
 /**
-  * Gets the mtime of the given file
+  * Gets the mtime of the given file or directory
   */
 object mtime extends Function1[Path, Long]{
   def apply(p: Path): Long = Files.getLastModifiedTime(p.wrapped).toMillis
@@ -73,6 +86,8 @@ object mtime extends Function1[Path, Long]{
   * symbolic links to read the metadata of whatever the link is pointing at; set
   * `followLinks = false` to disable that and instead read the metadata of the
   * symbolic link itself.
+  *
+  * Throws an exception if the file or folder does not exist
   */
 object stat extends Function1[os.Path, os.StatInfo]{
   def apply(p: os.Path): os.StatInfo = apply(p, followLinks = true)
@@ -80,6 +95,10 @@ object stat extends Function1[os.Path, os.StatInfo]{
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
     os.StatInfo.make(Files.readAttributes(p.wrapped, classOf[BasicFileAttributes], opts:_*))
   }
+
+  /**
+    * Reads POSIX metadata for the given file: ownership and permissions data
+    */
   object posix{
     def apply(p: os.Path): os.PosixStatInfo = apply(p, followLinks = true)
     def apply(p: os.Path, followLinks: Boolean = true): os.PosixStatInfo = {

@@ -62,18 +62,38 @@ object SpawningSubprocessesTests extends TestSuite {
             os.proc("vim").call(stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit)
           }
         }}
+        test - prep{wd =>if(Unix()){
+          val ex = intercept[os.SubprocessException]{
+            os.proc("bash", "-c", "echo 123; sleep 10; echo 456")
+              .call(timeout = 2000)
+          }
+
+          ex.result.out.trim ==> "123"
+        }}
       }
       test("stream"){
         test - prep { wd => if(Unix()){
           var lineCount = 1
-          os.proc('find, ".").stream(
+          os.proc('find, ".").call(
             cwd = wd,
-            onOut = (buf, len) => lineCount += buf.slice(0, len).count(_ == '\n'),
-            onErr = (buf, len) => () // do nothing
+            stdout = os.ProcessOutput(
+              (buf, len) => lineCount += buf.slice(0, len).count(_ == '\n')
+            ),
+          )
+          lineCount ==> 22
+        }}
+        test - prep { wd => if(Unix()){
+          var lineCount = 1
+          os.proc('find, ".").call(
+            cwd = wd,
+            stdout = os.ProcessOutput.Readlines(
+              line => lineCount += 1
+            ),
           )
           lineCount ==> 22
         }}
       }
+
       test("spawn"){
         test - prep { wd => if(TestUtil.isInstalled("python") && Unix()) {
           // Start a long-lived python process which you can communicate with
