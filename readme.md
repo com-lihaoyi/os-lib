@@ -1,4 +1,4 @@
-# OS-Lib [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
+# OS-Lib 0.4.0 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
 
 [travis-badge]: https://travis-ci.org/lihaoyi/os-lib.svg
 [travis-link]: https://travis-ci.org/lihaoyi/os-lib
@@ -113,7 +113,7 @@ Or browse the documentation:
     Filesystem Metadata
 
     - [os.stat](#osstat)
-    - [os.stat.full](#osstatfull)
+  -   [os.stat.posix](#osstatposix)
     - [os.isFile](#osisfile)
     - [os.isDir](#osisdir)
     - [os.isLink](#osislink)
@@ -129,7 +129,6 @@ Or browse the documentation:
     Spawning Subprocesses
 
     - [os.proc.call](#osproccall)
-    - [os.proc.stream](#osprocstream)
     - [os.proc.spawn](#osprocspawn)
 
 - [Data Types](#data-types)
@@ -148,9 +147,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.3.0"
+"com.lihaoyi" %% "os-lib" % "0.4.0"
 // Mill
-ivy"com.lihaoyi::os-lib:0.3.0"
+ivy"com.lihaoyi::os-lib:0.4.0"
 ```
 
 ## Cookbook
@@ -1168,22 +1167,18 @@ os.stat(wd / "File.txt").size ==> 8
 os.stat(wd / "Multi Line.txt").size ==> 81
 os.stat(wd / "folder1").fileType ==> os.FileType.Dir
 ```
-#### os.stat.full
+#### os.stat.posix
 
 ```scala
-os.stat.full(p: os.Path, followLinks: Boolean = true): os.FullStatInfo
+os.stat.posix(p: os.Path, followLinks: Boolean = true): os.PosixStatInfo
 ```
 
-Reads in the full filesystem metadata for the given file. By default follows
-symbolic links to read the metadata of whatever the link is pointing at; set
-`followLinks = false` to disable that and instead read the metadata of the
-symbolic link itself.
+Reads in the posix filesystem metadata for the given file, providing
+information on permissions and ownership. By default follows symbolic
+links to read the metadata of whatever the link is pointing at; set
+`followLinks = false` to disable that and instead read the metadata of
+the symbolic link itself.
 
-```
-os.stat.full(wd / "File.txt").size ==> 8
-os.stat.full(wd / "Multi Line.txt").size ==> 81
-os.stat.full(wd / "folder1").fileType ==> os.FileType.Dir
-```
 #### os.isFile
 
 ```scala
@@ -1477,46 +1472,31 @@ If you want to spawn an interactive subprocess, such as `vim`, `less`, or a
 os.proc("vim").call(stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit)
 ```
 
-#### os.proc.stream
-
-```scala
-
-os.proc(command: os.Shellable*)
-  .stream(cwd: Path = null,
-          env: Map[String, String] = null,
-          onOut: (Array[Byte], Int) => Unit,
-          onErr: (Array[Byte], Int) => Unit,
-          stdin: ProcessInput = Pipe,
-          stdout: ProcessOutput = Pipe,
-          stderr: ProcessOutput = Pipe,
-          mergeErrIntoOut: Boolean = false,
-          timeout: Long = Long.MaxValue,
-          propagateEnv: Boolean = true): Int
-```
-
-Similar to [os.proc.call](#osproccall), but instead of aggregating the process's
-standard output/error streams for you, you pass in `onOut`/`onErr` callbacks to
-receive the data as it is generated.
-
-Note that the `Array[Byte]` buffer you are passed in `onOut`/`onErr` are
-shared from callback to callback, so if you want to preserve the data make
-sure you read the it out of the array rather than storing the array (which
-will have its contents over-written next callback.
-
-All calls to the `onOut`/`onErr` callbacks take place on the main thread.
-Redirecting `stdout`/`stderr` elsewhere means that the respective
-`onOut`/`onErr` callbacks will not be triggered
-
-Returns the exit code of the subprocess once it terminates
+Note that by customizing `stdout` and `stderr`, you can use the results
+of `os.proc.call` in a streaming fashion, either on groups of bytes:
 
 ```scala
 var lineCount = 1
-os.proc('find, ".").stream(
+os.proc('find, ".").call(
   cwd = wd,
-  onOut = (buf, len) => lineCount += buf.slice(0, len).count(_ == '\n'),
-  onErr = (buf, len) => () // do nothing
+  stdout = os.ProcessOutput(
+    (buf, len) => lineCount += buf.slice(0, len).count(_ == '\n')
+  ),
 )
-lineCount ==> 21
+```
+
+Or on lines of output:
+
+```scala
+lineCount ==> 22
+var lineCount = 1
+os.proc('find, ".").call(
+  cwd = wd,
+  stdout = os.ProcessOutput.Readlines(
+    line => lineCount += 1
+  ),
+)
+lineCount ==> 22
 ```
 #### os.proc.spawn
 
@@ -1592,10 +1572,12 @@ two basic versions are:
 
 - [os.Path](#ospath): an absolute path, starting from the root
 - [os.RelPath](#osrelpath): a relative path, not rooted anywhere
+- [os.SubPath](#ossubpath): a sub path, without any `..` segments, not
+  rooted anywhere
 
 
-Generally, almost all commands take absolute `os.Path`s. These are basically
-`java.nio.file.Path`s with additional guarantees:
+Generally, almost all commands take absolute `os.Path`s. These are
+basically `java.nio.file.Path`s with additional guarantees:
 
 - `os.Path`s are always absolute. Relative paths are a separate type
   [os.RelPath](#osrelpath)
@@ -1706,6 +1688,60 @@ assert(('folder/'file/up).toString == "folder")
 
 So you don't need to worry about canonicalizing your paths before comparing them
 for equality or otherwise manipulating them.
+
+
+#### os.SubPath
+
+`os.SubPath`s represent relative paths without any `..` segments. These
+are basically defined as:
+
+```scala
+class SubPath private[ops] (segments0: Array[String])
+```
+
+They can be created in the following ways:
+
+```scala
+// The path "folder/file"
+val sub1 = os.sub/'folder/'file
+val sub2 = os.sub/'folder/'file
+
+// The relative difference between two paths
+val target = os.pwd/'out/'scratch/'file
+assert((target subRelativeTo os.pwd) == os.sub/'out/'scratch/'file)
+
+// Converting os.RelPath to os.SubPath
+val rel3 = os.rel/'folder/'file
+val sub3 = rel3.asSubPath
+```
+
+`os.SubPath`s are useful for representing paths within a particular
+folder or directory. You can combine them with absolute `os.Path`s to
+resolve paths within them, without needing to worry about [Directory
+Traversal Attacks](https://en.wikipedia.org/wiki/Directory_traversal_attack)
+du to accidentally accessing paths outside the destination folder.
+
+```scala
+val target = os.pwd/'target/'file
+val difference = target.relativeTo(os.pwd)
+val newBase = os.root/'code/'server
+assert(newBase/difference == os.root/'code/'server/'target/'file)
+```
+
+Attempting to construct an `os.SubPath` with `..` segments results in an
+exception being thrown:
+
+```scala
+val target = os.pwd/'out/'scratch/
+
+// `up`s are not allowed in sub paths
+intercept[Exception](os.pwd subRelativeTo target)
+```
+
+Like `os.Path`s and `os.RelPath`, `os.SubPath`s are always canonicalized
+and can be compared for equality without worrying about different
+representations.
+
 
 #### Path Operations
 
@@ -1935,6 +1971,34 @@ string, int or set representations of the `os.PermSet` via:
 - `perms.value: Set[PosixFilePermission]`
 
 ## Changelog
+
+### 0.4.0
+
+- Added a new [os.SubPath](#ossubpath) data type, for safer handling of
+  sub-paths within a directory.
+
+- Removed `os.proc.stream`, since you can now customize the `stdout` or
+  `stderr` of `os.proc.call` to handle output in a streaming fashion
+
+- `stderr` in `os.proc.call` and `os.proc.spawn` defaults to
+  `os.Inherit` rather than `os.Pipe`; pass in `stderr = os.Pipe`
+  explicitly to get back the old behavior
+
+- Fix timeout not working with `os.proc.call`
+  [#27](https://github.com/lihaoyi/os-lib/issues/27)
+
+- Attempt to fix crasher accessing `os.pwd`
+  [#24](https://github.com/lihaoyi/os-lib/issues/24)
+
+- Added an `os-lib-watch` package, which can be used to efficiently
+  recursively watch folders for updates
+  [#23](https://github.com/lihaoyi/os-lib/issues/23)
+
+- `os.stat` no longer provides POSIX owner/permissions related metadata
+  by default [#15](https://github.com/lihaoyi/os-lib/issues/15), use
+  `os.stat.posix` to fetch that separately
+
+- `os.stat.full` has been superseded by `os.stat` and `os.stat.posix`
 
 ### 0.3.0
 

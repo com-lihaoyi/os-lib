@@ -184,12 +184,17 @@ object ExampleTests extends TestSuite{
     test("subPaths"){
       
       // The path "folder/file"
-      val rel1 = os.sub/'folder/'file
-      val rel2 = os.sub/'folder/'file
+      val sub1 = os.sub/'folder/'file
+      val sub2 = os.sub/'folder/'file
 
       // The relative difference between two paths
       val target = os.pwd/'out/'scratch/'file
       assert((target subRelativeTo os.pwd) == os.sub/'out/'scratch/'file)
+
+      // Converting os.RelPath to os.SubPath
+      val rel3 = os.rel/'folder/'file
+      val sub3 = rel3.asSubPath
+
 
       // `up`s are not allowed in sub paths
       intercept[Exception](os.pwd subRelativeTo target)
