@@ -37,21 +37,21 @@ object ListingWalkingTests extends TestSuite {
           wd / "folder1" / "one.txt"
         )
 
-        os.walk(wd / "folder2") ==> Seq(
+        os.walk(wd / "folder2").toSet ==> Set(
           wd / "folder2" / "nestedA",
           wd / "folder2" / "nestedA" / "a.txt",
           wd / "folder2" / "nestedB",
           wd / "folder2" / "nestedB" / "b.txt"
         )
 
-        os.walk(wd / "folder2", preOrder = false) ==> Seq(
+        os.walk(wd / "folder2", preOrder = false).toSet ==> Set(
           wd / "folder2" / "nestedA" / "a.txt",
           wd / "folder2" / "nestedA",
           wd / "folder2" / "nestedB" / "b.txt",
           wd / "folder2" / "nestedB"
         )
 
-        os.walk(wd / "folder2", maxDepth = 1) ==> Seq(
+        os.walk(wd / "folder2", maxDepth = 1).toSet ==> Set(
           wd / "folder2" / "nestedA",
           wd / "folder2" / "nestedB"
         )

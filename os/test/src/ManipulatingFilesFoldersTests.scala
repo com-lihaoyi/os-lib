@@ -38,7 +38,7 @@ object ManipulatingFilesFoldersTests extends TestSuite {
       test("matching"){
         test - prep{ wd =>
           import os.{GlobSyntax, /}
-          os.walk(wd / "folder2") ==> Seq(
+          os.walk(wd / "folder2").toSet ==> Set(
             wd / "folder2" / "nestedA",
             wd / "folder2" / "nestedA" / "a.txt",
             wd / "folder2" / "nestedB",
@@ -47,7 +47,7 @@ object ManipulatingFilesFoldersTests extends TestSuite {
 
           os.walk(wd/'folder2).collect(os.move.matching{case p/g"$x.txt" => p/g"$x.data"})
 
-          os.walk(wd / "folder2") ==> Seq(
+          os.walk(wd / "folder2").toSet ==> Set(
             wd / "folder2" / "nestedA",
             wd / "folder2" / "nestedA" / "a.data",
             wd / "folder2" / "nestedB",
