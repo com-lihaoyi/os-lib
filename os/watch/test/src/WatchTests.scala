@@ -8,41 +8,48 @@ object WatchTests extends TestSuite{
       val changedPaths = collection.mutable.Set.empty[os.Path]
       _root_.os.watch.watch(
         Seq(wd),
-        onEvent = _.foreach(changedPaths.add)
+        onEvent = _.foreach(changedPaths.add),
+//        (s, v) => println(s + " " + v)
       )
+
+      os.write(wd / "lols", "")
+      Thread.sleep(100)
+
+      changedPaths.clear()
 
       def checkFileManglingChanges(p: os.Path) = {
 
         checkChanges(
           os.write(p, ""),
-          Set(p)
+          Set(p.subRelativeTo(wd))
         )
 
         checkChanges(
           os.write.append(p, "hello"),
-          Set(p)
+          Set(p.subRelativeTo(wd))
         )
 
         checkChanges(
           os.write.over(p, "world"),
-          Set(p)
+          Set(p.subRelativeTo(wd))
         )
 
         checkChanges(
           os.truncate(p, 1),
-          Set(p)
+          Set(p.subRelativeTo(wd))
         )
 
         checkChanges(
           os.remove(p),
-          Set(p)
+          Set(p.subRelativeTo(wd))
         )
       }
-      def checkChanges(action: => Unit, expectedChangedPaths: Set[os.Path]) = {
+      def checkChanges(action: => Unit, expectedChangedPaths: Set[os.SubPath]) = {
 
         action
-        Thread.sleep(100)
-        assert(expectedChangedPaths == changedPaths)
+        Thread.sleep(200)
+        val changedSubPaths = changedPaths.map(_.subRelativeTo(wd))
+        assert(expectedChangedPaths == changedSubPaths)
         changedPaths.clear()
       }
 
@@ -50,12 +57,12 @@ object WatchTests extends TestSuite{
 
       checkChanges(
         os.remove(wd / "File.txt"),
-        Set(wd / "File.txt")
+        Set(os.sub / "File.txt")
       )
 
       checkChanges(
         os.makeDir(wd / "my-new-folder"),
-        Set(wd / "my-new-folder")
+        Set(os.sub / "my-new-folder")
       )
 
       checkFileManglingChanges(wd / "my-new-folder" / "test")
@@ -63,35 +70,35 @@ object WatchTests extends TestSuite{
       checkChanges(
         os.move(wd / "folder2", wd / "folder3"),
         Set(
-          wd / "folder2",
-          wd / "folder3",
+          os.sub / "folder2",
+          os.sub / "folder3",
 
-          wd / "folder3" / "nestedA",
-          wd / "folder3" / "nestedA" / "a.txt",
-          wd / "folder3" / "nestedB",
-          wd / "folder3" / "nestedB" / "b.txt",
+          os.sub / "folder3" / "nestedA",
+          os.sub / "folder3" / "nestedA" / "a.txt",
+          os.sub / "folder3" / "nestedB",
+          os.sub / "folder3" / "nestedB" / "b.txt",
         )
       )
 
       checkChanges(
         os.copy(wd / "folder3", wd / "folder4"),
         Set(
-          wd / "folder4",
-          wd / "folder4" / "nestedA",
-          wd / "folder4" / "nestedA" / "a.txt",
-          wd / "folder4" / "nestedB",
-          wd / "folder4" / "nestedB" / "b.txt"
+          os.sub / "folder4",
+          os.sub / "folder4" / "nestedA",
+          os.sub / "folder4" / "nestedA" / "a.txt",
+          os.sub / "folder4" / "nestedB",
+          os.sub / "folder4" / "nestedB" / "b.txt"
         )
       )
 
       checkChanges(
         os.remove.all(wd / "folder4"),
         Set(
-          wd / "folder4",
-          wd / "folder4" / "nestedA",
-          wd / "folder4" / "nestedA" / "a.txt",
-          wd / "folder4" / "nestedB",
-          wd / "folder4" / "nestedB" / "b.txt"
+          os.sub / "folder4",
+          os.sub / "folder4" / "nestedA",
+          os.sub / "folder4" / "nestedA" / "a.txt",
+          os.sub / "folder4" / "nestedB",
+          os.sub / "folder4" / "nestedB" / "b.txt"
         )
       )
 
@@ -100,21 +107,25 @@ object WatchTests extends TestSuite{
 
       checkChanges(
         os.symlink(wd / "newlink", wd / "doesntexist"),
-        Set(wd / "newlink")
+        Set(os.sub / "newlink")
       )
 
       checkChanges(
         os.symlink(wd / "newlink2", wd / "folder3"),
-        Set(wd / "newlink2")
+        Set(os.sub / "newlink2")
       )
 
       checkChanges(
         os.hardlink(wd / "newlink3", wd / "folder3" / "nestedA" / "a.txt"),
-        Set(
-          wd / "newlink3",
-          wd / "folder3" / "nestedA",
-          wd / "folder3" / "nestedA" / "a.txt",
-        )
+        System.getProperty("os.name") match{
+          case "Linux" => Set(os.sub / "newlink3")
+          case "Mac OS X" =>
+            Set(
+              os.sub / "newlink3",
+              os.sub / "folder3" / "nestedA",
+              os.sub / "folder3" / "nestedA" / "a.txt",
+            )
+        }
       )
     }}
   }

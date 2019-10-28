@@ -20,6 +20,9 @@ class FSEventsWatcher(srcs: Seq[os.Path],
       logger("FSEVENT", pathStrings)
       val paths = pathStrings.map(os.Path(_))
       val nestedPaths = collection.mutable.Buffer.empty[os.Path]
+      // When folders are moved, OS-X does not emit file events for all sub-paths
+      // within the new folder, so we are forced to walk that folder and emit the
+      // paths ourselves
       for(p <- paths){
         if (!os.isDir(p, followLinks = false)) existingFolders.remove(p)
         else {

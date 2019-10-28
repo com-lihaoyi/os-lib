@@ -29,7 +29,7 @@ object OpTests extends TestSuite{
       intercept[java.nio.file.NoSuchFileException](os.walk(os.pwd/'out/'scratch/'nonexistent))
       assert(
         os.walk(res/'folder2/'nestedB) == Seq(res/'folder2/'nestedB/"b.txt"),
-        os.walk(res/'folder2) == Seq(
+        os.walk(res/'folder2).toSet == Set(
           res/'folder2/'nestedA,
           res/'folder2/'nestedA/"a.txt",
           res/'folder2/'nestedB,

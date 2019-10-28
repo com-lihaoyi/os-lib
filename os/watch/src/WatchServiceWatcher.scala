@@ -90,14 +90,17 @@ class WatchServiceWatcher(roots: Seq[os.Path],
           }
         })()
 
-        recursiveWatches()
-        triggerListener()
-
-        // cleanup stale watches
+        // cleanup stale watches, but do so before we register new ones
+        // because when folders are moved, the old watch is moved as well
+        // and we need to make sure we re-register the watch after disabling
+        // it due to the old file path within the old folder no longer existing
         for(p <- currentlyWatchedPaths.keySet if !os.isDir(p, followLinks = false)){
           logger("WATCH CANCEL", p)
           currentlyWatchedPaths.remove(p).foreach(_.cancel())
         }
+
+        recursiveWatches()
+        triggerListener()
       }
 
     } catch {
@@ -120,6 +123,7 @@ class WatchServiceWatcher(roots: Seq[os.Path],
   }
 
   private def triggerListener(): Unit = {
+    logger("TRIGGER", bufferedEvents.toSet)
     onEvent(bufferedEvents.toSet)
     bufferedEvents.clear()
   }
