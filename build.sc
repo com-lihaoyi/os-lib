@@ -1,7 +1,7 @@
 import mill._, scalalib._, publish._
 
 trait OsLibModule extends CrossScalaModule with PublishModule{
-  def publishVersion = "0.4.0"
+  def publishVersion = "0.4.1"
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "com.lihaoyi",

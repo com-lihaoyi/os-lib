@@ -253,7 +253,6 @@ object Shellable{
     Shellable(s.flatMap(f(_).value))
 }
 
-
 /**
   * The result from doing an system `stat` on a particular path.
   *
@@ -261,40 +260,11 @@ object Shellable{
   *
   * If you want more information, use `stat.full`
   */
-case class BasicStatInfo(size: Long,
-                         mtime: FileTime,
-                         ctime: FileTime,
-                         atime: FileTime,
-                         fileType: FileType){
-  def isDir = fileType == FileType.Dir
-  def isSymLink = fileType == FileType.SymLink
-  def isFile = fileType == FileType.File
-}
-object BasicStatInfo{
-
-  def make(attrs: BasicFileAttributes) = {
-    new BasicStatInfo(
-      attrs.size(),
-      attrs.lastModifiedTime(),
-      attrs.lastAccessTime(),
-      attrs.creationTime(),
-      if (attrs.isRegularFile) FileType.File
-      else if (attrs.isDirectory) FileType.Dir
-      else if (attrs.isSymbolicLink) FileType.SymLink
-      else if (attrs.isOther) FileType.Other
-      else ???
-    )
-  }
-}
-
-/**
-  * The result from doing an system `stat` on a particular path.
-  *
-  * Created via `stat! filePath`.
-  *
-  * If you want more information, use `stat.full`
-  */
-case class StatInfo(size: Long, mtime: FileTime, fileType: FileType){
+case class StatInfo(size: Long,
+                    mtime: FileTime,
+                    ctime: FileTime,
+                    atime: FileTime,
+                    fileType: FileType){
   def isDir = fileType == FileType.Dir
   def isSymLink = fileType == FileType.SymLink
   def isFile = fileType == FileType.File
@@ -305,6 +275,8 @@ object StatInfo{
     new StatInfo(
       attrs.size(),
       attrs.lastModifiedTime(),
+      attrs.lastAccessTime(),
+      attrs.creationTime(),
       if (attrs.isRegularFile) FileType.File
       else if (attrs.isDirectory) FileType.Dir
       else if (attrs.isSymbolicLink) FileType.SymLink

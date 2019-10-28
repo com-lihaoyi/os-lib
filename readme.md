@@ -1,4 +1,4 @@
-# OS-Lib 0.4.0 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
+# OS-Lib 0.4.1 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
 
 [travis-badge]: https://travis-ci.org/lihaoyi/os-lib.svg
 [travis-link]: https://travis-ci.org/lihaoyi/os-lib
@@ -147,9 +147,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.4.0"
+"com.lihaoyi" %% "os-lib" % "0.4.1"
 // Mill
-ivy"com.lihaoyi::os-lib:0.4.0"
+ivy"com.lihaoyi::os-lib:0.4.1"
 ```
 
 ## Cookbook
@@ -633,18 +633,18 @@ os.walk(wd / "folder2", skip = _.last == "nestedA") ==> Seq(
 
 ```scala
 os.walk.attrs(path: Path,
-              skip: (Path, os.BasicStatInfo) => Boolean = (_, _) => false,
+              skip: (Path, os.StatInfo) => Boolean = (_, _) => false,
               preOrder: Boolean = true,
               followLinks: Boolean = false,
               maxDepth: Int = Int.MaxValue,
-              includeTarget: Boolean = false): IndexedSeq[(Path, os.BasicStatInfo)]
+              includeTarget: Boolean = false): IndexedSeq[(Path, os.StatInfo)]
 ```
 
-Similar to [os.walk](#oswalk), except it also provides the `os.BasicStatInfo`
+Similar to [os.walk](#oswalk), except it also provides the `os.StatInfo`
 filesystem metadata of every path that it returns. Can save time by allowing you
-to avoid querying the filesystem for metadata later. Note that
-`os.BasicStatInfo` does not include filesystem ownership and permissions data;
-use `os.stat` on the path if you need those attributes.
+to avoid querying the filesystem for metadata later. Note that `os.StatInfo`
+does not include filesystem ownership and permissions data; use `os.stat.posix` on
+the path if you need those attributes.
 
 ```scala
 val filesSortedBySize = os.walk.attrs(wd / "misc", followLinks = true)
@@ -689,11 +689,11 @@ os.walk.stream(wd / "folder2", skip = _.last == "nestedA").count() ==> 2
 
 ```scala
 os.walk.stream.attrs(path: Path,
-                     skip: (Path, os.BasicStatInfo) => Boolean = (_, _) => false,
+                     skip: (Path, os.StatInfo) => Boolean = (_, _) => false,
                      preOrder: Boolean = true,
                      followLinks: Boolean = false,
                      maxDepth: Int = Int.MaxValue,
-                     includeTarget: Boolean = false): os.Generator[(Path, os.BasicStatInfo)]
+                     includeTarget: Boolean = false): os.Generator[(Path, os.StatInfo)]
 ```
 
 Similar to [os.walk.stream](#oswalkstream), except it also provides the filesystem
@@ -1972,7 +1972,7 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
-### 0.4.0
+### 0.4.1
 
 - Added a new [os.SubPath](#ossubpath) data type, for safer handling of
   sub-paths within a directory.
@@ -1999,6 +1999,8 @@ string, int or set representations of the `os.PermSet` via:
   `os.stat.posix` to fetch that separately
 
 - `os.stat.full` has been superseded by `os.stat` and `os.stat.posix`
+
+- Removed `os.BasicStatInfo`, which has been superseded by `os.StatInfo`
 
 ### 0.3.0
 
