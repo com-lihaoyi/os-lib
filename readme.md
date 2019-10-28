@@ -138,6 +138,7 @@ Or browse the documentation:
 - [Data Types](#data-types)
     - [os.Path](#ospath)
         - [os.RelPath](#osrelpath)
+        - [os.SubPath](#ossubpath)
         - [os.ResourcePath](#osresourcepath)
     - [os.Source](#ossource)
     - [os.Generator](#osgenerator)
