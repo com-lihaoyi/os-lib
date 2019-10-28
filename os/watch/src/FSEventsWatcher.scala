@@ -7,7 +7,8 @@ class FSEventsWatcher(srcs: Seq[os.Path],
                       logger: (String, Any) => Unit = (_, _) => (),
                       latency: Double) extends Watcher{
   private[this] var closed = false
-  val callback = new FSEventStreamCallback{
+  private[this] val existingFolders = collection.mutable.Set.empty[os.Path]
+  private[this] val callback = new FSEventStreamCallback{
     def invoke(streamRef: FSEventStreamRef,
                clientCallBackInfo: Pointer,
                numEvents: NativeLong,
@@ -15,13 +16,23 @@ class FSEventsWatcher(srcs: Seq[os.Path],
                eventFlags: Pointer,
                eventIds: Pointer) = {
       val length = numEvents.intValue
-      val p = eventPaths.getStringArray(0, length)
-      logger("FSEVENT", p)
-      onEvent(p.map(os.Path(_)).toSet)
+      val pathStrings = eventPaths.getStringArray(0, length)
+      logger("FSEVENT", pathStrings)
+      val paths = pathStrings.map(os.Path(_))
+      val nestedPaths = collection.mutable.Buffer.empty[os.Path]
+      for(p <- paths){
+        if (!os.isDir(p, followLinks = false)) existingFolders.remove(p)
+        else {
+          existingFolders.add(p)
+          try os.walk.stream(p).foreach(nestedPaths.append(_))
+          catch{case e: Throwable => /*do nothing*/}
+        }
+      }
+      onEvent((paths ++ nestedPaths).toSet)
     }
   }
 
-  val streamRef = CarbonApi.INSTANCE.FSEventStreamCreate(
+  private[this] val streamRef = CarbonApi.INSTANCE.FSEventStreamCreate(
     Pointer.NULL,
     callback,
     Pointer.NULL,
@@ -46,7 +57,7 @@ class FSEventsWatcher(srcs: Seq[os.Path],
     0x00000002
   )
 
-  var current: CFRunLoopRef = null
+  private[this] var current: CFRunLoopRef = null
 
   def start() = {
     assert(!closed)
