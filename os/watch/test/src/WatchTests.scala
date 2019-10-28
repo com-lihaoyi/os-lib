@@ -12,8 +12,8 @@ object WatchTests extends TestSuite{
 //        (s, v) => println(s + " " + v)
       )
 
-      os.write(wd / "lols", "")
-      Thread.sleep(100)
+//      os.write(wd / "lols", "")
+//      Thread.sleep(100)
 
       changedPaths.clear()
 

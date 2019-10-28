@@ -62,7 +62,7 @@ class FSEventsWatcher(srcs: Seq[os.Path],
 
   private[this] var current: CFRunLoopRef = null
 
-  def start() = {
+  def run() = {
     assert(!closed)
     CarbonApi.INSTANCE.FSEventStreamScheduleWithRunLoop(
       streamRef,

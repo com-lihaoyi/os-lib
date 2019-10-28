@@ -26,6 +26,7 @@ class WatchServiceWatcher(roots: Seq[os.Path],
   roots.foreach(watchSinglePath)
   recursiveWatches()
 
+  bufferedEvents.clear()
   def watchSinglePath(p: os.Path) = {
     val isDir = os.isDir(p, followLinks = false)
     logger("WATCH", (p, isDir))
@@ -73,7 +74,7 @@ class WatchServiceWatcher(roots: Seq[os.Path],
     }
   }
 
-  def start(): Unit = {
+  def run(): Unit = {
     while (isRunning.get()) try {
       logger("WATCH CURRENT", currentlyWatchedPaths)
       val watchKey0 = nioWatchService.take()

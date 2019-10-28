@@ -1,4 +1,4 @@
-# OS-Lib 0.4.1 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
+# OS-Lib 0.4.2 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
 
 [travis-badge]: https://travis-ci.org/lihaoyi/os-lib.svg
 [travis-link]: https://travis-ci.org/lihaoyi/os-lib
@@ -131,6 +131,10 @@ Or browse the documentation:
     - [os.proc.call](#osproccall)
     - [os.proc.spawn](#osprocspawn)
 
+    Watching for Changes
+
+  -   [os.watch.watch](#oswatchwatch)
+
 - [Data Types](#data-types)
     - [os.Path](#ospath)
         - [os.RelPath](#osrelpath)
@@ -147,9 +151,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.4.1"
+"com.lihaoyi" %% "os-lib" % "0.4.2"
 // Mill
-ivy"com.lihaoyi::os-lib:0.4.1"
+ivy"com.lihaoyi::os-lib:0.4.2"
 ```
 
 ## Cookbook
@@ -1563,6 +1567,47 @@ val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
 sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
 ```
 
+
+### Watching for Changes
+#### os.watch.watch
+
+```scala
+os.watch.watch(roots: Seq[os.Path], onEvent: Set[os.Path] => Unit): Unit
+```
+```scala
+// SBT
+"com.lihaoyi" %% "os-lib-watch" % "0.4.2"
+// Mill
+ivy"com.lihaoyi::os-lib-watch:0.4.2"
+```
+
+Efficiently watches the given `roots` folders for changes. Any time the
+filesystem is modified within those folders, the `onEvent` callback is
+called with the paths to the changed files or folders. Note that
+`os.watch.watch` is under a different artifact than the rest of the
+`os.*` functions, and you need to add a separate dependency to
+`os-lib-watch` in order to pull it in.
+
+Once the call to `watch` returns, `onEvent` is guaranteed to receive a
+an event containing the path for:
+
+- Every file or folder that gets created, deleted, updated or moved
+  within the watched folders
+
+- For copied or moved folders, the path of the new folder as well as
+  every file or folder within it.
+
+- For deleted or moved folders, the root folder which was deleted/moved,
+  but *without* the paths of every file that was within it at the
+  original location
+
+Note that `watch` does not provide any additional information about the
+changes happening within the watched roots folder, apart from the path
+at which the change happened. It is up to the `onEvent` handler to query
+the filesystem and figure out what happened, and what it wants to do.
+
+`watch` currently only supports Linux and Mac-OSX, and not Windows.
+
 ## Data Types
 
 ### os.Path
@@ -1972,7 +2017,7 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
-### 0.4.1
+### 0.4.2
 
 - Added a new [os.SubPath](#ossubpath) data type, for safer handling of
   sub-paths within a directory.
@@ -1990,8 +2035,8 @@ string, int or set representations of the `os.PermSet` via:
 - Attempt to fix crasher accessing `os.pwd`
   [#24](https://github.com/lihaoyi/os-lib/issues/24)
 
-- Added an `os-lib-watch` package, which can be used to efficiently
-  recursively watch folders for updates
+- Added an [os-lib-watch](#oswatchwatch) package, which can be used to
+  efficiently recursively watch folders for updates
   [#23](https://github.com/lihaoyi/os-lib/issues/23)
 
 - `os.stat` no longer provides POSIX owner/permissions related metadata
