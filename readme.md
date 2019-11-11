@@ -1607,7 +1607,29 @@ changes happening within the watched roots folder, apart from the path
 at which the change happened. It is up to the `onEvent` handler to query
 the filesystem and figure out what happened, and what it wants to do.
 
+Here is an example of use from the Ammonite REPL:
+
+```scala
+@ import $ivy.`com.lihaoyi::os-lib-watch:0.4.2`
+
+@ os.watch.watch(Seq(os.pwd / "out"), paths => println("paths changed: " + paths.mkString(", ")))
+
+@ os.write(os.pwd / "out" / "i am", "cow")
+
+paths changed: /Users/lihaoyi/Github/Ammonite/out/i am
+
+@ os.move(os.pwd / "out"/ "i am", os.pwd / "out" / "hear me")
+
+paths changed: /Users/lihaoyi/Github/Ammonite/out/i am,/Users/lihaoyi/Github/Ammonite/out/hear me
+
+@ os.remove.all(os.pwd / "out" / "version")
+
+paths changed: /Users/lihaoyi/Github/Ammonite/out/version/log,/Users/lihaoyi/Github/Ammonite/out/version/meta.json,/Users/lihaoyi/Github/Ammonite/out/version
+```
+
+
 `watch` currently only supports Linux and Mac-OSX, and not Windows.
+
 
 ## Data Types
 
