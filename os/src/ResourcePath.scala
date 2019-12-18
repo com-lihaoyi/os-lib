@@ -16,12 +16,11 @@ object ResourcePath{
   */
 class ResourcePath private[os](val resRoot: ResourceRoot, segments0: Array[String])
   extends BasePathImpl with ReadablePath with SegmentedPath {
-  def toSource = new Source.InputStreamSource(
-    resRoot.getResourceAsStream(segments.mkString("/")) match{
-      case null => throw ResourceNotFoundException(this)
-      case stream => stream
-    }
-  )
+  def getInputStream = resRoot.getResourceAsStream(segments.mkString("/")) match{
+    case null => throw ResourceNotFoundException(this)
+    case stream => stream
+  }
+  def toSource = new Source.WritableSource(getInputStream)
   val segments: IndexedSeq[String] = segments0
   type ThisType = ResourcePath
   def last = segments0.last

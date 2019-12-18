@@ -414,6 +414,7 @@ object Path {
 
 trait ReadablePath{
   def toSource: os.Source
+  def getInputStream: java.io.InputStream
 }
 
 /**
@@ -469,6 +470,8 @@ class Path private[os](val wrapped: java.nio.file.Path)
   def toNIO: java.nio.file.Path = wrapped
 
   def resolveFrom(base: os.Path) = this
+
+  def getInputStream = java.nio.file.Files.newInputStream(wrapped)
 }
 
 sealed trait PathConvertible[T]{

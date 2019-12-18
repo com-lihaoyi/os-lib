@@ -182,7 +182,7 @@ object ProcessInput{
 
     def processInput(stdin: => SubProcess.InputStream): Option[Runnable] = Some{
       new Runnable{def run() = {
-        os.Internals.transfer(r.getInputStream(), stdin)
+        r.writeBytesTo(stdin)
         stdin.close()
       }}
     }

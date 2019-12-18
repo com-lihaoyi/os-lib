@@ -1,4 +1,4 @@
-# OS-Lib 0.4.2 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
+# OS-Lib 0.5.0 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
 
 [travis-badge]: https://travis-ci.org/lihaoyi/os-lib.svg
 [travis-link]: https://travis-ci.org/lihaoyi/os-lib
@@ -152,9 +152,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.4.2"
+"com.lihaoyi" %% "os-lib" % "0.5.0"
 // Mill
-ivy"com.lihaoyi::os-lib:0.4.2"
+ivy"com.lihaoyi::os-lib:0.5.0"
 ```
 
 ## Cookbook
@@ -1982,9 +1982,10 @@ can provide data which you can then use to write, transmit, etc.
 By default, the following types of values can be used where-ever `os.Source`s
 are required:
 
-- `Array[Byte]`
-- `java.lang.String` (these are treated as UTF-8)
-- `java.io.InputStream`
+- Any `geny.Writable` data type:
+    - `Array[Byte]`
+    - `java.lang.String` (these are treated as UTF-8)
+    - `java.io.InputStream`
 - `java.nio.channels.SeekableByteChannel`
 - Any `TraversableOnce[T]` of the above: e.g. `Seq[String]`,
   `List[Array[Byte]]`, etc.
@@ -2039,6 +2040,10 @@ string, int or set representations of the `os.PermSet` via:
 - `perms.value: Set[PosixFilePermission]`
 
 ## Changelog
+
+### 0.5.0
+
+- `os.Source` now supports any data type that is `geny.Writable`
 
 ### 0.4.2
 

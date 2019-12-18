@@ -1,7 +1,13 @@
 package os
 
 import java.io.{ByteArrayInputStream, InputStream, OutputStream, SequenceInputStream}
-import java.nio.channels.{Channels, FileChannel, ReadableByteChannel, SeekableByteChannel}
+import java.nio.channels.{
+  Channels,
+  FileChannel,
+  ReadableByteChannel,
+  SeekableByteChannel,
+  WritableByteChannel
+}
 
 
 /**
@@ -9,40 +15,55 @@ import java.nio.channels.{Channels, FileChannel, ReadableByteChannel, SeekableBy
   * [[SeekableByteChannel]] to read from. Can be constructed implicitly from
   * strings, byte arrays, inputstreams, channels or file paths
   */
-trait Source{
-  def getInputStream(): java.io.InputStream = getHandle match{
-    case Left(is) => is
-    case Right(bc) => Channels.newInputStream(bc)
+trait Source extends geny.Writable{
+  def getHandle(): Either[geny.Writable, SeekableByteChannel]
+  def writeBytesTo(out: java.io.OutputStream) = getHandle() match{
+    case Left(bs) => bs.writeBytesTo(out)
+
+    case Right(channel: FileChannel) =>
+      val outChannel = Channels.newChannel(out)
+      channel.transferTo(0, Long.MaxValue, outChannel)
+
+    case Right(channel) =>
+      val inChannel = Channels.newInputStream(channel)
+      Internals.transfer(inChannel, out)
   }
-  def getHandle(): Either[java.io.InputStream, SeekableByteChannel]
+  def writeBytesTo(out: WritableByteChannel) = getHandle() match{
+    case Left(bs) => bs.writeBytesTo(Channels.newOutputStream(out))
+
+    case Right(channel) =>
+      (channel, out) match {
+        case (src: FileChannel, dest) => src.transferTo(0, Long.MaxValue, dest)
+        case (src, dest: FileChannel) => dest.transferFrom(dest, 0, Long.MaxValue)
+        case (src, dest) =>
+          Internals.transfer(Channels.newInputStream(src), Channels.newOutputStream(dest))
+      }
+
+  }
 }
 
 object Source extends WritableLowPri{
   implicit class ChannelSource(cn: SeekableByteChannel) extends Source{
     def getHandle() = Right(cn)
   }
-  implicit class InputStreamSource(is: InputStream) extends Source{
-    def getHandle() = Left(is)
-  }
 
-  implicit def StringSource(s: String) = new Source{
-    def getHandle() = Left(new ByteArrayInputStream(s.getBytes("UTF-8")))
-  }
-  implicit def BytesSource(a: Array[Byte]): Source = new Source{
-    def getHandle() = Left(new ByteArrayInputStream(a))
+  implicit class WritableSource[T](s: T)(implicit f: T => geny.Writable) extends Source{
+    def getHandle() = Left(f(s))
   }
 }
+
 trait WritableLowPri {
   implicit def WritableGenerator[M[_], T](a: M[T])
-                                         (implicit f: T => Source,
+                                         (implicit f: T => geny.Writable,
                                           g: M[T] => TraversableOnce[T]) = {
     new Source {
-      def getHandle() = Left{
-        import collection.JavaConverters._
-        new SequenceInputStream(
-          g(a).map(i => (f(i).getInputStream())).toIterator.asJavaEnumeration
-        )
-      }
+      def getHandle() = Left(
+        new geny.Writable{
+          def writeBytesTo(out: java.io.OutputStream) = {
+            for(x <- g(a)) x.writeBytesTo(out)
+          }
+        }
+      )
     }
   }
 }
@@ -51,7 +72,7 @@ trait WritableLowPri {
   * A source which is guaranteeds to provide a [[SeekableByteChannel]]
   */
 trait SeekableSource extends Source{
-  def getHandle(): Right[java.io.InputStream, SeekableByteChannel]
+  def getHandle(): Right[geny.Writable, SeekableByteChannel]
   def getChannel() = getHandle.right.get
 }
 
