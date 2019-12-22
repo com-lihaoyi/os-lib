@@ -1996,6 +1996,12 @@ be used where `os.SeekableSource` is required:
 
 - `java.nio.channels.SeekableByteChannel`
 
+`os.Source` also supports anything that implements the
+[Writable](https://github.com/lihaoyi/geny#writable) interface, such as
+[ujson.Value](http://www.lihaoyi.com/upickle/#uJson)s,
+[uPickle](http://www.lihaoyi.com/upickle)'s `upickle.default.writable` values,
+or [Scalatags](http://www.lihaoyi.com/scalatags/)'s `Tag`s
+
 You can also convert an `os.Path` or `os.ResourcePath` to an `os.Source` via
 `.toSource`.
 
