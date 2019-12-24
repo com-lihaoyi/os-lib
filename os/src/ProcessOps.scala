@@ -59,18 +59,18 @@ case class proc(command: Shellable*) {
            propagateEnv: Boolean = true)
             : CommandResult = {
 
-    val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[Bytes, Bytes]]
+    val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
 
     val sub = spawn(
       cwd, env,
       stdin,
       if (stdout ne os.Pipe) stdout
       else os.ProcessOutput.ReadBytes(
-        (buf, n) => chunks.add(Left(new Bytes(java.util.Arrays.copyOf(buf, n))))
+        (buf, n) => chunks.add(Left(new geny.Bytes(java.util.Arrays.copyOf(buf, n))))
       ),
       if (stderr ne os.Pipe) stderr
       else os.ProcessOutput.ReadBytes(
-        (buf, n) => chunks.add(Right(new Bytes(java.util.Arrays.copyOf(buf, n))))
+        (buf, n) => chunks.add(Right(new geny.Bytes(java.util.Arrays.copyOf(buf, n))))
       ),
       mergeErrIntoOut,
       propagateEnv

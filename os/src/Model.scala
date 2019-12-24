@@ -155,17 +155,6 @@ case class PermSet(value: Int) {
   }
 }
 
-
-/**
-  * Trivial wrapper around `Array[Byte]` with sane equality and useful toString
-  */
-class Bytes(val array: Array[Byte]){
-  override def equals(other: Any) = other match{
-    case otherBytes: Bytes => java.util.Arrays.equals(array, otherBytes.array)
-    case _ => false
-  }
-  override def toString = new String(array, java.nio.charset.StandardCharsets.UTF_8)
-}
 /**
   * Contains the accumulated output for the invocation of a subprocess command.
   *
@@ -179,19 +168,19 @@ class Bytes(val array: Array[Byte]){
   * the aggregate output of each stream, as bytes or strings or lines.
   */
 case class CommandResult(exitCode: Int,
-                         chunks: Seq[Either[Bytes, Bytes]]) {
+                         chunks: Seq[Either[geny.Bytes, geny.Bytes]]) {
   /**
     * The standard output and error of the executed command, exposed in a
     * number of ways for convenient access
     */
   val (out, err) = {
-    val outChunks = collection.mutable.Buffer.empty[Bytes]
-    val errChunks = collection.mutable.Buffer.empty[Bytes]
+    val outChunks = collection.mutable.Buffer.empty[geny.Bytes]
+    val errChunks = collection.mutable.Buffer.empty[geny.Bytes]
     chunks.foreach{
       case Left(s) => outChunks.append(s)
       case Right(s) => errChunks.append(s)
     }
-    (StreamValue.ChunkStreamValue(outChunks.toSeq), StreamValue.ChunkStreamValue(errChunks.toSeq))
+    (geny.Readable.Chunks(outChunks.toSeq), geny.Readable.Chunks(errChunks.toSeq))
   }
 
   override def toString() = {
@@ -212,27 +201,6 @@ case class CommandResult(exitCode: Int,
   */
 case class SubprocessException(result: CommandResult) extends Exception(result.toString)
 
-/**
-  * Encapsulates one of the output streams from a subprocess and provides
-  * convenience methods for accessing it in a variety of forms
-  */
-trait StreamValue{
-  def bytes: Array[Byte]
-
-  def string: String = string(StandardCharsets.UTF_8)
-  def string(codec: Codec): String = new String(bytes, codec.charSet)
-
-  def trim: String = string.trim
-  def trim(codec: Codec): String = string(codec).trim
-
-  def lines: Vector[String] = Predef.augmentString(string).lines.toVector
-  def lines(codec: Codec): Vector[String] = Predef.augmentString(string(codec)).lines.toVector
-}
-object StreamValue{
-  case class ChunkStreamValue(chunks: Seq[Bytes]) extends StreamValue{
-    def bytes = chunks.iterator.map(_.array).toArray.flatten
-  }
-}
 /**
   * An implicit wrapper defining the things that can
   * be "interpolated" directly into a subprocess call.
