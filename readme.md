@@ -2047,6 +2047,11 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
+### 0.6.0
+
+- Moved the `os.Bytes`, `os.StreamValue` interfaces into `geny` package, for
+  sharing with Requests-Scala
+
 ### 0.5.0
 
 - `os.Source` now supports any data type that is `geny.Writable`
