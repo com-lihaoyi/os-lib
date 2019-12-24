@@ -180,7 +180,7 @@ case class CommandResult(exitCode: Int,
       case Left(s) => outChunks.append(s)
       case Right(s) => errChunks.append(s)
     }
-    (geny.Readable.Chunks(outChunks.toSeq), geny.Readable.Chunks(errChunks.toSeq))
+    (geny.ByteData.Chunks(outChunks.toSeq), geny.ByteData.Chunks(errChunks.toSeq))
   }
 
   override def toString() = {

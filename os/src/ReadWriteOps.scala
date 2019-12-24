@@ -231,6 +231,12 @@ object read extends Function1[ReadablePath, String]{
     def apply(p: ReadablePath): java.io.InputStream = p.getInputStream
   }
 
+  object stream extends Function1[ReadablePath, geny.Readable]{
+    def apply(p: ReadablePath): geny.Readable = new geny.Readable{
+      def readBytesThrough(f: java.io.InputStream => Unit): Unit = f(p.getInputStream)
+    }
+  }
+
   /**
     * Opens a [[SeekableByteChannel]] to read from the given file.
     */

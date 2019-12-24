@@ -129,7 +129,7 @@ object SubProcess{
     * overhead, you can use the underlying [[wrapped]] stream directly
     */
   class OutputStream(val wrapped: java.io.InputStream)
-  extends java.io.InputStream with DataInput with geny.Readable {
+  extends java.io.InputStream with DataInput with geny.ByteData {
     val data = new DataInputStream(wrapped)
     val buffered = new BufferedReader(new InputStreamReader(wrapped))
 
