@@ -1,4 +1,4 @@
-# OS-Lib 0.5.0 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
+# OS-Lib 0.6.0 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
 
 [travis-badge]: https://travis-ci.org/lihaoyi/os-lib.svg
 [travis-link]: https://travis-ci.org/lihaoyi/os-lib
@@ -152,9 +152,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.5.0"
+"com.lihaoyi" %% "os-lib" % "0.6.0"
 // Mill
-ivy"com.lihaoyi::os-lib:0.5.0"
+ivy"com.lihaoyi::os-lib:0.6.0"
 ```
 
 ## Cookbook
