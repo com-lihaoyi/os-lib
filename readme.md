@@ -402,6 +402,27 @@ is.read() ==> -1
 is.close()
 ```
 
+#### os.read.stream
+
+```scala
+os.read.stream(p: ReadablePath): geny.Readable
+```
+
+Opens a [geny.Readable](https://github.com/lihaoyi/geny#readable) to read from
+the given file. This allows you to stream data to any other library that
+supports `Readable` without buffering the data in memory, e.g. parsing it via
+FastParse, deserializing it via uPickle, uploadin it via Requests-Scala, etc.
+
+```scala
+val readable: geny.Readable = os.read.read(wd / "File.json")
+
+requests.post("https://httpbin.org/post, data = readable)
+
+upickle.default.read(readable)
+
+ujson.read(readable)
+```
+
 #### os.write
 
 ```scala
