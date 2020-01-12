@@ -48,19 +48,34 @@ object Source extends WritableLowPri{
   }
 
   implicit class WritableSource[T](s: T)(implicit f: T => geny.Writable) extends Source{
-    def getHandle() = Left(f(s))
+    val writable = f(s)
+    def getHandle() = Left(writable)
   }
 }
 
 trait WritableLowPri {
-  implicit def WritableGenerator[M[_], T](a: M[T])
-                                         (implicit f: T => geny.Writable,
-                                          g: M[T] => TraversableOnce[T]) = {
+  implicit def WritableGenerator[T](a: geny.Generator[T])(implicit f: T => geny.Writable) = {
+    val f0 = f
     new Source {
       def getHandle() = Left(
         new geny.Writable{
           def writeBytesTo(out: java.io.OutputStream) = {
-            for(x <- g(a)) x.writeBytesTo(out)
+            for(x <- a) f0(x).writeBytesTo(out)
+          }
+        }
+      )
+    }
+  }
+  implicit def WritableTraversable[M[_], T](a: M[T])
+                                         (implicit f: T => geny.Writable,
+                                          g: M[T] => TraversableOnce[T]) = {
+    val traversable = g(a)
+    val f0 = f
+    new Source {
+      def getHandle() = Left(
+        new geny.Writable{
+          def writeBytesTo(out: java.io.OutputStream) = {
+            for(x <- traversable) f0(x).writeBytesTo(out)
           }
         }
       )

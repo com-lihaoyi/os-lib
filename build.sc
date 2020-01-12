@@ -1,7 +1,7 @@
 import mill._, scalalib._, publish._
 
 trait OsLibModule extends CrossScalaModule with PublishModule{
-  def publishVersion = "0.6.2"
+  def publishVersion = "0.6.3"
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "com.lihaoyi",
@@ -21,8 +21,8 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
   def scalacPluginIvyDeps = Agg(ivy"com.lihaoyi::acyclic:0.2.0")
   trait OsLibTestModule extends Tests{
     def ivyDeps = Agg(
-      ivy"com.lihaoyi::utest::0.7.1",
-      ivy"com.lihaoyi::sourcecode::0.1.7"
+      ivy"com.lihaoyi::utest::0.7.3",
+      ivy"com.lihaoyi::sourcecode::0.2.0"
     )
 
     def testFrameworks = Seq("utest.runner.Framework")
@@ -48,7 +48,7 @@ class OsModule(val crossScalaVersion: String) extends OsLibModule{
   def artifactName = "os-lib"
 
   def ivyDeps = Agg(
-    ivy"com.lihaoyi::geny:0.4.2"
+    ivy"com.lihaoyi::geny:0.5.0"
   )
 
   object test extends OsLibTestModule
