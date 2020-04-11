@@ -1,5 +1,4 @@
-
-package object os{
+package object os extends PlatformSpecific {
   type Generator[+T] = geny.Generator[T]
   val Generator = geny.Generator
   implicit def GlobSyntax(s: StringContext): GlobInterpolator = new GlobInterpolator(s)
@@ -8,10 +7,6 @@ package object os{
    * The root of the filesystem
    */
   val root: Path = Path(java.nio.file.Paths.get(".").toAbsolutePath.getRoot)
-
-  def resource(implicit resRoot: ResourceRoot = Thread.currentThread().getContextClassLoader) ={
-    os.ResourcePath.resource(resRoot)
-  }
 
   /**
    * The user's home directory
