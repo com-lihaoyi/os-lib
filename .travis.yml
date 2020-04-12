@@ -1,8 +1,6 @@
-sudo: false
+os: linux
 language: scala
-scala:
-  - 2.12.7
-  - 2.13.0
 
 script:
-- ./mill __[$TRAVIS_SCALA_VERSION].test
+- curl https://raw.githubusercontent.com/scala-native/scala-native/master/scripts/travis_setup.sh | bash -x
+- ./mill __.test
