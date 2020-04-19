@@ -1,4 +1,64 @@
-import mill._, scalalib._, publish._
+import mill._, scalalib._, scalanativelib._, publish._
+
+val crossScalaVersions = Seq("2.12.10", "2.13.1")
+val crossNativeVersions = Seq(
+  "2.11.12" -> "0.3.9",
+  "2.11.12" -> "0.4.0-M2"
+)
+def acyclicVersion(scalaVersion: String): String = if(scalaVersion.startsWith("2.11.")) "0.1.8" else "0.2.0"
+
+object os extends Module {
+  object jvm extends Cross[OsJvmModule](crossScalaVersions:_*)
+
+  class OsJvmModule(val crossScalaVersion: String) extends OsModule {
+    def platformSegment = "jvm"
+    object test extends Tests with OsLibTestModule{
+      def platformSegment = "jvm"
+    }
+  }
+  object native extends Cross[OsNativeModule](crossNativeVersions:_*)
+  
+  class OsNativeModule(val crossScalaVersion: String, crossScalaNativeVersion: String) extends OsModule with ScalaNativeModule {
+    def platformSegment = "native"
+    def millSourcePath = super.millSourcePath / ammonite.ops.up
+    def scalaNativeVersion = crossScalaNativeVersion
+    object test extends Tests with OsLibTestModule{
+      def sources = if(scalaNativeVersion == "0.3.9") T.sources() else super.sources
+      def platformSegment = "native"
+      def nativeLinkStubs = true
+    }
+  }
+
+  object watch extends Module {
+    object jvm extends Cross[WatchJvmModule](crossScalaVersions:_*)
+    class WatchJvmModule(val crossScalaVersion: String) extends WatchModule {
+      def platformSegment = "jvm"
+      def moduleDeps = super.moduleDeps :+ os.jvm()
+      def ivyDeps = Agg(
+        ivy"net.java.dev.jna:jna:5.0.0"
+      )
+      object test extends Tests with OsLibTestModule {
+        def platformSegment = "jvm"
+        def moduleDeps = super.moduleDeps :+ os.jvm().test
+      }
+    }
+
+    /*
+    object native extends Cross[WatchNativeModule](crossNativeVersions:_*)
+    class WatchNativeModule(val crossScalaVersion: String, crossScalaNativeVersion: String) extends WatchModule with ScalaNativeModule {
+      def platformSegment = "native"
+      def millSourcePath = super.millSourcePath / ammonite.ops.up
+      def scalaNativeVersion = crossScalaNativeVersion
+      def moduleDeps = super.moduleDeps :+ os.native()
+      object test extends Tests with OsLibTestModule {
+        def platformSegment = "native"
+        def moduleDeps = super.moduleDeps :+ os.native().test
+        def nativeLinkStubs = true
+      }
+    }
+    */
+  }
+}
 
 trait OsLibModule extends CrossScalaModule with PublishModule{
   def publishVersion = "0.7.0"
@@ -16,40 +76,41 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
     )
   )
 
-  def compileIvyDeps = Agg(ivy"com.lihaoyi::acyclic:0.2.0")
+  def platformSegment: String
+  def millSourcePath = super.millSourcePath / ammonite.ops.up
+  def sources = T.sources(
+    millSourcePath / "src",
+    millSourcePath / s"src-$platformSegment"
+  )
+  def acyclicDep = T { Agg(ivy"com.lihaoyi::acyclic:${acyclicVersion(scalaVersion())}") }
+  def compileIvyDeps = acyclicDep
   def scalacOptions = Seq("-P:acyclic:force")
-  def scalacPluginIvyDeps = Agg(ivy"com.lihaoyi::acyclic:0.2.0")
-  trait OsLibTestModule extends Tests{
-    def ivyDeps = Agg(
-      ivy"com.lihaoyi::utest::0.7.3",
-      ivy"com.lihaoyi::sourcecode::0.2.0"
-    )
-
-    def testFrameworks = Seq("utest.runner.Framework")
-  }
-}
-object os extends Cross[OsModule]("2.12.7", "2.13.0"){
-  object watch extends Cross[WatchModule]("2.12.7", "2.13.0")
-  class WatchModule(val crossScalaVersion: String) extends OsLibModule{
-    def artifactName = "os-lib-watch"
-    def moduleDeps = Seq(os())
-    def ivyDeps = Agg(
-      ivy"net.java.dev.jna:jna:5.0.0"
-    )
-
-
-    object test extends OsLibTestModule {
-      def moduleDeps = super.moduleDeps ++ Seq(os().test)
-    }
-  }
+  def scalacPluginIvyDeps = acyclicDep
 
 }
-class OsModule(val crossScalaVersion: String) extends OsLibModule{
+
+trait OsLibTestModule extends ScalaModule with TestModule{
+  def ivyDeps = Agg(
+    ivy"com.lihaoyi::utest::0.7.4",
+    ivy"com.lihaoyi::sourcecode::0.2.1"
+  )
+
+  def platformSegment: String
+  def sources = T.sources(
+    millSourcePath / "src",
+    millSourcePath / s"src-$platformSegment"
+  )
+
+  def testFrameworks = Seq("utest.runner.Framework")
+}
+trait OsModule extends OsLibModule{
   def artifactName = "os-lib"
 
   def ivyDeps = Agg(
     ivy"com.lihaoyi::geny:0.6.0"
   )
+}
 
-  object test extends OsLibTestModule
+trait WatchModule extends OsLibModule{
+  def artifactName = "os-lib-watch"
 }
