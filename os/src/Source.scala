@@ -16,6 +16,7 @@ import java.nio.channels.{
   * strings, byte arrays, inputstreams, channels or file paths
   */
 trait Source extends geny.Writable{
+  override def httpContentType = Some("application/octet-stream")
   def getHandle(): Either[geny.Writable, SeekableByteChannel]
   def writeBytesTo(out: java.io.OutputStream) = getHandle() match{
     case Left(bs) => bs.writeBytesTo(out)
