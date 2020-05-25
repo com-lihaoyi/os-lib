@@ -6,6 +6,8 @@ import java.nio.{file => nio}
 
 import utest._
 import os.{GlobSyntax, /}
+import java.nio.charset.Charset
+
 object OpTestsJvmOnly extends TestSuite{
 
   val tests = Tests {
@@ -236,6 +238,10 @@ object OpTestsJvmOnly extends TestSuite{
           assert(os.read(d/"append.txt") == "Hello")
           os.write.over(d/"append.txt", " Wor")
           assert(os.read(d/"append.txt") == " Wor")
+        }
+        test("charset") {
+          os.write.over(d/"charset.txt", "funcionó".getBytes(Charset.forName("Windows-1252")))
+          assert(os.read.lines(d/"charset.txt", Charset.forName("Windows-1252")).head == "funcionó")
         }
       }
 
