@@ -10,6 +10,7 @@ import geny.Generator
 
 import scala.io.Codec
 import StandardOpenOption.{CREATE, WRITE}
+import java.io.BufferedOutputStream
 
 /**
   * Write some data to a file. This can be a String, an Array[Byte], or a
@@ -33,9 +34,11 @@ object write{
         else Array(PosixFilePermissions.asFileAttribute(perms.toSet))
       java.nio.file.Files.createFile(target.toNIO, permArray:_*)
     }
-    java.nio.file.Files.newOutputStream(
-      target.toNIO,
-      openOptions.toArray:_*
+    new BufferedOutputStream(
+      java.nio.file.Files.newOutputStream(
+        target.toNIO,
+        openOptions.toArray:_*
+      )
     )
   }
 
