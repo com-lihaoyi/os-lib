@@ -345,7 +345,7 @@ object read extends Function1[ReadablePath, String]{
         new geny.Generator[String]{
           def generate(handleItem: String => Generator.Action) = {
             val is = arg.getInputStream
-            val isr = new InputStreamReader(is)
+            val isr = new InputStreamReader(is, charSet.decoder)
             val buf = new BufferedReader(isr)
             var currentAction: Generator.Action = Generator.Continue
             var looping = true
