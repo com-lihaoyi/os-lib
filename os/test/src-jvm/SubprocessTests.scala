@@ -83,9 +83,11 @@ object SubprocessTests extends TestSuite{
     }
     test("filebased2"){
       if(Unix()){
+        val possiblePaths = Seq(root / 'bin,
+                                root / 'usr / 'bin).map { pfx => pfx / 'echo }
         val res = proc('which, 'echo).call()
         val echoRoot = Path(res.out.string.trim)
-        assert(echoRoot == root/'bin/'echo)
+        assert(possiblePaths.contains(echoRoot))
 
         assert(proc(echoRoot, 'HELLO).call().out.lines == Seq("HELLO"))
       }
