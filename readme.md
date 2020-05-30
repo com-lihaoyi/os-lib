@@ -45,7 +45,16 @@ performant way. OS-Lib has no dependencies and is unopinionated: it exposes the
 underlying APIs in a concise but straightforward way, without introducing it's
 own idiosyncrasies, quirks, or clever DSLs.
 
-If you use OS-Lib and like it, please support it by donating to our Patreon:
+If you use OS-Lib and like it, you will probably enjoy the following book by the Author:
+
+- [*Hands-on Scala Programming*](https://www.handsonscala.com/)
+
+*Hands-on Scala* has uses OS-Lib extensively throughout the book, and has
+the entirety of *Chapter 7: Files and Subprocesses* dedicated to 
+OS-Lib. *Hands-on Scala* is a great way to level up your skills in Scala
+in general and OS-Lib in particular.
+
+You can also support it by donating to our Patreon:
 
 - [https://www.patreon.com/lihaoyi](https://www.patreon.com/lihaoyi)
 
