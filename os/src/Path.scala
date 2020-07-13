@@ -135,17 +135,17 @@ object BasePath {
     s match{
       case "" =>
         fail(
-          "Ammonite-Ops does not allow empty path segments " +
+          "OS-Lib does not allow empty path segments " +
             externalStr + considerStr
         )
       case "." =>
         fail(
-          "Ammonite-Ops does not allow [.] as a path segment " +
+          "OS-Lib does not allow [.] as a path segment " +
             externalStr + considerStr
         )
       case ".." =>
         fail(
-          "Ammonite-Ops does not allow [..] as a path segment " +
+          "OS-Lib does not allow [..] as a path segment " +
             externalStr +
             considerStr +
             "If you want to use the `..` segment manually to represent going up " +

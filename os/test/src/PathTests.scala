@@ -12,22 +12,22 @@ object PathTests extends TestSuite{
       test("Transformers"){
         if(Unix()){
           assert(
-            // ammonite.Path to java.nio.file.Path
+            // os.Path to java.nio.file.Path
             (root/'omg).wrapped == Paths.get("/omg"),
 
-            // java.nio.file.Path to ammonite.Path
+            // java.nio.file.Path to os.Path
             root/'omg == Path(Paths.get("/omg")),
             rel/'omg == RelPath(Paths.get("omg")),
             sub/'omg == SubPath(Paths.get("omg")),
 
-            // ammonite.Path to String
+            // os.Path to String
             (root/'omg).toString == "/omg",
             (rel/'omg).toString == "omg",
             (sub/'omg).toString == "omg",
             (up/'omg).toString == "../omg",
             (up/up/'omg).toString == "../../omg",
 
-            // String to ammonite.Path
+            // String to os.Path
             root/'omg == Path("/omg"),
             rel/'omg == RelPath("omg"),
             sub/'omg == SubPath("omg")

@@ -1717,7 +1717,7 @@ val target = os.pwd/'target
 Should be sufficient for most needs.
 
 Above, we made use of the `os.pwd` built-in path. There are a number of Paths
-built into Ammonite:
+built into OS-Lib:
 
 - `os.pwd`: The current working directory of the process. This can't be changed
   in Java, so if you need another path to work with the convention is to define
@@ -1844,7 +1844,7 @@ representations.
 #### Path Operations
 
 OS-Lib's paths are transparent data-structures, and you can always access the
-segments and ups directly. Nevertheless, Ammonite defines a number of useful
+segments and ups directly. Nevertheless, OS-Lib defines a number of useful
 operations that handle the common cases of dealing with these paths:
 
 In this definition, ThisType represents the same type as the current path; e.g.
