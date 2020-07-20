@@ -1,4 +1,4 @@
-# OS-Lib 0.6.2 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
+# OS-Lib 0.7.1 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
 
 [travis-badge]: https://travis-ci.org/lihaoyi/os-lib.svg
 [travis-link]: https://travis-ci.org/lihaoyi/os-lib
@@ -161,9 +161,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.6.2"
+"com.lihaoyi" %% "os-lib" % "0.7.1"
 // Mill
-ivy"com.lihaoyi::os-lib:0.6.2"
+ivy"com.lihaoyi::os-lib:0.7.1"
 ```
 
 ## Cookbook
@@ -2076,6 +2076,10 @@ string, int or set representations of the `os.PermSet` via:
 - `perms.value: Set[PosixFilePermission]`
 
 ## Changelog
+
+### 0.7.1
+
+- Improve performance of `os.write` by buffering output stream to files
 
 ### 0.6.2
 
