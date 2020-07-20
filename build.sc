@@ -61,7 +61,7 @@ object os extends Module {
 }
 
 trait OsLibModule extends CrossScalaModule with PublishModule{
-  def publishVersion = "0.7.0"
+  def publishVersion = "0.7.1"
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "com.lihaoyi",
@@ -107,7 +107,7 @@ trait OsModule extends OsLibModule{
   def artifactName = "os-lib"
 
   def ivyDeps = Agg(
-    ivy"com.lihaoyi::geny::0.6.0"
+    ivy"com.lihaoyi::geny::0.6.2"
   )
 }
 
