@@ -449,8 +449,8 @@ This throws an exception if the file already exists. To over-write or append to
 an existing file, see [os.write.over](#oswriteover) or
 [os.write.append](#oswriteappend).
 
-By default, this creates any necessary enclosing folders; you can disable this
-behavior by setting `createFolders = false`
+By default, this doesn't create enclosing folders; you can enable this
+behavior by setting `createFolders = true`
 
 ```scala
 os.write(wd / "New File.txt", "New File Contents")
