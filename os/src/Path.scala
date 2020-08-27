@@ -279,7 +279,7 @@ object RelPath {
   def apply[T: PathConvertible](f0: T): RelPath = {
     val f = implicitly[PathConvertible[T]].apply(f0)
 
-    require(!f.isAbsolute, f + " is not an relative path")
+    require(!f.isAbsolute, s"$f is not a relative path")
 
     val segments = BasePath.chunkify(f.normalize())
     val (ups, rest) = segments.partition(_ == "..")
@@ -297,7 +297,7 @@ object RelPath {
 
   val up: RelPath = new RelPath(Internals.emptyStringArray, 1)
   val rel: RelPath = new RelPath(Internals.emptyStringArray, 0)
-  implicit def SubRelPath(p: SubPath) = new RelPath(p.segments0, 0)
+  implicit def SubRelPath(p: SubPath): RelPath = new RelPath(p.segments0, 0)
 }
 
 /**
@@ -399,11 +399,12 @@ object Path {
         var xSeg = ""
         var ySeg = ""
         var i = -1
-        do{
+        while ({
           i += 1
           xSeg = x.getSegment(i)
           ySeg = y.getSegment(i)
-        } while (i < xSegCount && xSeg == ySeg)
+          i < xSegCount && xSeg == ySeg
+        }) ()
         if (i == xSegCount) 0
         else Ordering.String.compare(xSeg, ySeg)
       }
@@ -426,7 +427,7 @@ class Path private[os](val wrapped: java.nio.file.Path)
   def toSource: SeekableSource =
     new SeekableSource.ChannelSource(java.nio.file.Files.newByteChannel(wrapped))
 
-  require(wrapped.isAbsolute, wrapped + " is not an absolute path")
+  require(wrapped.isAbsolute, s"$wrapped is not an absolute path")
   def segments: Iterator[String] = wrapped.iterator().asScala.map(_.toString)
   def getSegment(i: Int): String = wrapped.getName(i).toString
   def segmentCount = wrapped.getNameCount

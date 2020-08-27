@@ -23,7 +23,7 @@ object perms extends Function1[Path, PermSet]{
     */
   object set {
     def apply(p: Path, arg2: PermSet): Unit = {
-      Files.setPosixFilePermissions(p.wrapped, arg2.toSet)
+      Files.setPosixFilePermissions(p.wrapped, arg2.toSet())
     }
   }
 
