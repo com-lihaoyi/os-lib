@@ -132,6 +132,7 @@ object SpawningSubprocessesTests extends TestSuite {
           val sub = os.proc("echo", "output")
             .spawn(stdout = ProcessOutput((bytes, count) => output += new String(bytes, 0, count)))
           val finished = sub.waitFor(5000)
+          sub.wrapped.getOutputStream().flush()
           assert(finished)
           assert(output.mkString("") == "output\n")
           sub.destroy()
