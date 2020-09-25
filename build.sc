@@ -1,6 +1,6 @@
 import mill._, scalalib._, scalanativelib._, publish._
 
-val crossScalaVersions = Seq("2.12.10", "2.13.1", "0.26.0-RC1")
+val crossScalaVersions = Seq("2.12.10", "2.13.1", "0.27.0-RC1")
 val crossNativeVersions = Seq(
   "2.11.12" -> "0.3.9",
   "2.11.12" -> "0.4.0-M2"
