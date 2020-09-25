@@ -106,10 +106,10 @@ class WatchServiceWatcher(roots: Seq[os.Path],
 
     } catch {
       case e: InterruptedException =>
-        println("Interrupted, exiting", e)
+        println("Interrupted, exiting: " + e)
         isRunning.set(false)
       case e: ClosedWatchServiceException =>
-        println("Watcher closed, exiting", e)
+        println("Watcher closed, exiting: " + e)
         isRunning.set(false)
     }
   }
@@ -119,7 +119,7 @@ class WatchServiceWatcher(roots: Seq[os.Path],
       isRunning.set(false)
       nioWatchService.close()
     } catch {
-      case e: IOException => println("Error closing watcher", e)
+      case e: IOException => println("Error closing watcher: " + e)
     }
   }
 

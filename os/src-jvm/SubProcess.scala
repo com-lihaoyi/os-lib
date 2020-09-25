@@ -156,7 +156,7 @@ object SubProcess{
 
     def readLine() = buffered.readLine()
 
-    def bytes(): Array[Byte] = synchronized{
+    def bytes: Array[Byte] = synchronized{
       val out = new ByteArrayOutputStream()
       Internals.transfer(wrapped, out)
       out.toByteArray

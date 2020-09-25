@@ -1,6 +1,6 @@
 import mill._, scalalib._, scalanativelib._, publish._
 
-val crossScalaVersions = Seq("2.12.10", "2.13.1")
+val crossScalaVersions = Seq("2.12.10", "2.13.1", "0.27.0-RC1")
 val crossNativeVersions = Seq(
   "2.11.12" -> "0.3.9",
   "2.11.12" -> "0.4.0-M2"
@@ -17,7 +17,7 @@ object os extends Module {
     }
   }
   object native extends Cross[OsNativeModule](crossNativeVersions:_*)
-  
+
   class OsNativeModule(val crossScalaVersion: String, crossScalaNativeVersion: String) extends OsModule with ScalaNativeModule {
     def platformSegment = "native"
     def millSourcePath = super.millSourcePath / ammonite.ops.up
@@ -61,6 +61,7 @@ object os extends Module {
 }
 
 trait OsLibModule extends CrossScalaModule with PublishModule{
+  def isDotty = crossScalaVersion.startsWith("0")
   def publishVersion = "0.7.1"
   def pomSettings = PomSettings(
     description = artifactName(),
@@ -82,9 +83,9 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
     millSourcePath / "src",
     millSourcePath / s"src-$platformSegment"
   )
-  def acyclicDep = T { Agg(ivy"com.lihaoyi::acyclic:${acyclicVersion(scalaVersion())}") }
+  def acyclicDep: T[Agg[Dep]] = T { if (!isDotty) Agg(ivy"com.lihaoyi::acyclic:${acyclicVersion(scalaVersion())}") else Agg() }
   def compileIvyDeps = acyclicDep
-  def scalacOptions = Seq("-P:acyclic:force")
+  def scalacOptions = T { if (!isDotty) Seq("-P:acyclic:force") else Seq.empty }
   def scalacPluginIvyDeps = acyclicDep
 
 }

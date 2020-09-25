@@ -14,20 +14,20 @@ object SpawningSubprocessesTests extends TestSuite {
     test("proc"){
       test("call"){
         test - prep { wd => if(Unix()){
-          val res = os.proc('ls, wd/"folder2").call()
+          val res = os.proc("ls", wd/"folder2").call()
 
           res.exitCode ==> 0
 
-          res.out.string ==>
+          res.out.string() ==>
             """nestedA
               |nestedB
               |""".stripMargin
 
-          res.out.trim ==>
+          res.out.trim() ==>
             """nestedA
               |nestedB""".stripMargin
 
-          res.out.lines ==> Seq(
+          res.out.lines() ==> Seq(
             "nestedA",
             "nestedB"
           )
@@ -36,22 +36,22 @@ object SpawningSubprocessesTests extends TestSuite {
 
 
           val thrown = intercept[os.SubprocessException]{
-            os.proc('ls, "doesnt-exist").call(cwd = wd)
+            os.proc("ls", "doesnt-exist").call(cwd = wd)
           }
 
           assert(thrown.result.exitCode != 0)
 
-          val fail = os.proc('ls, "doesnt-exist").call(cwd = wd, check = false, stderr = os.Pipe)
+          val fail = os.proc("ls", "doesnt-exist").call(cwd = wd, check = false, stderr = os.Pipe)
 
           assert(fail.exitCode != 0)
 
-          fail.out.string ==> ""
+          fail.out.string() ==> ""
 
-          assert(fail.err.string.contains("No such file or directory"))
+          assert(fail.err.string().contains("No such file or directory"))
 
           // You can pass in data to a subprocess' stdin
           val hash = os.proc("shasum", "-a", "256").call(stdin = "Hello World")
-          hash.out.trim ==> "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e  -"
+          hash.out.trim() ==> "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e  -"
 
           // Taking input from a file and directing output to another file
           os.proc("base64").call(stdin = wd / "File.txt", stdout = wd / "File.txt.b64")
@@ -68,13 +68,13 @@ object SpawningSubprocessesTests extends TestSuite {
               .call(timeout = 2000)
           }
 
-          ex.result.out.trim ==> "123"
+          ex.result.out.trim()==> "123"
         }}
       }
       test("stream"){
         test - prep { wd => if(Unix()){
           var lineCount = 1
-          os.proc('find, ".").call(
+          os.proc("find", ".").call(
             cwd = wd,
             stdout = os.ProcessOutput(
               (buf, len) => lineCount += buf.slice(0, len).count(_ == '\n')
@@ -84,7 +84,7 @@ object SpawningSubprocessesTests extends TestSuite {
         }}
         test - prep { wd => if(Unix()){
           var lineCount = 1
-          os.proc('find, ".").call(
+          os.proc("find", ".").call(
             cwd = wd,
             stdout = os.ProcessOutput.Readlines(
               line => lineCount += 1
@@ -123,7 +123,7 @@ object SpawningSubprocessesTests extends TestSuite {
           val curl = os.proc("curl", "-L" , "https://git.io/fpfTs").spawn(stderr = os.Inherit)
           val gzip = os.proc("gzip", "-n").spawn(stdin = curl.stdout)
           val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
-          sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
+          sha.stdout.trim()==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
         }}
       }
       test("spawn callback"){
@@ -132,6 +132,7 @@ object SpawningSubprocessesTests extends TestSuite {
           val sub = os.proc("echo", "output")
             .spawn(stdout = ProcessOutput((bytes, count) => output += new String(bytes, 0, count)))
           val finished = sub.waitFor(5000)
+          sub.wrapped.getOutputStream().flush()
           assert(finished)
           assert(output.mkString("") == "output\n")
           sub.destroy()

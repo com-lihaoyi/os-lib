@@ -45,7 +45,7 @@ object ManipulatingFilesFoldersTests extends TestSuite {
             wd / "folder2" / "nestedB" / "b.txt"
           )
 
-          os.walk(wd/'folder2).collect(os.move.matching{case p/g"$x.txt" => p/g"$x.data"})
+          os.walk(wd/"folder2").collect(os.move.matching{case p/g"$x.txt" => p/g"$x.data"})
 
           os.walk(wd / "folder2").toSet ==> Set(
             wd / "folder2" / "nestedA",

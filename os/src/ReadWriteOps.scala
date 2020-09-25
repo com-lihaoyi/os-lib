@@ -30,7 +30,7 @@ object write{
     if (perms != null && !exists(target)){
       val permArray =
         if (perms == null) Array[FileAttribute[PosixFilePermission]]()
-        else Array(PosixFilePermissions.asFileAttribute(perms.toSet))
+        else Array(PosixFilePermissions.asFileAttribute(perms.toSet()))
       java.nio.file.Files.createFile(target.toNIO, permArray:_*)
     }
     java.nio.file.Files.newOutputStream(
@@ -51,9 +51,9 @@ object write{
             offset: Long) = {
 
     import collection.JavaConverters._
-    val permArray =
-      if (perms == null) Array[FileAttribute[PosixFilePermission]]()
-      else Array(PosixFilePermissions.asFileAttribute(perms.toSet))
+    val permArray: Array[FileAttribute[_]] =
+      if (perms == null) Array.empty
+      else Array(PosixFilePermissions.asFileAttribute(perms.toSet()))
 
     val out = Files.newByteChannel(
       target.wrapped,
