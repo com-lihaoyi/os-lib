@@ -1,6 +1,6 @@
 import mill._, scalalib._, scalanativelib._, publish._
 
-val crossScalaVersions = Seq("2.12.10", "2.13.1", "0.27.0-RC1")
+val crossScalaVersions = Seq("2.12.10", "2.13.1", "3.0.0-M2")
 val crossNativeVersions = Seq(
   "2.11.12" -> "0.3.9",
   "2.11.12" -> "0.4.0-M2"
@@ -61,7 +61,7 @@ object os extends Module {
 }
 
 trait OsLibModule extends CrossScalaModule with PublishModule{
-  def isDotty = crossScalaVersion.startsWith("0")
+  def isDotty = crossScalaVersion.startsWith("0") || crossScalaVersion.startsWith("3")
   def publishVersion = "0.7.1"
   def pomSettings = PomSettings(
     description = artifactName(),
@@ -92,7 +92,7 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
 
 trait OsLibTestModule extends ScalaModule with TestModule{
   def ivyDeps = Agg(
-    ivy"com.lihaoyi::utest::0.7.4",
+    ivy"com.lihaoyi::utest::0.7.5",
     ivy"com.lihaoyi::sourcecode::0.2.1"
   )
 
