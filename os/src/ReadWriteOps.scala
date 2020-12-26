@@ -6,8 +6,6 @@ import java.nio.channels.{Channels, FileChannel, SeekableByteChannel}
 import java.nio.file.attribute.{FileAttribute, PosixFilePermission, PosixFilePermissions}
 import java.nio.file.{Files, OpenOption, StandardOpenOption}
 
-import geny.Generator
-
 import scala.io.Codec
 import StandardOpenOption.{CREATE, WRITE}
 
