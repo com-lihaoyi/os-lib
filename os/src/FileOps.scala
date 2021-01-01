@@ -174,7 +174,7 @@ object copy {
     }
 
     copyOne(from)
-    if (stat(from).isDir) walk(from).map(copyOne)
+    if (stat(from,followLinks=followLinks).isDir) walk(from).map(copyOne)
   }
 
   /**
