@@ -69,7 +69,7 @@ object os extends Module {
 
 trait OsLibModule extends CrossScalaModule with PublishModule{
   def isDotty = crossScalaVersion.startsWith("0") || crossScalaVersion.startsWith("3")
-  def publishVersion = "0.7.1"
+  def publishVersion = "0.7.2"
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "com.lihaoyi",
