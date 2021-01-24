@@ -5,8 +5,6 @@ import java.nio.file
 import java.nio.file.{Path => _, _}
 import java.nio.file.attribute.BasicFileAttributes
 
-import geny.Generator
-
 /**
   * Returns all the files and folders directly within the given folder. If the
   * given path is not a folder, raises an error. Can be called with
