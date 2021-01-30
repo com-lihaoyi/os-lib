@@ -1,0 +1,28 @@
+on: [push, pull_request]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        java-version: [1.8, 11]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java-version }}
+
+      - name: Fetch millw launcher
+        run: curl -Lo C:\bin\mill.bat "https://raw.githubusercontent.com/lefou/millw/main/millw.bat"
+        if: matrix.os == 'windows-latest'
+
+      - run: ./millw -i -k __.test
+        if: matrix.os != 'windows-latest'
+      - run: ./millw.bat -i -k __.test
+        if: matrix.os == 'windows-latest'
