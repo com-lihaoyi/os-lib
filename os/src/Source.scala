@@ -42,8 +42,13 @@ trait Source extends geny.Writable{
       os.flush()
     case Right(channel) =>
       (channel, out) match {
-        case (src: FileChannel, dest) => src.transferTo(0, Long.MaxValue, dest)
-        case (src, dest: FileChannel) => dest.transferFrom(dest, 0, Long.MaxValue)
+        case (src: FileChannel, dest) =>
+          val size = src.size()
+          var pos = 0L
+          while(pos < size) {
+            pos += src.transferTo(pos, size - pos, dest)
+          }
+        case (src, dest: FileChannel) => dest.transferFrom(src, 0, Long.MaxValue)
         case (src, dest) =>
           val os = new BufferedOutputStream(Channels.newOutputStream(dest))
           Internals.transfer(Channels.newInputStream(src), os)
