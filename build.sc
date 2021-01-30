@@ -1,8 +1,12 @@
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.9:0.1.1`
+
 import mill._
 import mill.define.Target
-import scalalib._
-import scalanativelib._
-import publish._
+import mill.scalalib._
+import mill.scalanativelib._
+import mill.scalalib.publish._
+
+import de.tobiasroeser.mill.vcs.version.VcsVersion
 
 val dottyVersions = sys.props.get("dottyVersion").toList
 
@@ -73,7 +77,7 @@ object os extends Module {
 
 trait OsLibModule extends CrossScalaModule with PublishModule{
   def isDotty = crossScalaVersion.startsWith("0") || crossScalaVersion.startsWith("3")
-  def publishVersion = "0.7.2"
+  def publishVersion = VcsVersion.vcsState().format()
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "com.lihaoyi",
