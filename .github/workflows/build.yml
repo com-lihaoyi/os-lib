@@ -19,7 +19,7 @@ jobs:
           java-version: ${{ matrix.java-version }}
 
       - name: Fetch millw launcher
-        run: curl -Lo C:\bin\mill.bat "https://raw.githubusercontent.com/lefou/millw/main/millw.bat"
+        run: curl -Lo mill.bat "https://raw.githubusercontent.com/lefou/millw/main/millw.bat"
         if: matrix.os == 'windows-latest'
 
       - run: ./mill -i -k __.test
