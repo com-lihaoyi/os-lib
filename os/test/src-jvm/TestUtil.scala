@@ -14,6 +14,10 @@ object TestUtil {
     os.proc(getPathCmd, executable).call(check = false).exitCode == 0
   }
 
+  def isPython3(): Boolean = {
+    os.proc("python", "--version").call(check = false).out.text().startsWith("Python 3.")
+  }
+
   // run Unix command normally, Windows in CMD context
   def proc(command: os.Shellable*) = {
     if(scala.util.Properties.isWin) {

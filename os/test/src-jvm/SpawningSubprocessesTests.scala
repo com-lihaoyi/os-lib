@@ -18,7 +18,7 @@ object SpawningSubprocessesTests extends TestSuite {
 
           res.exitCode ==> 0
 
-          res.out.string() ==>
+          res.out.text() ==>
             """nestedA
               |nestedB
               |""".stripMargin
@@ -45,9 +45,9 @@ object SpawningSubprocessesTests extends TestSuite {
 
           assert(fail.exitCode != 0)
 
-          fail.out.string() ==> ""
+          fail.out.text() ==> ""
 
-          assert(fail.err.string().contains("No such file or directory"))
+          assert(fail.err.text().contains("No such file or directory"))
 
           // You can pass in data to a subprocess' stdin
           val hash = os.proc("shasum", "-a", "256").call(stdin = "Hello World")
@@ -97,8 +97,11 @@ object SpawningSubprocessesTests extends TestSuite {
       test("spawn"){
         test - prep { wd => if(TestUtil.isInstalled("python") && Unix()) {
           // Start a long-lived python process which you can communicate with
-          val sub = os.proc("python", "-u", "-c", "while True: print(eval(raw_input()))")
-                      .spawn(cwd = wd)
+          val sub = os.proc("python", "-u", "-c",
+            if (TestUtil.isPython3()) "while True: print(eval(input()))"
+            else "while True: print(eval(raw_input()))"
+          )
+            .spawn(cwd = wd)
 
           // Sending some text to the subprocess
           sub.stdin.write("1 + 2")
