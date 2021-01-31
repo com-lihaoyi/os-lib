@@ -44,13 +44,12 @@ object WatchTests extends TestSuite{
           Set(p.subRelativeTo(wd))
         )
       }
-      def checkChanges(action: => Unit, expectedChangedPaths: Set[os.SubPath]) = {
-
+      def checkChanges(action: => Unit, expectedChangedPaths: Set[os.SubPath]) = synchronized {
+        changedPaths.clear()
         action
-        Thread.sleep(500)
+        Thread.sleep(200)
         val changedSubPaths = changedPaths.map(_.subRelativeTo(wd))
         assert(expectedChangedPaths == changedSubPaths)
-        changedPaths.clear()
       }
 
       checkFileManglingChanges(wd / "test")

@@ -137,6 +137,7 @@ object SpawningSubprocessesTests extends TestSuite {
           val finished = sub.waitFor(5000)
           sub.wrapped.getOutputStream().flush()
           assert(finished)
+          assert(sub.exitCode() == 0)
           val expectedOutput = "output\n"
           val actualOutput = output.mkString("")
           assert(actualOutput == expectedOutput)
