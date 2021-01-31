@@ -1,4 +1,8 @@
-import mill._, scalalib._, scalanativelib._, publish._
+import mill._
+import mill.define.Target
+import scalalib._
+import scalanativelib._
+import publish._
 
 val dottyVersions = sys.props.get("dottyVersion").toList
 
@@ -110,6 +114,8 @@ trait OsLibTestModule extends ScalaModule with TestModule{
   )
 
   def testFrameworks = Seq("utest.runner.Framework")
+  // we check the textual output of system commands and expect it in english
+  override def forkEnv: Target[Map[String, String]] = super.forkEnv() ++ Map("LC_ALL" -> "C")
 }
 trait OsModule extends OsLibModule{
   def artifactName = "os-lib"
