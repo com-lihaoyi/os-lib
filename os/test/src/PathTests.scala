@@ -30,10 +30,9 @@ object PathTests extends TestSuite{
           assert(root/"omg" == Path("/omg"))
           assert(rel/"omg" == RelPath("omg"))
           assert(sub/"omg" == SubPath("omg"))
-        } else {
-          //Windows path consistency
-          assert(Path((root/"omg").toIO.toURL.getFile) == root/"omg")
         }
+        //URL/NIO path consistency
+        assert(Path((root/"omg").toIO.toURL.getFile) == root/"omg")
       }
 
       test("BasePath"){
