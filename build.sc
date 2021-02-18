@@ -10,7 +10,7 @@ import de.tobiasroeser.mill.vcs.version.VcsVersion
 
 val dottyVersions = sys.props.get("dottyVersion").toList
 
-val scalaVersions = "2.12.13" :: "2.13.4" :: "3.0.0-M3" :: dottyVersions
+val scalaVersions = "2.12.13" :: "2.13.4" :: "3.0.0-RC1" :: dottyVersions
 val scala2Versions = scalaVersions.filter(_.startsWith("2."))
 
 val scalaJSVersions = for {
@@ -102,7 +102,16 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
   def compileIvyDeps = acyclicDep
   def scalacOptions = T { if (!isDotty) Seq("-P:acyclic:force") else Seq.empty }
   def scalacPluginIvyDeps = acyclicDep
-
+  // FIXME: scaladoc 3 is not supported by mill yet. Remove the override
+  // once it is.
+  override def docJar =
+    if (crossScalaVersion.startsWith("2")) super.docJar
+    else T {
+      val outDir = T.ctx().dest
+      val javadocDir = outDir / 'javadoc
+      _root_.os.makeDir.all(javadocDir)
+      mill.api.Result.Success(mill.modules.Jvm.createJar(Agg(javadocDir))(outDir))
+    }
 }
 
 trait OsLibTestModule extends ScalaModule with TestModule{
