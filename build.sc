@@ -136,6 +136,7 @@ trait OsModule extends OsLibModule{
   def ivyDeps = Agg(
     ivy"com.lihaoyi::geny::0.6.5"
   )
+  def scalacOptions = Seq("-release", "8")
 }
 
 trait WatchModule extends OsLibModule{

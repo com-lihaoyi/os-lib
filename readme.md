@@ -1,4 +1,4 @@
-# OS-Lib 0.7.1 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
+# OS-Lib 0.7.3 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
 
 [travis-badge]: https://travis-ci.org/lihaoyi/os-lib.svg
 [travis-link]: https://travis-ci.org/lihaoyi/os-lib
@@ -50,7 +50,7 @@ If you use OS-Lib and like it, you will probably enjoy the following book by the
 - [*Hands-on Scala Programming*](https://www.handsonscala.com/)
 
 *Hands-on Scala* has uses OS-Lib extensively throughout the book, and has
-the entirety of *Chapter 7: Files and Subprocesses* dedicated to 
+the entirety of *Chapter 7: Files and Subprocesses* dedicated to
 OS-Lib. *Hands-on Scala* is a great way to level up your skills in Scala
 in general and OS-Lib in particular.
 
@@ -161,9 +161,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.7.1"
+"com.lihaoyi" %% "os-lib" % "0.7.3"
 // Mill
-ivy"com.lihaoyi::os-lib:0.7.1"
+ivy"com.lihaoyi::os-lib:0.7.3"
 ```
 
 ## Cookbook
@@ -303,7 +303,7 @@ os.read(wd / "Multi Line.txt") ==>
 #### os.read.bytes
 
 ```scala
-os.read.bytes(arg: os.ReadablePath): Array[Byte] 
+os.read.bytes(arg: os.ReadablePath): Array[Byte]
 os.read.bytes(arg: os.Path, offset: Long, count: Int): Array[Byte]
 ```
 
@@ -435,9 +435,9 @@ ujson.read(readable)
 #### os.write
 
 ```scala
-os.write(target: Path, 
-         data: os.Source, 
-         perms: PermSet = null, 
+os.write(target: Path,
+         data: os.Source,
+         perms: PermSet = null,
          createFolders: Boolean = false): Unit
 ```
 
@@ -882,7 +882,7 @@ os.read(wd / "File.txt") ==>
     |I weigh twice as much as you
     |And I look good on the barbecue""".stripMargin
     ```
-    
+
 `os.copy` can also be used as a transformer:
 
 ```scala
@@ -2076,6 +2076,15 @@ string, int or set representations of the `os.PermSet` via:
 - `perms.value: Set[PosixFilePermission]`
 
 ## Changelog
+
+### 0.7.3
+
+- Add support for Scala 3.0.0-RC1
+- Migration of the CI system from Travis CI to GitHub Actions
+
+### 0.7.2
+
+- Add support for Scala 3.0.0-M3
 
 ### 0.7.1
 
