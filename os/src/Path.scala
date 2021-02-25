@@ -482,7 +482,10 @@ sealed trait PathConvertible[T]{
 object PathConvertible{
   implicit object StringConvertible extends PathConvertible[String]{
     def apply(t: String) =
-      java.nio.file.Paths.get(if(scala.util.Properties.isWin && t.matches("\\/[A-Za-z]:\\/.*")) t.drop(1) else t)
+      java.nio.file.Paths.get(
+        if(scala.util.Properties.isWin && t.matches("\\/[A-Za-z]:\\/.*")) t.drop(1)
+        else t
+      )
   }
   implicit object JavaIoFileConvertible extends PathConvertible[java.io.File]{
     def apply(t: java.io.File) = java.nio.file.Paths.get(t.getPath)
