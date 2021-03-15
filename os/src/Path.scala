@@ -481,7 +481,8 @@ sealed trait PathConvertible[T]{
 
 object PathConvertible{
   implicit object StringConvertible extends PathConvertible[String]{
-    def apply(t: String) = java.nio.file.Paths.get(t)
+    def apply(t: String) =
+      java.nio.file.Paths.get(if(t.matches("\\/[A-z]:\\/.*")) t.substring(1) else t)
   }
   implicit object JavaIoFileConvertible extends PathConvertible[java.io.File]{
     def apply(t: java.io.File) = java.nio.file.Paths.get(t.getPath)
