@@ -106,6 +106,48 @@ object ManipulatingFilesFoldersTests extends TestSuite {
           os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
         }
       }
+      test("symlinks") {
+        val src = os.temp.dir(deleteOnExit = true)
+        
+        os.makeDir(src / "t0")
+        os.write(src / "t0" / "file", "hello")
+        os.symlink(src / "t1", os.rel / "t0")
+
+        val dest = os.temp.dir(deleteOnExit = true)
+
+        os.copy(src / "t0", dest / "t0", followLinks = false, replaceExisting = false)
+        os.copy(src / "t1", dest / "t1", followLinks = false, replaceExisting = false)
+
+        val src_list = os.walk(src, includeTarget = false, followLinks = false)
+          .map(_ relativeTo src)
+          .sorted
+        val dest_list = os.walk(dest, includeTarget = false, followLinks = false)
+          .map(_ relativeTo dest)
+          .sorted
+
+        assert(dest_list == src_list)
+
+        src_list.foreach { r =>
+          val src_path = src / r
+          val dest_path = dest / r
+
+          if (os.isFile(src_path, followLinks = false)) {
+            assert(os.isFile(dest_path, followLinks = false))
+            assert(os.read(src_path) == os.read(dest_path))
+          } else if (os.isLink(src_path)) {
+            assert(os.isLink(dest_path))
+            assert(os.readLink(src_path) == os.readLink(dest_path))
+          } else if (os.isDir(src_path, followLinks = false)) {
+            assert(os.isDir(dest_path, followLinks = false))
+            val s = os.list(src_path, sort = true).map(_ relativeTo src).toList
+            val d = os.list(dest_path, sort = true).map(_ relativeTo dest).toList
+            assert(d == s)
+          } else {
+            assert(false)
+          }
+
+        }
+      }
     }
     test("makeDir"){
       test - prep{ wd =>
