@@ -134,14 +134,15 @@ object copy {
   def matching(followLinks: Boolean = true,
                replaceExisting: Boolean = false,
                copyAttributes: Boolean = false,
-               createFolders: Boolean = false)
+               createFolders: Boolean = false,
+               mergeFolders: Boolean = false)
               (partialFunction: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
     new PartialFunction[Path, Unit] {
       def isDefinedAt(x: Path) = partialFunction.isDefinedAt(x)
       def apply(from: Path) = {
         val dest = partialFunction(from)
         makeDir.all(dest/up)
-        os.copy(from, dest, followLinks, replaceExisting, copyAttributes, createFolders)
+        os.copy(from, dest, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders)
       }
     }
 
@@ -197,8 +198,9 @@ object copy {
               followLinks: Boolean = true,
               replaceExisting: Boolean = false,
               copyAttributes: Boolean = false,
-              createFolders: Boolean = false): Unit = {
-      os.copy(from, to/from.last, followLinks, replaceExisting, copyAttributes, createFolders)
+              createFolders: Boolean = false,
+              mergeFolders: Boolean = false): Unit = {
+      os.copy(from, to/from.last, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders)
     }
   }
 
