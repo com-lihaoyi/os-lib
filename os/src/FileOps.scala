@@ -149,13 +149,16 @@ object copy {
   def matching(partialFunction: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
     matching()(partialFunction)
   }
-  def apply(from: Path,
-            to: Path,
-            followLinks: Boolean = true,
-            replaceExisting: Boolean = false,
-            copyAttributes: Boolean = false,
-            createFolders: Boolean = false): Unit = {
-    if (createFolders) makeDir.all(to/up)
+  def apply(
+             from: Path,
+             to: Path,
+             followLinks: Boolean = true,
+             replaceExisting: Boolean = false,
+             copyAttributes: Boolean = false,
+             createFolders: Boolean = false,
+             mergeFolders: Boolean = false
+           ): Unit = {
+    if (createFolders) makeDir.all(to / up)
     val opts1 =
       if (followLinks) Array[CopyOption]()
       else Array[CopyOption](LinkOption.NOFOLLOW_LINKS)
@@ -169,8 +172,15 @@ object copy {
       !to.startsWith(from),
       s"Can't copy a directory into itself: $to is inside $from"
     )
-    def copyOne(p: Path) = {
-      Files.copy(p.wrapped, (to/(p relativeTo from)).wrapped, opts1 ++ opts2 ++ opts3:_*)
+
+    def copyOne(p: Path): file.Path = {
+      val target = to / p.relativeTo(from)
+      if (mergeFolders && isDir(p, followLinks) && isDir(target, followLinks)) {
+        // nothing to do
+        target.wrapped
+      } else {
+        Files.copy(p.wrapped, target.wrapped, opts1 ++ opts2 ++ opts3: _*)
+      }
     }
 
     copyOne(from)
