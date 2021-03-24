@@ -36,7 +36,11 @@ package object watch{
       case osName => throw new Exception(s"watch not supported on operating system: $osName")
     }
 
-    val thread = new Thread(() => watcher.run())
+    val thread = new Thread {
+      override def run(): Unit = {
+        watcher.run()
+      }
+    }
     thread.setDaemon(true)
     thread.start()
     watcher
