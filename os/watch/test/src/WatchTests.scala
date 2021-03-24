@@ -120,7 +120,7 @@ object WatchTests extends TestSuite{
           case "Linux" => Set(os.sub / "newlink3")
           case "Mac OS X" =>
             Set(
-              os.sub / "newlink3",
+              //os.sub / "newlink3",
               os.sub / "folder3" / "nestedA",
               os.sub / "folder3" / "nestedA" / "a.txt",
             )

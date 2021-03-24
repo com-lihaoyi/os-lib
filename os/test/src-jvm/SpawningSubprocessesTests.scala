@@ -134,7 +134,7 @@ object SpawningSubprocessesTests extends TestSuite {
           val output: mutable.Buffer[String] = mutable.Buffer()
           val sub = os.proc("echo", "output")
             .spawn(stdout = ProcessOutput((bytes, count) => output += new String(bytes, 0, count)))
-          val finished = sub.waitFor(5000)
+          val finished = sub.join(5000)
           sub.wrapped.getOutputStream().flush()
           assert(finished)
           assert(sub.exitCode() == 0)
