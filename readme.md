@@ -1,7 +1,7 @@
-# OS-Lib 0.7.3 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
+# OS-Lib 0.7.3 [![Build Status][workflow-badge]][workflow-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
 
-[travis-badge]: https://travis-ci.org/lihaoyi/os-lib.svg
-[travis-link]: https://travis-ci.org/lihaoyi/os-lib
+[workflow-badge]: https://github.com/lihaoyi/os-lib/actions/workflows/build.yml/badge.svg
+[workflow-link]: https://github.com/lihaoyi/os-lib/actions
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 [gitter-link]: https://gitter.im/lihaoyi/os-lib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 [patreon-badge]: https://img.shields.io/badge/patreon-sponsor-ff69b4.svg
