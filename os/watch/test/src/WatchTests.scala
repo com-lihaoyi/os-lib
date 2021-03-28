@@ -8,7 +8,7 @@ object WatchTests extends TestSuite{
       val changedPaths = collection.mutable.Set.empty[os.Path]
       _root_.os.watch.watch(
         Seq(wd),
-        onEvent = _.foreach(changedPaths.add),
+        onEvent = _.foreach(changedPaths.add)
 //        (s, v) => println(s + " " + v)
       )
 
@@ -75,7 +75,7 @@ object WatchTests extends TestSuite{
           os.sub / "folder3" / "nestedA",
           os.sub / "folder3" / "nestedA" / "a.txt",
           os.sub / "folder3" / "nestedB",
-          os.sub / "folder3" / "nestedB" / "b.txt",
+          os.sub / "folder3" / "nestedB" / "b.txt"
         )
       )
 
@@ -122,7 +122,7 @@ object WatchTests extends TestSuite{
             Set(
               //os.sub / "newlink3",
               os.sub / "folder3" / "nestedA",
-              os.sub / "folder3" / "nestedA" / "a.txt",
+              os.sub / "folder3" / "nestedA" / "a.txt"
             )
         }
       )
