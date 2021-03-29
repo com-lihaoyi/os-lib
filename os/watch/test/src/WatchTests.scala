@@ -47,7 +47,7 @@ object WatchTests extends TestSuite{
       def checkChanges(action: => Unit, expectedChangedPaths: Set[os.SubPath]) = synchronized {
         changedPaths.clear()
         action
-        Thread.sleep(200)
+        Thread.sleep(1000)
         val changedSubPaths = changedPaths.map(_.subRelativeTo(wd))
         assert(expectedChangedPaths == changedSubPaths)
       }
