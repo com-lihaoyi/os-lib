@@ -49,7 +49,7 @@ object WatchTests extends TestSuite{
         action
         Thread.sleep(200)
         val changedSubPaths = changedPaths.map(_.subRelativeTo(wd))
-        assert(expectedChangedPaths == changedSubPaths)
+        assert(expectedChangedPaths.subsetOf(changedSubPaths))
       }
 
       checkFileManglingChanges(wd / "test")

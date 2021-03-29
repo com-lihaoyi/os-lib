@@ -1629,7 +1629,7 @@ an event containing the path for:
   every file or folder within it.
 
 - For deleted or moved folders, the root folder which was deleted/moved,
-  but *without* the paths of every file that was within it at the
+  but *not necessarily* the paths of every file that was within it at the
   original location
 
 Note that `watch` does not provide any additional information about the

@@ -98,6 +98,10 @@ class WatchServiceWatcher(roots: Seq[os.Path],
         for(p <- currentlyWatchedPaths.keySet if !os.isDir(p, followLinks = false)){
           logger("WATCH CANCEL", p)
           currentlyWatchedPaths.remove(p).foreach(_.cancel())
+          
+          // We used to have this directory but now it's either
+          // gone or is not a directory. Report the change.
+          bufferedEvents.add(p)
         }
 
         recursiveWatches()
