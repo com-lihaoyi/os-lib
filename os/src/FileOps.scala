@@ -143,7 +143,9 @@ object copy {
       def apply(from: Path) = {
         val dest = partialFunction(from)
         makeDir.all(dest/up)
-        os.copy(from, dest, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders)
+        os.copy(
+          from, dest, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders
+        )
       }
     }
 
@@ -201,7 +203,10 @@ object copy {
               copyAttributes: Boolean = false,
               createFolders: Boolean = false,
               mergeFolders: Boolean = false): Unit = {
-      os.copy(from, to/from.last, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders)
+      os.copy(
+        from, to/from.last,
+        followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders
+      )
     }
   }
 
