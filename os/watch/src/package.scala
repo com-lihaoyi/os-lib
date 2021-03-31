@@ -1,5 +1,7 @@
 package os
 
+import os.watch.inotify.NotifyWatcher
+
 package object watch{
   /**
     * Efficiently watches the given `roots` folders for changes. Any time the
@@ -31,7 +33,12 @@ package object watch{
             onEvent: Set[os.Path] => Unit,
             logger: (String, Any) => Unit = (_, _) => ()): AutoCloseable  = {
     val watcher = System.getProperty("os.name") match{
-      case "Linux" => new os.watch.WatchServiceWatcher(roots, onEvent, logger)
+      case "Linux" =>
+        if (!use_linux_inotify) {
+          new WatchServiceWatcher(roots, onEvent, logger)
+        } else {
+          new NotifyWatcher(roots, onEvent, logger)
+        }
       case "Mac OS X" => new os.watch.FSEventsWatcher(roots, onEvent, logger, 0.05)
       case osName => throw new Exception(s"watch not supported on operating system: $osName")
     }
@@ -45,4 +52,6 @@ package object watch{
     thread.start()
     watcher
   }
+
+  var use_linux_inotify: Boolean = false
 }

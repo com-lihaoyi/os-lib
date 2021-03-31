@@ -50,7 +50,8 @@ object os extends Module {
       def platformSegment = "jvm"
       def moduleDeps = super.moduleDeps :+ os.jvm()
       def ivyDeps = Agg(
-        ivy"net.java.dev.jna:jna:5.0.0"
+        ivy"net.java.dev.jna:jna:5.0.0",
+        ivy"com.lihaoyi::sourcecode::0.2.5",
       )
       object test extends Tests with OsLibTestModule {
         def platformSegment = "jvm"
@@ -107,7 +108,11 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
 trait OsLibTestModule extends ScalaModule with TestModule{
   def ivyDeps = Agg(
     ivy"com.lihaoyi::utest::0.7.8",
-    ivy"com.lihaoyi::sourcecode::0.2.5"
+    ivy"com.lihaoyi::sourcecode::0.2.5",
+    if (scalaVersion().startsWith("2.11"))
+       ivy"org.scalacheck::scalacheck::1.15.2"
+    else
+       ivy"org.scalacheck::scalacheck::1.15.3"
   )
 
   def platformSegment: String
@@ -116,7 +121,7 @@ trait OsLibTestModule extends ScalaModule with TestModule{
     millSourcePath / s"src-$platformSegment"
   )
 
-  def testFrameworks = Seq("utest.runner.Framework")
+  def testFrameworks = Seq("utest.runner.Framework", "org.scalacheck.ScalaCheckFramework")
   // we check the textual output of system commands and expect it in english
   override def forkEnv: Target[Map[String, String]] = super.forkEnv() ++ Map("LC_ALL" -> "C")
 }
