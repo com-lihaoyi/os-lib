@@ -2077,6 +2077,10 @@ string, int or set representations of the `os.PermSet` via:
 
 ## Changelog
 
+### 0.7.4
+
+- Add support for Scala 3.0.0-RC2
+
 ### 0.7.3
 
 - Add support for Scala 3.0.0-RC1
