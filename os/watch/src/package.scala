@@ -1,6 +1,7 @@
 package os
 
 package object watch{
+  
   /**
     * Efficiently watches the given `roots` folders for changes. Any time the
     * filesystem is modified within those folders, the `onEvent` callback is
@@ -29,9 +30,11 @@ package object watch{
     */
   def watch(roots: Seq[os.Path],
             onEvent: Set[os.Path] => Unit,
-            logger: (String, Any) => Unit = (_, _) => ()): AutoCloseable  = {
+            logger: (String, Any) => Unit = (_, _) => (),
+            onError: WatchError => ErrorResponse = ErrorResponse.defaultHandler
+           ): AutoCloseable  = {
     val watcher = System.getProperty("os.name") match{
-      case "Linux" => new os.watch.WatchServiceWatcher(roots, onEvent, logger)
+      case "Linux" => new os.watch.WatchServiceWatcher(roots, onEvent, logger, onError)
       case "Mac OS X" => new os.watch.FSEventsWatcher(roots, onEvent, logger, 0.05)
       case osName => throw new Exception(s"watch not supported on operating system: $osName")
     }

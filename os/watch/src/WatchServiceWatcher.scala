@@ -11,9 +11,13 @@ import com.sun.nio.file.SensitivityWatchEventModifier
 import scala.collection.mutable
 import collection.JavaConverters._
 
+import ErrorResponse.{Close,defaultHandler}
+
 class WatchServiceWatcher(roots: Seq[os.Path],
                           onEvent: Set[os.Path] => Unit,
-                          logger: (String, Any) => Unit = (_, _) => ()) extends Watcher{
+                          logger: (String, Any) => Unit = (_, _) => (),
+                          onError: WatchError => ErrorResponse = defaultHandler
+                         ) extends Watcher{
 
   val nioWatchService = FileSystems.getDefault.newWatchService()
   val currentlyWatchedPaths = mutable.Map.empty[os.Path, WatchKey]
@@ -111,6 +115,10 @@ class WatchServiceWatcher(roots: Seq[os.Path],
       case e: ClosedWatchServiceException =>
         println("Watcher closed, exiting: " + e)
         isRunning.set(false)
+      case e: Throwable =>
+        onError(InternalError(e)) match {
+          case Close => isRunning.set(false)
+        }
     }
   }
 

@@ -1603,7 +1603,10 @@ sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa64561590
 #### os.watch.watch
 
 ```scala
-os.watch.watch(roots: Seq[os.Path], onEvent: Set[os.Path] => Unit): Unit
+os.watch.watch(roots: Seq[os.Path],
+  onEvent: Set[os.Path] => Unit,
+  onError: os.watch.WatchError => os.watch.ErrorResponse = os.watch.ErrorResponse.defaultHandler
+): Unit
 ```
 ```scala
 // SBT
@@ -1636,6 +1639,20 @@ Note that `watch` does not provide any additional information about the
 changes happening within the watched roots folder, apart from the path
 at which the change happened. It is up to the `onEvent` handler to query
 the filesystem and figure out what happened, and what it wants to do.
+
+Possible errors (passed to the `onError` callback)
+
+- `WatchError.Overflow` The system is producing events faster
+  than the application is able to handle them.
+  
+- `WatchError.InternalError(e: Throwable)` For example: removing a drive
+  with watched paths.
+  
+Error responses:
+
+- `ErrorResponse.Close`. Terminate this instance of the watch service
+
+The default error handler prints an error message and returns `ErrorResponse.Close`
 
 Here is an example of use from the Ammonite REPL:
 
