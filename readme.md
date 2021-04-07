@@ -924,6 +924,20 @@ os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "ne
 os.copy.over(wd / "folder1", wd / "folder2")
 os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
 ```
+
+#### os.copy with `mergeFolders`
+
+If you want to copy a directory over another but don't want to overwrite the whole destination directory (and loose it's content),
+you can use the `mergeFolders` option of [os.copy](#oscopy).
+
+```scala
+os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.copy(wd / "folder1", wd / "folder2", mergeFolders = true)
+os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt", wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+```
+
+
 #### os.makeDir
 
 ```scala
