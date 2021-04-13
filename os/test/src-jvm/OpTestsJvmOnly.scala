@@ -102,6 +102,14 @@ object OpTestsJvmOnly extends TestSuite{
           os.copy(d/"folderA", d/"folderC")
           assert(os.read(d/"folderC"/"folderB"/"file") == "Cow")
         }
+        test("merging"){
+          val mergeDir = d/"merge"
+          os.write(mergeDir/"folderA"/"folderB"/"file", "Cow", createFolders = true)
+          os.write(mergeDir/"folderC"/"file", "moo", createFolders = true)
+          os.copy(mergeDir/"folderA", mergeDir/"folderC", mergeFolders = true)
+          assert(os.read(mergeDir/"folderC"/"folderB"/"file") == "Cow")
+          assert(os.read(mergeDir/"folderC"/"file") == "moo")
+        }
       }
       test("mv"){
         test("basic"){

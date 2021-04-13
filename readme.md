@@ -1,7 +1,7 @@
-# OS-Lib 0.7.3 [![Build Status][travis-badge]][travis-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
+# OS-Lib 0.7.3 [![Build Status][workflow-badge]][workflow-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
 
-[travis-badge]: https://travis-ci.org/lihaoyi/os-lib.svg
-[travis-link]: https://travis-ci.org/lihaoyi/os-lib
+[workflow-badge]: https://github.com/lihaoyi/os-lib/actions/workflows/build.yml/badge.svg
+[workflow-link]: https://github.com/lihaoyi/os-lib/actions
 [gitter-badge]: https://badges.gitter.im/Join%20Chat.svg
 [gitter-link]: https://gitter.im/lihaoyi/os-lib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
 [patreon-badge]: https://img.shields.io/badge/patreon-sponsor-ff69b4.svg
@@ -924,6 +924,20 @@ os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "ne
 os.copy.over(wd / "folder1", wd / "folder2")
 os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
 ```
+
+#### os.copy with `mergeFolders`
+
+If you want to copy a directory over another but don't want to overwrite the whole destination directory (and loose it's content),
+you can use the `mergeFolders` option of [os.copy](#oscopy).
+
+```scala
+os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.copy(wd / "folder1", wd / "folder2", mergeFolders = true)
+os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt", wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+```
+
+
 #### os.makeDir
 
 ```scala
@@ -2076,6 +2090,10 @@ string, int or set representations of the `os.PermSet` via:
 - `perms.value: Set[PosixFilePermission]`
 
 ## Changelog
+
+### 0.7.4
+
+- Add support for Scala 3.0.0-RC2
 
 ### 0.7.3
 

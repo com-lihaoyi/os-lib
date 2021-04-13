@@ -254,7 +254,7 @@ object ExampleTests extends TestSuite{
       assert(lines == 9)
     }
 
-    test("noLongLines"){
+    test("Source code line length does not exceed 100"){
 
       // Ensure that we don't have any Scala files in the current working directory
       // which have lines more than 100 characters long, excluding generated sources
