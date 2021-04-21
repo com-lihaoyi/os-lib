@@ -1,4 +1,4 @@
-# OS-Lib 0.7.3 [![Build Status][workflow-badge]][workflow-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
+# OS-Lib  [![Build Status][workflow-badge]][workflow-link] [![Gitter Chat][gitter-badge]][gitter-link] [![Patreon][patreon-badge]][patreon-link]
 
 [workflow-badge]: https://github.com/lihaoyi/os-lib/actions/workflows/build.yml/badge.svg
 [workflow-link]: https://github.com/lihaoyi/os-lib/actions
@@ -926,6 +926,8 @@ os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
 ```
 
 #### os.copy with `mergeFolders`
+
+_Since 0.7.5_
 
 If you want to copy a directory over another but don't want to overwrite the whole destination directory (and loose it's content),
 you can use the `mergeFolders` option of [os.copy](#oscopy).
@@ -2090,6 +2092,12 @@ string, int or set representations of the `os.PermSet` via:
 - `perms.value: Set[PosixFilePermission]`
 
 ## Changelog
+
+### 0.7.5 - 2021-04-21
+
+- Re-added support for Scala 2.11
+- Added new option `mergeFolders` to `os.copy`
+- os.copy now honors `followLinks` when copying symbolic links to directories
 
 ### 0.7.4
 
