@@ -94,7 +94,7 @@ object RandomTests extends Properties("os.watch") {
     }
   }
   
-  if (os.Internals.linux()) {
+  if (System.getProperty("os.name") == "Linux") {
     property("create") = forAll(TestDir.gen(50)) { d =>
       val run = new Run()
       //println(s"create#${run.id}")

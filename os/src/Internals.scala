@@ -23,7 +23,4 @@ object Internals{
     dest.write(_, 0, _)
   )
 
-  def linux() = {
-    System.getProperty("os.name") == "Linux"
-  }
 }
