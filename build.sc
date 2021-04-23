@@ -121,7 +121,7 @@ trait OsLibTestModule extends ScalaModule with TestModule{
     millSourcePath / s"src-$platformSegment"
   )
 
-  def testFrameworks = Seq("utest.runner.Framework", "org.scalacheck.ScalaCheckFramework")
+  def testFrameworks = Seq("utest.runner.Framework")
   // we check the textual output of system commands and expect it in english
   override def forkEnv: Target[Map[String, String]] = super.forkEnv() ++ Map("LC_ALL" -> "C")
 }

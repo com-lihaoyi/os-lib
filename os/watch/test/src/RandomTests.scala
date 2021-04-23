@@ -8,11 +8,16 @@ import org.scalacheck.Properties
 
 import scala.util.control.NonFatal
 import scala.util.Random
-//import upickle.default._
-
 import scala.collection.mutable
 
-object RandomTests extends Properties("os.watch") {
+import utest._
+object RandomTests extends TestSuite {
+  val tests = Tests {
+    test("the_tests") - TheTests.check()
+  }
+}
+
+object TheTests extends Properties("os.watch") {
 
   val base_dir : os.Path = os.pwd / "random_data"
   os.remove.all(base_dir)
@@ -59,7 +64,6 @@ object RandomTests extends Properties("os.watch") {
     val actual = Locked(mutable.Set[os.Path]())
     val events = mutable.Buffer[(String,Any)]()
     val id = run_counter.getAndIncrement()
-    //println(s"run#$id")
     val dir = base_dir / f"run_$id%04d"
     os.makeDir(dir)
     
