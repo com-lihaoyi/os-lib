@@ -70,11 +70,10 @@ object TheTests extends Properties("os.watch") {
     private var watch : AutoCloseable = null
     
     def observe[A](f: => A): A = {
-      os.watch.use_linux_inotify = true
       watch = os.watch.watch(Seq(dir),
         { paths => paths.foreach(p => actual(_.add(p))) },
-        { (k,v) => events.appendAll((Seq((k,v)))) }
-      )
+        { (k,v) => events.appendAll((Seq((k,v)))) },
+        WatchConfig(preferNative = true))
       f
     }
     

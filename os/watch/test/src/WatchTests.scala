@@ -6,10 +6,10 @@ object WatchTests extends TestSuite{
   val tests = Tests {
     test("singleFolder") - _root_.test.os.TestUtil.prep{wd => if (_root_.test.os.Unix()){
       val changedPaths = collection.mutable.Set.empty[os.Path]
-      _root_.os.watch.use_linux_inotify = true
       _root_.os.watch.watch(
         Seq(wd),
-        onEvent = _.foreach(changedPaths.add)
+        onEvent = _.foreach(changedPaths.add),
+        config = os.watch.WatchConfig(preferNative = true)
 //        (s, v) => println(s + " " + v)
       )
 
