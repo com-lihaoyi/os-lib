@@ -10,12 +10,12 @@ import de.tobiasroeser.mill.vcs.version.VcsVersion
 
 val dottyVersions = sys.props.get("dottyVersion").toList
 
-val scalaVersions = "2.12.13" :: "2.13.4" :: "2.11.12" :: "3.0.0-RC3" :: dottyVersions
+val scalaVersions = "2.12.13" :: "2.13.4" :: "2.11.12" :: "3.0.0" :: dottyVersions
 val scala2Versions = scalaVersions.filter(_.startsWith("2."))
 
 val scalaJSVersions = for {
   scalaV <- scala2Versions
-  scalaJSV <- Seq("0.6.33", "1.4.0")
+  scalaJSV <- Seq("0.6.33", "1.5.1")
 } yield (scalaV, scalaJSV)
 
 val scalaNativeVersions = for {
@@ -106,8 +106,8 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
 
 trait OsLibTestModule extends ScalaModule with TestModule{
   def ivyDeps = Agg(
-    ivy"com.lihaoyi::utest::0.7.9",
-    ivy"com.lihaoyi::sourcecode::0.2.6"
+    ivy"com.lihaoyi::utest::0.7.10",
+    ivy"com.lihaoyi::sourcecode::0.2.7"
   )
 
   def platformSegment: String
@@ -124,7 +124,7 @@ trait OsModule extends OsLibModule{
   def artifactName = "os-lib"
 
   def ivyDeps = Agg(
-    ivy"com.lihaoyi::geny::0.6.9"
+    ivy"com.lihaoyi::geny::0.6.10"
   )
 }
 
