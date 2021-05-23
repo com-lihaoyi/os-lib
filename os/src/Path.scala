@@ -1,6 +1,7 @@
 package os
 
 import collection.JavaConverters._
+import util.Properties
 
 trait PathChunk{
   def segments: Seq[String]
@@ -384,7 +385,20 @@ object Path {
       throw PathError.AbsolutePathOutsideRoot
     }
 
-    val normalized = f.normalize()
+    fromNIO(f)
+  }
+
+  private def fromNIO(p: java.nio.file.Path): Path = {
+    // On Windows, File.getCanonicalFile normalizes 8.3 paths as long paths,
+    // whereas Path.normalize doesn't. So we use the former here.
+    val shouldUseIO = Properties.isWin &&
+      p.getFileSystem.getClass.getName == "sun.nio.fs.WindowsFileSystem"
+    val normalized =
+      if (shouldUseIO) {
+        require(p.isAbsolute, s"$p is not an absolute path")
+        p.toFile.getCanonicalFile.toPath
+      }
+      else p.normalize()
     new Path(normalized)
   }
 
@@ -437,8 +451,8 @@ class Path private[os](val wrapped: java.nio.file.Path)
 
   def /(chunk: PathChunk): ThisType = {
     if (chunk.ups > wrapped.getNameCount) throw PathError.AbsolutePathOutsideRoot
-    val resolved = wrapped.resolve(chunk.toString).normalize()
-    new Path(resolved)
+    val resolved = wrapped.resolve(chunk.toString)
+    Path.fromNIO(resolved)
   }
   override def toString = wrapped.toString
 
