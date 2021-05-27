@@ -154,27 +154,6 @@ object copy {
     matching()(partialFunction)
   }
 
-  /** This overload is only to keep binary compatibility with older os-lib versions.  */
-  @deprecated("Use os.copy(from, to, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders) instead", "os-lib 0.7.5")
-  def apply(
-    from: Path,
-    to: Path,
-    followLinks: Boolean,
-    replaceExisting: Boolean,
-    copyAttributes: Boolean,
-    createFolders: Boolean
-  ): Unit = {
-    apply(
-      from = from,
-      to = to,
-      followLinks,
-      replaceExisting,
-      copyAttributes,
-      createFolders,
-      mergeFolders = false
-    )
-  }
-
   def apply(
              from: Path,
              to: Path,
@@ -213,6 +192,17 @@ object copy {
     if (stat(from, followLinks = followLinks).isDir) walk(from).map(copyOne)
   }
 
+  /** This overload is only to keep binary compatibility with older os-lib versions.  */
+  @deprecated("Use os.copy(from, to, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders) instead", "os-lib 0.7.5")
+  def apply(
+             from: Path,
+             to: Path,
+             followLinks: Boolean,
+             replaceExisting: Boolean,
+             copyAttributes: Boolean,
+             createFolders: Boolean
+           ): Unit = apply(from, to, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders = false)
+
   /**
     * Copy a file into a particular folder, rather
     * than into a particular path
@@ -230,6 +220,17 @@ object copy {
         followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders
       )
     }
+
+    /** This overload is only to keep binary compatibility with older os-lib versions.  */
+    @deprecated("Use os.copy.into(from, to, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders) instead", "os-lib 0.7.5")
+    def apply(
+      from: Path,
+      to: Path,
+      followLinks: Boolean,
+      replaceExisting: Boolean,
+      copyAttributes: Boolean,
+      createFolders: Boolean
+    ): Unit = apply(from, to, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders = false)
   }
 
   /**
@@ -244,7 +245,7 @@ object copy {
               copyAttributes: Boolean = false,
               createFolders: Boolean = false): Unit = {
       os.remove.all(to)
-      os.copy(from, to, followLinks, replaceExisting, copyAttributes, createFolders)
+      os.copy(from, to, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders = false)
     }
   }
 }
