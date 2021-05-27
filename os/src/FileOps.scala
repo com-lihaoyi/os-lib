@@ -193,15 +193,24 @@ object copy {
   }
 
   /** This overload is only to keep binary compatibility with older os-lib versions.  */
-  @deprecated("Use os.copy(from, to, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders) instead", "os-lib 0.7.5")
+  @deprecated("Use os.copy(from, to, followLinks, replaceExisting, copyAttributes, " +
+    "createFolders, mergeFolders) instead", "os-lib 0.7.5")
   def apply(
-             from: Path,
-             to: Path,
-             followLinks: Boolean,
-             replaceExisting: Boolean,
-             copyAttributes: Boolean,
-             createFolders: Boolean
-           ): Unit = apply(from, to, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders = false)
+    from: Path,
+    to: Path,
+    followLinks: Boolean,
+    replaceExisting: Boolean,
+    copyAttributes: Boolean,
+    createFolders: Boolean
+  ): Unit = apply(
+    from = from,
+    to = to,
+    followLinks = followLinks,
+    replaceExisting = replaceExisting,
+    copyAttributes = copyAttributes,
+    createFolders = createFolders,
+    mergeFolders = false
+  )
 
   /**
     * Copy a file into a particular folder, rather
@@ -222,7 +231,8 @@ object copy {
     }
 
     /** This overload is only to keep binary compatibility with older os-lib versions.  */
-    @deprecated("Use os.copy.into(from, to, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders) instead", "os-lib 0.7.5")
+    @deprecated("Use os.copy.into(from, to, followLinks, replaceExisting, copyAttributes, " +
+      "createFolders, mergeFolders) instead", "os-lib 0.7.5")
     def apply(
       from: Path,
       to: Path,
@@ -230,7 +240,15 @@ object copy {
       replaceExisting: Boolean,
       copyAttributes: Boolean,
       createFolders: Boolean
-    ): Unit = apply(from, to, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders = false)
+    ): Unit = apply(
+      from = from,
+      to = to,
+      followLinks = followLinks,
+      replaceExisting = replaceExisting,
+      copyAttributes = copyAttributes,
+      createFolders = createFolders,
+      mergeFolders = false
+    )
   }
 
   /**
