@@ -263,7 +263,15 @@ object copy {
               copyAttributes: Boolean = false,
               createFolders: Boolean = false): Unit = {
       os.remove.all(to)
-      os.copy(from, to, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders = false)
+      os.copy(
+        from = from,
+        to = to,
+        followLinks = followLinks,
+        replaceExisting = replaceExisting,
+        copyAttributes = copyAttributes,
+        createFolders = createFolders,
+        mergeFolders = false
+      )
     }
   }
 }
