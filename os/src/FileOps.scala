@@ -153,6 +153,28 @@ object copy {
   def matching(partialFunction: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
     matching()(partialFunction)
   }
+
+  /** This overload is only to keep binary compatibility with older os-lib versions.  */
+  @deprecated("Use os.copy(from, to, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders) instead", "os-lib 0.7.5")
+  def apply(
+    from: Path,
+    to: Path,
+    followLinks: Boolean,
+    replaceExisting: Boolean,
+    copyAttributes: Boolean,
+    createFolders: Boolean
+  ): Unit = {
+    apply(
+      from = from,
+      to = to,
+      followLinks,
+      replaceExisting,
+      copyAttributes,
+      createFolders,
+      mergeFolders = false
+    )
+  }
+
   def apply(
              from: Path,
              to: Path,
