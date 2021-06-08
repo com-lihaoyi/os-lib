@@ -4,6 +4,7 @@ import java.nio.file.Paths
 
 import os._
 import utest.{assert => _, _}
+import scala.util.Properties
 object PathTests extends TestSuite{
   val tests = Tests {
     test("Basic"){
@@ -379,6 +380,22 @@ object PathTests extends TestSuite{
             Path(tooManyUpsStr)
           }
         }
+      }
+    }
+    test("Windows short paths"){
+      if (Properties.isWin) {
+        val dir = os.temp.dir(prefix = "os-lib-tests")
+
+        val file = dir / "long-dir-name" / "long-file-name.txt"
+        // uncomment this line to make the test fail :/
+        // val shortBefore = dir / "LONG-D~1" / "LONG-F~1.txt"
+
+        val content = "os-lib test"
+        os.write(file, content, createFolders = true)
+
+        val short = dir / "LONG-D~1" / "LONG-F~1.txt"
+        assert(os.read(short) == content)
+        assert(file == short)
       }
     }
   }
