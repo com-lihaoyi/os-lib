@@ -1,5 +1,7 @@
 package os
 
+import scala.util.control.Breaks._
+
 import java.io.{InputStream, OutputStream}
 import java.nio.file.Files
 
@@ -10,10 +12,12 @@ object Internals{
   def transfer0(src: InputStream,
                 sink: (Array[Byte], Int) => Unit) = {
     val buffer = new Array[Byte](8192)
-    var r = 0
-    while (r != -1) {
-      r = src.read(buffer)
-      if (r != -1) sink(buffer, r)
+    breakable {
+      while (true) {
+        val r = src.read(buffer)
+        if (r == -1) break
+        sink(buffer, r)
+      }
     }
     src.close()
   }
