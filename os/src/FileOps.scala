@@ -252,8 +252,7 @@ object copy {
   }
 
   /**
-    * Copy a file into a particular folder, rather
-    * than into a particular path
+    * Copy a file into a particular path
     */
   object over{
     def apply(from: Path,
