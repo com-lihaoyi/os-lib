@@ -281,7 +281,7 @@ object copy {
  * does nothing if there aren't any
  */
 object remove extends Function1[Path, Unit]{
-  def apply(target: Path): Unit = Files.delete(target.wrapped)
+  def apply(target: Path): Unit = Files.deleteIfExists(target.wrapped)
 
   object all extends Function1[Path, Unit]{
     def apply(target: Path) = {
