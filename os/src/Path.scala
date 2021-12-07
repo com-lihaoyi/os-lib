@@ -182,9 +182,14 @@ trait BasePathImpl extends BasePath{
   def /(chunk: PathChunk): ThisType
 
   def ext = {
-    val li = last.lastIndexOf('.')
-    if (li == -1) ""
-    else last.slice(li+1, last.length)
+    lastOpt match{
+      case None => ""
+      case Some(lastSegment) =>
+        val li = lastSegment.lastIndexOf('.')
+        if (li == -1) ""
+        else last.slice(li+1, last.length)
+    }
+
   }
 
   override def baseName: String = {
@@ -193,7 +198,9 @@ trait BasePathImpl extends BasePath{
     else last.slice(0, li)
   }
 
-  def last: String
+  def last: String = lastOpt.getOrElse("empty path has no last segment")
+
+  def lastOpt: Option[String]
 }
 
 object PathError{
@@ -239,7 +246,7 @@ object FilePath {
   */
 class RelPath private[os](segments0: Array[String], val ups: Int)
   extends FilePath with BasePathImpl with SegmentedPath {
-  def last = segments.last
+  def lastOpt = segments.lastOption
   val segments: IndexedSeq[String] = segments0
   type ThisType = RelPath
   require(ups >= 0)
@@ -305,7 +312,7 @@ object RelPath {
   */
 class SubPath private[os](val segments0: Array[String])
   extends FilePath with BasePathImpl with SegmentedPath {
-  def last = segments.last
+  def lastOpt = segments.lastOption
   val segments: IndexedSeq[String] = segments0
   type ThisType = SubPath
   protected[this] def make(p: Seq[String], ups: Int) = {
@@ -433,7 +440,7 @@ class Path private[os](val wrapped: java.nio.file.Path)
   def segmentCount = wrapped.getNameCount
   type ThisType = Path
 
-  def last = wrapped.getFileName.toString
+  def lastOpt = Option(wrapped.getFileName).map(_.toString)
 
   def /(chunk: PathChunk): ThisType = {
     if (chunk.ups > wrapped.getNameCount) throw PathError.AbsolutePathOutsideRoot

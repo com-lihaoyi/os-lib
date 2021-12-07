@@ -47,6 +47,13 @@ object PathTests extends TestSuite{
           assert((base / "baseOnly").ext == "")
           assert((base / "baseOnly.").ext == "")
         }
+
+        test("emptyExt"){
+          os.root.ext ==> ""
+          os.rel.ext ==> ""
+          os.sub.ext ==> ""
+          os.up.ext ==> ""
+        }
       }
 
       test("RelPath"){
