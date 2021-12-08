@@ -47,6 +47,24 @@ object PathTests extends TestSuite{
           assert((base / "baseOnly").ext == "")
           assert((base / "baseOnly.").ext == "")
         }
+
+        test("emptyExt"){
+          os.root.ext ==> ""
+          os.rel.ext ==> ""
+          os.sub.ext ==> ""
+          os.up.ext ==> ""
+        }
+
+        test("emptyLast"){
+          intercept[PathError.LastOnEmptyPath](os.root.last).getMessage ==>
+            "empty path has no last segment"
+          intercept[PathError.LastOnEmptyPath](os.rel.last).getMessage ==>
+            "empty path has no last segment"
+          intercept[PathError.LastOnEmptyPath](os.sub.last).getMessage ==>
+            "empty path has no last segment"
+          intercept[PathError.LastOnEmptyPath](os.up.last).getMessage ==>
+            "empty path has no last segment"
+        }
       }
 
       test("RelPath"){
