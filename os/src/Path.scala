@@ -198,7 +198,7 @@ trait BasePathImpl extends BasePath{
     else last.slice(0, li)
   }
 
-  def last: String = lastOpt.getOrElse("empty path has no last segment")
+  def last: String = lastOpt.getOrElse(throw PathError.LastOnEmptyPath())
 
   def lastOpt: Option[String]
 }
@@ -215,6 +215,9 @@ object PathError{
 
   case class NoRelativePath(src: RelPath, base: RelPath)
     extends IAE(s"Can't relativize relative paths $src from $base")
+
+  case class LastOnEmptyPath()
+    extends IAE("empty path has no last segment")
 }
 
 /**
