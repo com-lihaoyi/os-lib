@@ -398,6 +398,20 @@ object Path {
     new Path(normalized)
   }
 
+  /**
+    * Get an absolute os.Path from either an absolute path, a relative
+    * path to the current working directory, or, a path prefixed with
+    * ~/.
+    */
+  def of[T: PathConvertible](f0: T): Path = {
+    val f = implicitly[PathConvertible[T]].apply(f0)
+    if (f.subpath(0, 1).toString == "~") {
+      Path(System.getProperty("user.home"))(PathConvertible.StringConvertible) /
+      RelPath(f.subpath(0, 1).relativize(f))(PathConvertible.NioPathConvertible)
+    } else if (f.isAbsolute) Path(f)
+    else Path(f, Path(java.nio.file.Paths.get("").toAbsolutePath))
+  }
+
   implicit val pathOrdering: Ordering[Path] = new Ordering[Path]{
     def compare(x: Path, y: Path): Int = {
       val xSegCount = x.segmentCount
