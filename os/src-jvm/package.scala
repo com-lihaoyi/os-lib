@@ -18,10 +18,16 @@ package object os{
    */
   val home: Path = Path(System.getProperty("user.home"))
 
+  private val initialWorkingDirectory: Path = os.Path(java.nio.file.Paths.get(".").toAbsolutePath)
+
+  private var cwdSupplier: () => Path = () => initialWorkingDirectory
+
+  def setCwdSupplier(supplier: () => Path) = { cwdSupplier = supplier }
+
   /**
    * The current working directory for this process.
    */
-  val pwd: Path = os.Path(java.nio.file.Paths.get(".").toAbsolutePath)
+  def pwd: Path = cwdSupplier()
 
   val up: RelPath = RelPath.up
 

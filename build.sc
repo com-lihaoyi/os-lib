@@ -107,7 +107,8 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
 trait OsLibTestModule extends ScalaModule with TestModule{
   def ivyDeps = Agg(
     ivy"com.lihaoyi::utest::0.7.10",
-    ivy"com.lihaoyi::sourcecode::0.2.7"
+    ivy"com.lihaoyi::sourcecode::0.2.7",
+    ivy"com.github.jnr:jnr-posix:3.1.14",
   )
 
   def platformSegment: String
