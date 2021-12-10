@@ -408,14 +408,14 @@ object Path {
       else{
         var xSeg = ""
         var ySeg = ""
-        var i = -1
+        var i = 0
         while ({
-          i += 1
           xSeg = x.getSegment(i)
           ySeg = y.getSegment(i)
+          i += 1
           i < xSegCount && xSeg == ySeg
         }) ()
-        if (i == xSegCount) 0
+        if (i == xSegCount - 1) 0
         else Ordering.String.compare(xSeg, ySeg)
       }
     }
