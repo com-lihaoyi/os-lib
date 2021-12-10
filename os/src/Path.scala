@@ -409,16 +409,20 @@ object Path {
         var xSeg = ""
         var ySeg = ""
         var i = 0
+        var result: Integer = null
         while ({
           xSeg = x.getSegment(i)
           ySeg = y.getSegment(i)
           i += 1
           val compared = Ordering.String.compare(xSeg, ySeg)
           if (i < xSegCount && compared == 0) true // continue
-          else return compared
+          else {
+            result = compared
+            false
+          }
         }) ()
 
-        ???
+        result
       }
     }
   }
