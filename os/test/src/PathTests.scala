@@ -328,11 +328,10 @@ object PathTests extends TestSuite{
     }
     test("sorting"){
       test - {
-        os.Path.pathOrdering.compare(root / "a", root / "b")
-//        assert(
-//          Seq(root/"c", root, root/"b", root/"a").sorted ==
-//            Seq(root, root/"a", root/"b", root/"c")
-//        )
+        assert(
+          Seq(root/"c", root, root/"b", root/"a").sorted ==
+          Seq(root, root/"a", root/"b", root/"c")
+        )
       }
 
       test - assert(
