@@ -408,15 +408,21 @@ object Path {
       else{
         var xSeg = ""
         var ySeg = ""
-        var i = -1
+        var i = 0
+        var result: Integer = null
         while ({
-          i += 1
           xSeg = x.getSegment(i)
           ySeg = y.getSegment(i)
-          i < xSegCount && xSeg == ySeg
+          i += 1
+          val compared = Ordering.String.compare(xSeg, ySeg)
+          if (i < xSegCount && compared == 0) true // continue
+          else {
+            result = compared
+            false
+          }
         }) ()
-        if (i == xSegCount) 0
-        else Ordering.String.compare(xSeg, ySeg)
+
+        result
       }
     }
   }

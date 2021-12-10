@@ -327,10 +327,21 @@ object PathTests extends TestSuite{
       }
     }
     test("sorting"){
-      assert(
-        Seq(root/"c", root, root/"b", root/"a").sorted == Seq(root, root/"a", root/"b", root/"c"),
+      test - {
+        assert(
+          Seq(root/"c", root, root/"b", root/"a").sorted ==
+          Seq(root, root/"a", root/"b", root/"c")
+        )
+      }
+
+      test - assert(
         Seq(up/"c", up/up/"c", rel/"b"/"c", rel/"a"/"c", rel/"a"/"d").sorted ==
-          Seq(rel/"a"/"c", rel/"a"/"d", rel/"b"/"c", up/"c", up/up/"c")
+        Seq(rel/"a"/"c", rel/"a"/"d", rel/"b"/"c", up/"c", up/up/"c")
+      )
+
+      test - assert(
+        Seq(os.root / "yo", os.root / "yo").sorted ==
+        Seq(os.root / "yo", os.root / "yo")
       )
     }
     test("construction"){
