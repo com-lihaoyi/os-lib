@@ -414,11 +414,8 @@ object Path {
           ySeg = y.getSegment(i)
           i += 1
           val compared = Ordering.String.compare(xSeg, ySeg)
-          if (i == xSegCount) return compared
-          else compared match{
-            case 0 => true // continue
-            case n => return n
-          }
+          if (i < xSegCount && compared == 0) true // continue
+          else return compared
         }) ()
 
         ???
