@@ -415,8 +415,8 @@ object Path {
           i += 1
           i < xSegCount && xSeg == ySeg
         }) ()
-        if (i == xSegCount + 1) 0
-        else Ordering.String.compare(xSeg, ySeg)
+
+        Ordering.String.compare(xSeg, ySeg)
       }
     }
   }
