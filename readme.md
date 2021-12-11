@@ -2095,7 +2095,7 @@ string, int or set representations of the `os.PermSet` via:
 
 ### 0.8.0 - 2021-12-11
 
-- Avoid throwing an exception when throwing identical paths [#90](https://github.com/com-lihaoyi/os-lib/pull/90)
+- Avoid throwing an exception when sorting identical paths [#90](https://github.com/com-lihaoyi/os-lib/pull/90)
 - Make `os.remove` behave more like `Files.deleteIfExists` [#89](https://github.com/com-lihaoyi/os-lib/pull/89)
 - Make `.ext` on empty paths return `""` rather than crashing [#87](https://github.com/com-lihaoyi/os-lib/pull/87)
 
