@@ -124,7 +124,7 @@ trait OsModule extends OsLibModule{
   def artifactName = "os-lib"
 
   def ivyDeps = Agg(
-    ivy"com.lihaoyi::geny::0.6.10"
+    ivy"com.lihaoyi::geny::0.7.0"
   )
 }
 
