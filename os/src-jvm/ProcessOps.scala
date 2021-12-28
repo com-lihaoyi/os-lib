@@ -82,7 +82,7 @@ case class proc(command: Shellable*) {
     val chunksArr = chunks.iterator.asScala.toArray
     val res = CommandResult(sub.exitCode(), chunksArr)
     if (res.exitCode == 0 || !check) res
-    else throw SubprocessException(res)
+    else throw SubprocessException(res, command.flatMap(_.value))
   }
 
   /**

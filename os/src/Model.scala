@@ -195,11 +195,13 @@ case class CommandResult(exitCode: Int,
 /**
   * Thrown when a shellout command results in a non-zero exit code.
   *
-  * Doesn't contain any additional information apart from the [[CommandResult]]
+  * It contains information about the [[CommandResult]]
   * that is normally returned, but ensures that failures in subprocesses happen
   * loudly and won't get ignored unless intentionally caught
+  * @param result   Result from commamnd execution.
+  * @param cmd      Command with its arguments that has failed.
   */
-case class SubprocessException(result: CommandResult) extends Exception(result.toString)
+case class SubprocessException(result: CommandResult, cmd: Seq[String]) extends Exception(result.toString)
 
 /**
   * An implicit wrapper defining the things that can
