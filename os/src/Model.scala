@@ -201,7 +201,7 @@ case class CommandResult(exitCode: Int,
   * @param result   Result from commamnd execution.
   * @param cmd      Command with its arguments that has failed.
   */
-case class SubprocessException(result: CommandResult, cmd: Seq[String]) extends Exception(result.toString)
+case class SubprocessException(result: CommandResult, cmd: Seq[String]) extends Exception(s"Command <${cmd mkString " "}> has failed with code ${result.toString}")
 
 /**
   * An implicit wrapper defining the things that can
