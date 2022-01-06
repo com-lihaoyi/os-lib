@@ -380,9 +380,10 @@ object Path {
     */
   def expandUser[T: PathConvertible](f0: T, base: Path = null) = {
     val f = implicitly[PathConvertible[T]].apply(f0)
-    if (f.subpath(0, 1).toString != "~") if (base == null) Path(f0) else Path(f0, base)
-    else {
-      Path(System.getProperty("user.home"))(PathConvertible.StringConvertible)/
+    if (f.subpath(0, 1).toString != "~") {
+      if (base == null) Path(f0) else Path(f0, base)
+    } else {
+      os.home /
         RelPath(f.subpath(0, 1).relativize(f))(PathConvertible.NioPathConvertible)
     }
   }
