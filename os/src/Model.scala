@@ -5,6 +5,7 @@ import java.nio.file.{Files, LinkOption, Paths}
 import java.nio.file.attribute._
 
 import scala.io.Codec
+import scala.language.implicitConversions
 import scala.util.Try
 
 /**
