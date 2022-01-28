@@ -1,4 +1,4 @@
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version_mill0.9:0.1.1`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.1.4`
 
 import mill._
 import mill.define.Target
@@ -10,21 +10,17 @@ import de.tobiasroeser.mill.vcs.version.VcsVersion
 
 val dottyVersions = sys.props.get("dottyVersion").toList
 
-val scalaVersions = "2.12.13" :: "2.13.4" :: "2.11.12" :: "3.0.0" :: dottyVersions
-val scala2Versions = scalaVersions.filter(_.startsWith("2."))
-
-val scalaJSVersions = for {
-  scalaV <- scala2Versions
-  scalaJSV <- Seq("0.6.33", "1.5.1")
-} yield (scalaV, scalaJSV)
+val scala2AndDottyVersions = "2.12.13" :: "2.13.4" :: "2.11.12" :: dottyVersions
+val scala30 = "3.0.0"
+val scala31 = "3.1.0"
 
 val scalaNativeVersions = for {
-  scalaV <- scala2Versions
-  scalaNativeV <- Seq("0.4.0")
+  scalaV <- scala31 :: scala2AndDottyVersions
+  scalaNativeV <- Seq("0.4.3")
 } yield (scalaV, scalaNativeV)
 
 object os extends Module {
-  object jvm extends Cross[OsJvmModule](scalaVersions:_*)
+  object jvm extends Cross[OsJvmModule](scala30 :: scala2AndDottyVersions:_*)
 
   class OsJvmModule(val crossScalaVersion: String) extends OsModule {
     def platformSegment = "jvm"
@@ -36,7 +32,7 @@ object os extends Module {
 
   class OsNativeModule(val crossScalaVersion: String, crossScalaNativeVersion: String) extends OsModule with ScalaNativeModule {
     def platformSegment = "native"
-    def millSourcePath = super.millSourcePath / ammonite.ops.up
+    def millSourcePath = super.millSourcePath / _root_.os.up
     def scalaNativeVersion = crossScalaNativeVersion
     object test extends Tests with OsLibTestModule{
       def platformSegment = "native"
@@ -45,7 +41,7 @@ object os extends Module {
   }
 
   object watch extends Module {
-    object jvm extends Cross[WatchJvmModule](scalaVersions:_*)
+    object jvm extends Cross[WatchJvmModule](scala30 :: scala2AndDottyVersions:_*)
     class WatchJvmModule(val crossScalaVersion: String) extends WatchModule {
       def platformSegment = "jvm"
       def moduleDeps = super.moduleDeps :+ os.jvm()
@@ -83,22 +79,22 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
     organization = "com.lihaoyi",
     url = "https://github.com/lihaoyi/os",
     licenses = Seq(License.MIT),
-    scm = SCM(
-      "git://github.com/lihaoyi/os.git",
-      "scm:git://github.com/lihaoyi/os.git"
+    versionControl = VersionControl.github(
+      owner = "com-lihaoyi",
+      repo = "os-lib"
     ),
     developers = Seq(
-      Developer("lihaoyi", "Li Haoyi","https://github.com/lihaoyi")
+      Developer("lihaoyi", "Li Haoyi", "https://github.com/lihaoyi")
     )
   )
 
   def platformSegment: String
-  def millSourcePath = super.millSourcePath / ammonite.ops.up
+  def millSourcePath = super.millSourcePath / _root_.os.up
   def sources = T.sources(
     millSourcePath / "src",
     millSourcePath / s"src-$platformSegment"
   )
-  def acyclicDep: T[Agg[Dep]] = T { if (!isDotty) Agg(ivy"com.lihaoyi::acyclic:0.2.1") else Agg() }
+  def acyclicDep: T[Agg[Dep]] = T { if (!isDotty) Agg(ivy"com.lihaoyi:::acyclic:0.3.2") else Agg() }
   def compileIvyDeps = acyclicDep
   def scalacOptions = T { if (!isDotty) Seq("-P:acyclic:force") else Seq.empty }
   def scalacPluginIvyDeps = acyclicDep
@@ -106,8 +102,8 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
 
 trait OsLibTestModule extends ScalaModule with TestModule{
   def ivyDeps = Agg(
-    ivy"com.lihaoyi::utest::0.7.10",
-    ivy"com.lihaoyi::sourcecode::0.2.7"
+    ivy"com.lihaoyi::utest::0.7.11",
+    ivy"com.lihaoyi::sourcecode::0.2.8"
   )
 
   def platformSegment: String
@@ -124,7 +120,7 @@ trait OsModule extends OsLibModule{
   def artifactName = "os-lib"
 
   def ivyDeps = Agg(
-    ivy"com.lihaoyi::geny::0.7.0"
+    ivy"com.lihaoyi::geny::0.7.1"
   )
 }
 
