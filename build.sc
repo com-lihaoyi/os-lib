@@ -11,8 +11,8 @@ import de.tobiasroeser.mill.vcs.version.VcsVersion
 val dottyVersions = sys.props.get("dottyVersion").toList
 
 val scala2AndDottyVersions = "2.12.13" :: "2.13.4" :: "2.11.12" :: dottyVersions
-val scala30 = "3.0.0"
-val scala31 = "3.1.0"
+val scala30 = "3.0.2"
+val scala31 = "3.1.1"
 
 val scalaNativeVersions = for {
   scalaV <- scala31 :: scala2AndDottyVersions
