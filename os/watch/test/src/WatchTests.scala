@@ -2,7 +2,10 @@ package test.os.watch
 
 import utest._
 object WatchTests extends TestSuite with TestSuite.Retries{
-  override val utestRetryCount = 10
+  override val utestRetryCount = if(sys.env.get("CI").contains("true")) {
+    if(sys.env.get("RUNNER_OS").contains("macOS")) 10
+    else 3
+  } else 0
 
   val tests = Tests {
     test("singleFolder") - _root_.test.os.TestUtil.prep{wd => if (_root_.test.os.Unix()){
