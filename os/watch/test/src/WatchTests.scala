@@ -1,7 +1,8 @@
 package test.os.watch
 
 import utest._
-object WatchTests extends TestSuite{
+object WatchTests extends TestSuite with TestSuite.Retries{
+  override val utestRetryCount = 10
 
   val tests = Tests {
     test("singleFolder") - _root_.test.os.TestUtil.prep{wd => if (_root_.test.os.Unix()){
