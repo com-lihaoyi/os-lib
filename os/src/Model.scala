@@ -168,7 +168,7 @@ case class PermSet(value: Int) {
   * wrapping stdout/stderr respectively, and providing convenient access to
   * the aggregate output of each stream, as bytes or strings or lines.
   */
-case class CommandResult(exitCode: Int,
+case class CommandResult(command: Seq[String], exitCode: Int,
                          chunks: Seq[Either[geny.Bytes, geny.Bytes]]) {
   /**
     * The standard output and error of the executed command, exposed in a
@@ -185,7 +185,8 @@ case class CommandResult(exitCode: Int,
   }
 
   override def toString() = {
-    s"CommandResult $exitCode\n" +
+    val denoteMoreCommandChunks = if (command.length == 1) "" else "…"
+    s"Result of ${command.head}${denoteMoreCommandChunks}: $exitCode\n" +
       chunks.iterator
         .collect{case Left(s) => s case Right(s) => s}
         .map(x => new String(x.array))
