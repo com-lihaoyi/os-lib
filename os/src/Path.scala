@@ -374,6 +374,17 @@ object Path {
     case p: Path => p
   }
 
+  private[os] val cwd = os.Path(java.nio.file.Paths.get(".").toAbsolutePath)
+
+  /**
+    * Converts absolute paths, relative paths and automatically
+    * expands leading `~/` into the user's home directory.
+    */
+  def of[T: PathConvertible](f: T, base: Path = null) =
+    // Note that we can't use os.pwd as it would cause a cyclic
+    // dependency. Hence the package-scoped os.Path.getPwd.
+    expandUser(f, if (base == null) cwd else base)
+
   /**
     * Equivalent to [[os.Path.apply]], but automatically expands a
     * leading `~/` into the user's home directory, for convenience
