@@ -225,6 +225,9 @@ object Shellable{
 /**
   * The result from doing an system `stat` on a particular path.
   *
+  * Note: ctime is not same as ctime (Change Time) in `stat`,
+  *       it is creation time maybe fall back to mtime if system not supported it.
+  *
   * Created via `stat! filePath`.
   *
   * If you want more information, use `stat.full`
@@ -244,8 +247,8 @@ object StatInfo{
     new StatInfo(
       attrs.size(),
       attrs.lastModifiedTime(),
-      attrs.lastAccessTime(),
       attrs.creationTime(),
+      attrs.lastAccessTime(),
       if (attrs.isRegularFile) FileType.File
       else if (attrs.isDirectory) FileType.Dir
       else if (attrs.isSymbolicLink) FileType.SymLink
