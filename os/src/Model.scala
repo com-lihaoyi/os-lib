@@ -168,7 +168,8 @@ case class PermSet(value: Int) {
   * wrapping stdout/stderr respectively, and providing convenient access to
   * the aggregate output of each stream, as bytes or strings or lines.
   */
-case class CommandResult(command: Seq[String], exitCode: Int,
+case class CommandResult(command: Seq[String],
+                         exitCode: Int,
                          chunks: Seq[Either[geny.Bytes, geny.Bytes]]) {
   /**
     * The standard output and error of the executed command, exposed in a
