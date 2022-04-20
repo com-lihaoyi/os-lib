@@ -22,7 +22,7 @@ import scala.annotation.tailrec
   *   want
   */
 case class proc(command: Shellable*) {
-  val commandChunks = command.flatMap(_.value)
+  def commandChunks: Seq[String] = command.flatMap(_.value)
 
   /**
     * Invokes the given subprocess like a function, passing in input and returning a
@@ -119,10 +119,11 @@ case class proc(command: Shellable*) {
 
     builder.directory(Option(cwd).getOrElse(os.pwd).toIO)
 
-    val commandStr = commandChunks.mkString(" ")
+    val cmdChunks = commandChunks
+    val commandStr = cmdChunks.mkString(" ")
     lazy val proc: SubProcess = new SubProcess(
       builder
-        .command(commandChunks:_*)
+        .command(cmdChunks:_*)
         .redirectInput(stdin.redirectFrom)
         .redirectOutput(stdout.redirectTo)
         .redirectError(stderr.redirectTo)
