@@ -23,7 +23,7 @@ class ResourcePath private[os](val resRoot: ResourceRoot, segments0: Array[Strin
   def toSource = new Source.WritableSource(getInputStream)
   val segments: IndexedSeq[String] = segments0
   type ThisType = ResourcePath
-  def last = segments0.last
+  def lastOpt = segments0.lastOption
   override def toString = resRoot.errorName + "/" + segments0.mkString("/")
   protected[this] def make(p: Seq[String], ups: Int) = {
     if (ups > 0){

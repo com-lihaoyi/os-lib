@@ -22,6 +22,8 @@ import scala.annotation.tailrec
   *   want
   */
 case class proc(command: Shellable*) {
+  def commandChunks: Seq[String] = command.flatMap(_.value)
+
   /**
     * Invokes the given subprocess like a function, passing in input and returning a
     * [[CommandResult]]. You can then call `result.exitCode` to see how it exited, or
@@ -80,7 +82,7 @@ case class proc(command: Shellable*) {
     sub.join(timeout)
 
     val chunksArr = chunks.iterator.asScala.toArray
-    val res = CommandResult(sub.exitCode(), chunksArr)
+    val res = CommandResult(commandChunks, sub.exitCode(), chunksArr)
     if (res.exitCode == 0 || !check) res
     else throw SubprocessException(res)
   }
@@ -117,11 +119,11 @@ case class proc(command: Shellable*) {
 
     builder.directory(Option(cwd).getOrElse(os.pwd).toIO)
 
-    val commandChunks = command.flatMap(_.value)
-    val commandStr = commandChunks.mkString(" ")
+    val cmdChunks = commandChunks
+    val commandStr = cmdChunks.mkString(" ")
     lazy val proc: SubProcess = new SubProcess(
       builder
-        .command(commandChunks:_*)
+        .command(cmdChunks:_*)
         .redirectInput(stdin.redirectFrom)
         .redirectOutput(stdout.redirectTo)
         .redirectError(stderr.redirectTo)

@@ -182,9 +182,14 @@ trait BasePathImpl extends BasePath{
   def /(chunk: PathChunk): ThisType
 
   def ext = {
-    val li = last.lastIndexOf('.')
-    if (li == -1) ""
-    else last.slice(li+1, last.length)
+    lastOpt match{
+      case None => ""
+      case Some(lastSegment) =>
+        val li = lastSegment.lastIndexOf('.')
+        if (li == -1) ""
+        else last.slice(li+1, last.length)
+    }
+
   }
 
   override def baseName: String = {
@@ -193,7 +198,9 @@ trait BasePathImpl extends BasePath{
     else last.slice(0, li)
   }
 
-  def last: String
+  def last: String = lastOpt.getOrElse(throw PathError.LastOnEmptyPath())
+
+  def lastOpt: Option[String]
 }
 
 object PathError{
@@ -208,6 +215,9 @@ object PathError{
 
   case class NoRelativePath(src: RelPath, base: RelPath)
     extends IAE(s"Can't relativize relative paths $src from $base")
+
+  case class LastOnEmptyPath()
+    extends IAE("empty path has no last segment")
 }
 
 /**
@@ -239,7 +249,7 @@ object FilePath {
   */
 class RelPath private[os](segments0: Array[String], val ups: Int)
   extends FilePath with BasePathImpl with SegmentedPath {
-  def last = segments.last
+  def lastOpt = segments.lastOption
   val segments: IndexedSeq[String] = segments0
   type ThisType = RelPath
   require(ups >= 0)
@@ -305,7 +315,7 @@ object RelPath {
   */
 class SubPath private[os](val segments0: Array[String])
   extends FilePath with BasePathImpl with SegmentedPath {
-  def last = segments.last
+  def lastOpt = segments.lastOption
   val segments: IndexedSeq[String] = segments0
   type ThisType = SubPath
   protected[this] def make(p: Seq[String], ups: Int) = {
@@ -398,15 +408,21 @@ object Path {
       else{
         var xSeg = ""
         var ySeg = ""
-        var i = -1
+        var i = 0
+        var result: Integer = null
         while ({
-          i += 1
           xSeg = x.getSegment(i)
           ySeg = y.getSegment(i)
-          i < xSegCount && xSeg == ySeg
+          i += 1
+          val compared = Ordering.String.compare(xSeg, ySeg)
+          if (i < xSegCount && compared == 0) true // continue
+          else {
+            result = compared
+            false
+          }
         }) ()
-        if (i == xSegCount) 0
-        else Ordering.String.compare(xSeg, ySeg)
+
+        result
       }
     }
   }
@@ -433,7 +449,7 @@ class Path private[os](val wrapped: java.nio.file.Path)
   def segmentCount = wrapped.getNameCount
   type ThisType = Path
 
-  def last = wrapped.getFileName.toString
+  def lastOpt = Option(wrapped.getFileName).map(_.toString)
 
   def /(chunk: PathChunk): ThisType = {
     if (chunk.ups > wrapped.getNameCount) throw PathError.AbsolutePathOutsideRoot

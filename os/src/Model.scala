@@ -5,6 +5,7 @@ import java.nio.file.{Files, LinkOption, Paths}
 import java.nio.file.attribute._
 
 import scala.io.Codec
+import scala.language.implicitConversions
 import scala.util.Try
 
 /**
@@ -167,7 +168,8 @@ case class PermSet(value: Int) {
   * wrapping stdout/stderr respectively, and providing convenient access to
   * the aggregate output of each stream, as bytes or strings or lines.
   */
-case class CommandResult(exitCode: Int,
+case class CommandResult(command: Seq[String],
+                         exitCode: Int,
                          chunks: Seq[Either[geny.Bytes, geny.Bytes]]) {
   /**
     * The standard output and error of the executed command, exposed in a
@@ -184,7 +186,8 @@ case class CommandResult(exitCode: Int,
   }
 
   override def toString() = {
-    s"CommandResult $exitCode\n" +
+    val denoteMoreCommandChunks = if (command.length == 1) "" else "…"
+    s"Result of ${command.head}${denoteMoreCommandChunks}: $exitCode\n" +
       chunks.iterator
         .collect{case Left(s) => s case Right(s) => s}
         .map(x => new String(x.array))
@@ -224,6 +227,9 @@ object Shellable{
 /**
   * The result from doing an system `stat` on a particular path.
   *
+  * Note: ctime is not same as ctime (Change Time) in `stat`,
+  *       it is creation time maybe fall back to mtime if system not supported it.
+  *
   * Created via `stat! filePath`.
   *
   * If you want more information, use `stat.full`
@@ -243,8 +249,8 @@ object StatInfo{
     new StatInfo(
       attrs.size(),
       attrs.lastModifiedTime(),
-      attrs.lastAccessTime(),
       attrs.creationTime(),
+      attrs.lastAccessTime(),
       if (attrs.isRegularFile) FileType.File
       else if (attrs.isDirectory) FileType.Dir
       else if (attrs.isSymbolicLink) FileType.SymLink

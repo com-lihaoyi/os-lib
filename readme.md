@@ -161,9 +161,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.7.8"
+"com.lihaoyi" %% "os-lib" % "0.8.0"
 // Mill
-ivy"com.lihaoyi::os-lib:0.7.8"
+ivy"com.lihaoyi::os-lib:0.8.0"
 ```
 
 ## Cookbook
@@ -2092,6 +2092,12 @@ string, int or set representations of the `os.PermSet` via:
 - `perms.value: Set[PosixFilePermission]`
 
 ## Changelog
+
+### 0.8.0 - 2021-12-11
+
+- Avoid throwing an exception when sorting identical paths [#90](https://github.com/com-lihaoyi/os-lib/pull/90)
+- Make `os.remove` behave more like `Files.deleteIfExists` [#89](https://github.com/com-lihaoyi/os-lib/pull/89)
+- Make `.ext` on empty paths return `""` rather than crashing [#87](https://github.com/com-lihaoyi/os-lib/pull/87)
 
 ### 0.7.8 - 2021-05-27
 

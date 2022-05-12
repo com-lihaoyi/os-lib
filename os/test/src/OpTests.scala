@@ -27,9 +27,12 @@ object OpTests extends TestSuite{
     test("rm"){
       // shouldn't crash
       os.remove.all(os.pwd/"out"/"scratch"/"nonexistent")
+      // shouldn't crash
+      os.remove(os.pwd/"out"/"scratch"/"nonexistent") ==> false
+
       // should crash
       intercept[NoSuchFileException]{
-        os.remove(os.pwd/"out"/"scratch"/"nonexistent")
+        os.remove(os.pwd/"out"/"scratch"/"nonexistent", checkExists = true)
       }
     }
   }

@@ -47,6 +47,24 @@ object PathTests extends TestSuite{
           assert((base / "baseOnly").ext == "")
           assert((base / "baseOnly.").ext == "")
         }
+
+        test("emptyExt"){
+          os.root.ext ==> ""
+          os.rel.ext ==> ""
+          os.sub.ext ==> ""
+          os.up.ext ==> ""
+        }
+
+        test("emptyLast"){
+          intercept[PathError.LastOnEmptyPath](os.root.last).getMessage ==>
+            "empty path has no last segment"
+          intercept[PathError.LastOnEmptyPath](os.rel.last).getMessage ==>
+            "empty path has no last segment"
+          intercept[PathError.LastOnEmptyPath](os.sub.last).getMessage ==>
+            "empty path has no last segment"
+          intercept[PathError.LastOnEmptyPath](os.up.last).getMessage ==>
+            "empty path has no last segment"
+        }
       }
 
       test("RelPath"){
@@ -309,10 +327,21 @@ object PathTests extends TestSuite{
       }
     }
     test("sorting"){
-      assert(
-        Seq(root/"c", root, root/"b", root/"a").sorted == Seq(root, root/"a", root/"b", root/"c"),
+      test - {
+        assert(
+          Seq(root/"c", root, root/"b", root/"a").sorted ==
+          Seq(root, root/"a", root/"b", root/"c")
+        )
+      }
+
+      test - assert(
         Seq(up/"c", up/up/"c", rel/"b"/"c", rel/"a"/"c", rel/"a"/"d").sorted ==
-          Seq(rel/"a"/"c", rel/"a"/"d", rel/"b"/"c", up/"c", up/up/"c")
+        Seq(rel/"a"/"c", rel/"a"/"d", rel/"b"/"c", up/"c", up/up/"c")
+      )
+
+      test - assert(
+        Seq(os.root / "yo", os.root / "yo").sorted ==
+        Seq(os.root / "yo", os.root / "yo")
       )
     }
     test("construction"){

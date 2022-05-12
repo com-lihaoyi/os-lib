@@ -252,8 +252,7 @@ object copy {
   }
 
   /**
-    * Copy a file into a particular folder, rather
-    * than into a particular path
+    * Copy a file into a particular path
     */
   object over{
     def apply(from: Path,
@@ -281,8 +280,16 @@ object copy {
  * any files or folders in the target path, or
  * does nothing if there aren't any
  */
-object remove extends Function1[Path, Unit]{
-  def apply(target: Path): Unit = Files.delete(target.wrapped)
+object remove extends Function1[Path, Boolean]{
+  def apply(target: Path): Boolean = apply(target, false)
+  def apply(target: Path, checkExists: Boolean = false): Boolean = {
+    if (checkExists) {
+      Files.delete(target.wrapped)
+      true
+    }else{
+      Files.deleteIfExists(target.wrapped)
+    }
+  }
 
   object all extends Function1[Path, Unit]{
     def apply(target: Path) = {
@@ -291,7 +298,7 @@ object remove extends Function1[Path, Unit]{
       val nioTarget = target.wrapped
       if (Files.exists(nioTarget, LinkOption.NOFOLLOW_LINKS)) {
         if (Files.isDirectory(nioTarget, LinkOption.NOFOLLOW_LINKS)) {
-          walk.stream(target, preOrder = false).foreach(remove)
+          walk.stream(target, preOrder = false).foreach(remove(_))
         }
         Files.delete(nioTarget)
       }
