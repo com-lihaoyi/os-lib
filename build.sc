@@ -108,7 +108,7 @@ trait OsLibTestModule extends ScalaModule with TestModule{
     if (scalaVersion().startsWith("2.11"))
        ivy"org.scalacheck::scalacheck::1.15.2"
     else
-       ivy"org.scalacheck::scalacheck::1.15.3"
+       ivy"org.scalacheck::scalacheck::1.16.0"
   )
 
   def platformSegment: String
