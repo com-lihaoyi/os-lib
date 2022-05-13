@@ -47,7 +47,7 @@ object os extends Module {
       def moduleDeps = super.moduleDeps :+ os.jvm()
       def ivyDeps = Agg(
         ivy"net.java.dev.jna:jna:5.0.0",
-        ivy"com.lihaoyi::sourcecode::0.2.5",
+        ivy"com.lihaoyi::sourcecode::0.2.8",
       )
       object test extends Tests with OsLibTestModule {
         def platformSegment = "jvm"
