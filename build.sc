@@ -104,7 +104,7 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
 trait OsLibTestModule extends ScalaModule with TestModule{
   def ivyDeps = Agg(
     ivy"com.lihaoyi::utest::0.7.11",
-    ivy"com.lihaoyi::sourcecode::0.2.8"
+    ivy"com.lihaoyi::sourcecode::0.2.8",
     if (scalaVersion().startsWith("2.11"))
        ivy"org.scalacheck::scalacheck::1.15.2"
     else
