@@ -117,6 +117,10 @@ object PathTests extends TestSuite{
                 )
               }
             }
+            test("PathApplyWithRelativeArg"){
+              val pathWithRelativeArg = os.Path("foo/bar")
+              assert(pathWithRelativeArg == os.pwd / "foo" / "bar")
+            }
           }
         }
         test("Relativize"){
@@ -194,6 +198,7 @@ object PathTests extends TestSuite{
         val d = pwd
         val abs = d / base
         test("Constructor"){
+          println(s"${abs.toString.drop(d.toString.length)}; d: $d; abs: $abs;")
           if (Unix()) assert(
             abs.toString.drop(d.toString.length) == "/src/main/scala",
             abs.toString.length > d.toString.length
@@ -300,7 +305,6 @@ object PathTests extends TestSuite{
       }}
       test("InvalidCasts"){
         if(Unix()){
-          intercept[IllegalArgumentException](Path("omg/cow"))
           intercept[IllegalArgumentException](RelPath("/omg/cow"))
         }
       }
@@ -393,11 +397,6 @@ object PathTests extends TestSuite{
       }
       test("failure"){
         if(Unix()){
-          val relStr = "hello/.."
-          intercept[java.lang.IllegalArgumentException]{
-            Path(relStr)
-          }
-
           val absStr = "/hello"
           intercept[java.lang.IllegalArgumentException]{
             RelPath(absStr)

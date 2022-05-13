@@ -23,7 +23,7 @@ package object os{
   /**
    * The current working directory for this process.
    */
-  val pwd: Path = os.Path(java.nio.file.Paths.get(".").toAbsolutePath)
+  val pwd: Path = os.Path.cwd
 
   val up: RelPath = RelPath.up
 

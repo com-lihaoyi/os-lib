@@ -376,6 +376,8 @@ object Path {
     case p: Path => p
   }
 
+  private[os] val cwd = new Path(java.nio.file.Paths.get(".").toAbsolutePath.normalize)
+
   /**
     * Equivalent to [[os.Path.apply]], but automatically expands a
     * leading `~/` into the user's home directory, for convenience
@@ -390,14 +392,23 @@ object Path {
   }
 
   def apply[T: PathConvertible](f: T, base: Path): Path = apply(FilePath(f), base)
-  def apply[T: PathConvertible](f0: T): Path = {
-    val f = implicitly[PathConvertible[T]].apply(f0)
-    if (f.iterator.asScala.count(_.startsWith("..")) > f.getNameCount/ 2) {
-      throw PathError.AbsolutePathOutsideRoot
+  def apply[T: PathConvertible](f0: T, expandHome: Boolean = true): Path = {
+    val f = {
+      val f = implicitly[PathConvertible[T]].apply(f0)
+      if (f.isAbsolute && f.iterator.asScala.count(_.startsWith("..")) > f.getNameCount/ 2) {
+        throw PathError.AbsolutePathOutsideRoot
+      }
+      f.normalize
     }
 
-    val normalized = f.normalize()
-    new Path(normalized)
+    if (expandHome && f.getNameCount() > 0 && f.subpath(0, 1).toString == "~") {
+      val userHome = System.getProperty("user.home")
+      Path(userHome) / RelPath(f.subpath(0, 1).relativize(f))
+    } else if (!f.isAbsolute) {
+      Path(f, cwd)
+    } else {
+      new Path(f)
+    }
   }
 
   implicit val pathOrdering: Ordering[Path] = new Ordering[Path]{
