@@ -324,7 +324,8 @@ class SubPath private[os](val segments0: Array[String])
     new SubPath(p.toArray[String])
   }
 
-  def relativeTo(base: SubPath): RelPath = SubPath.relativeTo0(segments0, base.segments0.toIndexedSeq)
+  def relativeTo(base: SubPath): RelPath =
+    SubPath.relativeTo0(segments0, base.segments0.toIndexedSeq)
 
   def startsWith(target: SubPath) = this.segments0.startsWith(target.segments)
 

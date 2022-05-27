@@ -271,7 +271,7 @@ object ExampleTests extends TestSuite{
             .filter(_._2.length > 0)
             .filter(!_._1.segments.contains("src_managed"))
 
-      assert(filesWithTooLongLines.length == 0)
+      Predef.assert(filesWithTooLongLines.length == 0, filesWithTooLongLines)
     }
     test("rename"){
 //      val d1/"omg"/x1 = wd
