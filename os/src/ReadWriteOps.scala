@@ -327,9 +327,9 @@ object read extends Function1[ReadablePath, String]{
     * can override by specifying a `charSet`.
     */
   object lines extends Function1[ReadablePath, IndexedSeq[String]]{
-    def apply(src: ReadablePath) = stream(src).toArray[String]
+    def apply(src: ReadablePath) = stream(src).toArray[String].toIndexedSeq
     def apply(arg: ReadablePath, charSet: Codec): IndexedSeq[String] =
-      stream(arg, charSet).toArray[String]
+      stream(arg, charSet).toArray[String].toIndexedSeq
 
     /**
       * Identical to [[os.read.lines]], but streams the results back to you
