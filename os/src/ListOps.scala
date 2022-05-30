@@ -15,7 +15,7 @@ import java.nio.file.attribute.BasicFileAttributes
   * them. You can disable sorted by passing in the flag `sort = false`.
   */
 object list extends Function1[Path, IndexedSeq[Path]] {
-  def apply(src: Path, sort: Boolean = true): Array[Path] = {
+  def apply(src: Path, sort: Boolean = true): IndexedSeq[Path] = {
     val arr = stream(src).toArray[Path]
     if (sort) arr.sorted
     else arr
