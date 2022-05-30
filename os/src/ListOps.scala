@@ -20,7 +20,7 @@ object list extends Function1[Path, IndexedSeq[Path]] {
     if (sort) arr.sorted
     else arr
   }
-  def apply(src: Path) = apply(src, true).toIndexedSeq
+  def apply(src: Path): IndexedSeq[Path] = apply(src, true).toIndexedSeq
 
   /**
     * Similar to [[os.list]]], except provides a [[os.Generator]] of results
