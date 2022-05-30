@@ -1,6 +1,7 @@
 package os
 
 import collection.JavaConverters._
+import scala.language.implicitConversions
 
 trait PathChunk{
   def segments: Seq[String]
@@ -30,7 +31,7 @@ object PathChunk{
     override def toString() = s.name
   }
   implicit class ArrayPathChunk[T](a: Array[T])(implicit f: T => PathChunk) extends PathChunk {
-    val inner = SeqPathChunk(a)(f)
+    val inner = SeqPathChunk(a.toIndexedSeq)(f)
     def segments = inner.segments
     def ups = inner.ups
 
@@ -250,7 +251,7 @@ object FilePath {
 class RelPath private[os](segments0: Array[String], val ups: Int)
   extends FilePath with BasePathImpl with SegmentedPath {
   def lastOpt = segments.lastOption
-  val segments: IndexedSeq[String] = segments0
+  val segments: IndexedSeq[String] = segments0.toIndexedSeq
   type ThisType = RelPath
   require(ups >= 0)
   protected[this] def make(p: Seq[String], ups: Int) = {
@@ -316,14 +317,15 @@ object RelPath {
 class SubPath private[os](val segments0: Array[String])
   extends FilePath with BasePathImpl with SegmentedPath {
   def lastOpt = segments.lastOption
-  val segments: IndexedSeq[String] = segments0
+  val segments: IndexedSeq[String] = segments0.toIndexedSeq
   type ThisType = SubPath
   protected[this] def make(p: Seq[String], ups: Int) = {
     require(ups == 0)
     new SubPath(p.toArray[String])
   }
 
-  def relativeTo(base: SubPath): RelPath = SubPath.relativeTo0(segments0, base.segments0)
+  def relativeTo(base: SubPath): RelPath =
+    SubPath.relativeTo0(segments0, base.segments0.toIndexedSeq)
 
   def startsWith(target: SubPath) = this.segments0.startsWith(target.segments)
 

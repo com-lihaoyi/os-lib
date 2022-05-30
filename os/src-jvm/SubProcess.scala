@@ -3,6 +3,8 @@ package os
 import java.io._
 import java.util.concurrent.TimeUnit
 
+import scala.language.implicitConversions
+
 /**
   * Represents a spawn subprocess that has started and may or may not have
   * completed.

@@ -15,6 +15,7 @@ import java.nio.channels.{
   WritableByteChannel
 }
 
+import scala.language.implicitConversions
 
 /**
   * A source of bytes; must provide either an [[InputStream]] or a

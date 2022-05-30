@@ -15,12 +15,12 @@ import java.nio.file.attribute.BasicFileAttributes
   * them. You can disable sorted by passing in the flag `sort = false`.
   */
 object list extends Function1[Path, IndexedSeq[Path]] {
-  def apply(src: Path, sort: Boolean = true) = {
+  def apply(src: Path, sort: Boolean = true): IndexedSeq[Path] = {
     val arr = stream(src).toArray[Path]
     if (sort) arr.sorted
     else arr
   }
-  def apply(src: Path) = apply(src, true)
+  def apply(src: Path): IndexedSeq[Path] = apply(src, true).toIndexedSeq
 
   /**
     * Similar to [[os.list]]], except provides a [[os.Generator]] of results
@@ -90,7 +90,7 @@ object walk {
             followLinks: Boolean = false,
             maxDepth: Int = Int.MaxValue,
             includeTarget: Boolean = false): IndexedSeq[Path] = {
-    stream(path, skip, preOrder, followLinks, maxDepth, includeTarget).toArray[Path]
+    stream(path, skip, preOrder, followLinks, maxDepth, includeTarget).toArray[Path].toIndexedSeq
   }
 
   /**
@@ -122,7 +122,7 @@ object walk {
             maxDepth: Int = Int.MaxValue,
             includeTarget: Boolean = false): IndexedSeq[(Path, os.StatInfo)] = {
     stream.attrs(path, skip, preOrder, followLinks, maxDepth, includeTarget)
-      .toArray[(Path, os.StatInfo)]
+      .toArray[(Path, os.StatInfo)].toIndexedSeq
   }
 
   object stream {

@@ -5,7 +5,7 @@ import com.sun.jna._
 import com.sun.jna.ptr.PointerByReference
 
 object CarbonApi {
-  val INSTANCE = Native.loadLibrary("Carbon", classOf[CarbonApi]).asInstanceOf[CarbonApi]
+  val INSTANCE = Native.load("Carbon", classOf[CarbonApi]).asInstanceOf[CarbonApi]
 }
 
 trait FSEventStreamCallback extends Callback {

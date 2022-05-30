@@ -2,6 +2,7 @@ package os
 
 import java.io.InputStream
 
+import scala.language.implicitConversions
 
 object ResourcePath{
   def resource(resRoot: ResourceRoot) = {
@@ -21,7 +22,7 @@ class ResourcePath private[os](val resRoot: ResourceRoot, segments0: Array[Strin
     case stream => stream
   }
   def toSource = new Source.WritableSource(getInputStream)
-  val segments: IndexedSeq[String] = segments0
+  val segments: IndexedSeq[String] = segments0.toIndexedSeq
   type ThisType = ResourcePath
   def lastOpt = segments0.lastOption
   override def toString = resRoot.errorName + "/" + segments0.mkString("/")

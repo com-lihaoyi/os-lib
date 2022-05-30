@@ -11,11 +11,11 @@ import scala.collection.mutable
 object SubprocessTests extends TestSuite{
   val scriptFolder = pwd/"os"/"test"/"resources"/"test"
 
-  val lsCmd = if(scala.util.Properties.isWin) "dir" else "ls"
+  val lsCmd = if (scala.util.Properties.isWin) "dir" else "ls"
 
   val tests = Tests {
     test("lines"){
-      val res = proc(lsCmd, scriptFolder).call()
+      val res = TestUtil.proc(lsCmd, scriptFolder).call()
       assert(
         res.out.lines().exists(_.contains("File.txt")),
         res.out.lines().exists(_.contains("folder1")),
@@ -23,11 +23,11 @@ object SubprocessTests extends TestSuite{
       )
     }
     test("string"){
-      val res = proc(lsCmd, scriptFolder).call()
+      val res = TestUtil.proc(lsCmd, scriptFolder).call()
       assert(
-        res.out.string().contains("File.txt"),
-        res.out.string().contains("folder1"),
-        res.out.string().contains("folder2")
+        res.out.text().contains("File.txt"),
+        res.out.text().contains("folder1"),
+        res.out.text().contains("folder2")
       )
     }
     test("bytes"){
@@ -39,33 +39,33 @@ object SubprocessTests extends TestSuite{
     }
     test("chained"){
       assert(
-        proc("git", "init").call().out.string().contains("Reinitialized existing Git repository"),
-        proc("git", "init").call().out.string().contains("Reinitialized existing Git repository"),
-        proc(lsCmd, pwd).call().out.string().contains("readme.md")
+        proc("git", "init").call().out.text().contains("Reinitialized existing Git repository"),
+        proc("git", "init").call().out.text().contains("Reinitialized existing Git repository"),
+        TestUtil.proc(lsCmd, pwd).call().out.text().contains("readme.md")
       )
     }
     test("basicList"){
       val files = List("readme.md", "build.sc")
-      val output = proc(lsCmd, files).call().out.string()
+      val output = TestUtil.proc(lsCmd, files).call().out.text()
       assert(files.forall(output.contains))
     }
     test("listMixAndMatch"){
       val stuff = List("I", "am", "bovine")
       val result = TestUtil.proc("echo", "Hello,", stuff, "hear me roar").call()
       if(Unix())
-        assert(result.out.string().contains("Hello, " + stuff.mkString(" ") + " hear me roar"))
+        assert(result.out.text().contains("Hello, " + stuff.mkString(" ") + " hear me roar"))
       else // win quotes multiword args
-        assert(result.out.string().contains("Hello, " + stuff.mkString(" ") + " \"hear me roar\""))
+        assert(result.out.text().contains("Hello, " + stuff.mkString(" ") + " \"hear me roar\""))
     }
     test("failures"){
       val ex = intercept[os.SubprocessException]{
-        proc(lsCmd, "does-not-exist").call(check = true, stderr = os.Pipe)
+        TestUtil.proc(lsCmd, "does-not-exist").call(check = true, stderr = os.Pipe)
       }
       val res: CommandResult = ex.result
       assert(
         res.exitCode != 0,
-        res.err.string().contains("No such file or directory") || // unix
-          res.err.string().contains("File Not Found") // win
+        res.err.text().contains("No such file or directory") || // unix
+          res.err.text().contains("File Not Found") // win
       )
     }
 
@@ -78,7 +78,7 @@ object SubprocessTests extends TestSuite{
             env = Map("ENV_ARG" -> "123")
           )
 
-        assert(res.out.string().trim()== "Hello123")
+        assert(res.out.text().trim()== "Hello123")
       }
     }
     test("filebased2"){
@@ -86,7 +86,7 @@ object SubprocessTests extends TestSuite{
         val possiblePaths = Seq(root / "bin",
                                 root / "usr" / "bin").map { pfx => pfx / "echo" }
         val res = proc("which", "echo").call()
-        val echoRoot = Path(res.out.string().trim())
+        val echoRoot = Path(res.out.text().trim())
         assert(possiblePaths.contains(echoRoot))
 
         assert(proc(echoRoot, "HELLO").call().out.lines() == Seq("HELLO"))
@@ -121,14 +121,14 @@ object SubprocessTests extends TestSuite{
           |    # Vary how close they are together to try and trigger race conditions
           |    time.sleep(0.00001 * i)
           |    sys.stdout.flush()
-        """.stripMargin).call().out.string() ==>
+        """.stripMargin).call().out.text() ==>
           "01234567890123456789012345678901234567890123456789"
       }}
       test("jarTf"){
         // This was the original repro for the multi-chunk concurrency bugs
         val jarFile = os.pwd / "os" / "test" / "resources" / "misc" / "out.jar"
         assert(TestUtil.eqIgnoreNewlineStyle(
-          os.proc("jar", "-tf", jarFile).call().out.string(),
+          os.proc("jar", "-tf", jarFile).call().out.text(),
           """META-INF/MANIFEST.MF
             |test/FooTwo.class
             |test/Bar.class
@@ -141,15 +141,15 @@ object SubprocessTests extends TestSuite{
       }
     }
     test("workingDirectory"){
-      val listed1 = proc(lsCmd).call(cwd = pwd)
-      val listed2 = proc(lsCmd).call(cwd = pwd / up)
+      val listed1 = TestUtil.proc(lsCmd).call(cwd = pwd)
+      val listed2 = TestUtil.proc(lsCmd).call(cwd = pwd / up)
 
       assert(listed2 != listed1)
     }
     test("customWorkingDir"){
-      val res1 = proc(lsCmd).call(cwd = pwd) // explicitly
+      val res1 = TestUtil.proc(lsCmd).call(cwd = pwd) // explicitly
       // or implicitly
-      val res2 = proc(lsCmd).call()
+      val res2 = TestUtil.proc(lsCmd).call()
     }
 
     test("fileCustomWorkingDir"){
