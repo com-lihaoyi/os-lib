@@ -46,7 +46,8 @@ object os extends Module {
       def platformSegment = "jvm"
       def moduleDeps = super.moduleDeps :+ os.jvm()
       def ivyDeps = Agg(
-        ivy"net.java.dev.jna:jna:5.0.0"
+        ivy"net.java.dev.jna:jna:5.0.0",
+        ivy"com.lihaoyi::sourcecode::0.2.8",
       )
       object test extends Tests with OsLibTestModule {
         def platformSegment = "jvm"
@@ -103,7 +104,11 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
 trait OsLibTestModule extends ScalaModule with TestModule{
   def ivyDeps = Agg(
     ivy"com.lihaoyi::utest::0.7.11",
-    ivy"com.lihaoyi::sourcecode::0.2.8"
+    ivy"com.lihaoyi::sourcecode::0.2.8",
+    if (scalaVersion().startsWith("2.11"))
+       ivy"org.scalacheck::scalacheck::1.15.2"
+    else
+       ivy"org.scalacheck::scalacheck::1.16.0"
   )
 
   def platformSegment: String

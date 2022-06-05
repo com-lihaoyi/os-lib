@@ -6,8 +6,10 @@ target/
 .project
 .cache
 .sbtserver
+.bsp/
 project/.sbtserver
 tags
 nohup.out
 out
 lowered.hnir
+random_data/
