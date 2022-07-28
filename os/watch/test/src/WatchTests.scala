@@ -1,11 +1,15 @@
 package test.os.watch
 
 import utest._
-object WatchTests extends TestSuite with TestSuite.Retries{
-  override val utestRetryCount = if(sys.env.get("CI").contains("true")) {
-    if(sys.env.get("RUNNER_OS").contains("macOS")) 10
-    else 3
-  } else 0
+
+object WatchTests extends TestSuite with TestSuite.Retries {
+  override val utestRetryCount =
+    if(sys.env.get("CI").contains("true")) {
+      if(sys.env.get("RUNNER_OS").contains("macOS")) 10
+      else 3
+    } else {
+      0
+    }
 
   val tests = Tests {
     test("singleFolder") - _root_.test.os.TestUtil.prep{wd => if (_root_.test.os.Unix()){
@@ -13,7 +17,6 @@ object WatchTests extends TestSuite with TestSuite.Retries{
       _root_.os.watch.watch(
         Seq(wd),
         onEvent = _.foreach(changedPaths.add)
-//        (s, v) => println(s + " " + v)
       )
 
 //      os.write(wd / "lols", "")

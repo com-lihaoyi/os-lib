@@ -5,22 +5,18 @@ import mill.define.Target
 import mill.scalalib._
 import mill.scalanativelib._
 import mill.scalalib.publish._
+import mill.scalalib.api.Util.isScala3
 
 import de.tobiasroeser.mill.vcs.version.VcsVersion
 
-val dottyVersions = sys.props.get("dottyVersion").toList
+val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 
-val scala2AndDottyVersions = "2.12.13" :: "2.13.4" :: "2.11.12" :: dottyVersions
-val scala30 = "3.0.2"
-val scala31 = "3.1.1"
+val scalaVersions = "3.1.3" :: "2.12.16" :: "2.13.8" :: "2.11.12" :: communityBuildDottyVersion
 
-val scalaNativeVersions = for {
-  scalaV <- scala31 :: scala2AndDottyVersions
-  scalaNativeV <- Seq("0.4.3")
-} yield (scalaV, scalaNativeV)
+val scalaNativeVersions = scalaVersions.map((_, "0.4.5"))
 
 object os extends Module {
-  object jvm extends Cross[OsJvmModule](scala30 :: scala2AndDottyVersions:_*)
+  object jvm extends Cross[OsJvmModule](scalaVersions:_*)
 
   class OsJvmModule(val crossScalaVersion: String) extends OsModule {
     def platformSegment = "jvm"
@@ -41,12 +37,12 @@ object os extends Module {
   }
 
   object watch extends Module {
-    object jvm extends Cross[WatchJvmModule](scala30 :: scala2AndDottyVersions:_*)
+    object jvm extends Cross[WatchJvmModule](scalaVersions:_*)
     class WatchJvmModule(val crossScalaVersion: String) extends WatchModule {
       def platformSegment = "jvm"
       def moduleDeps = super.moduleDeps :+ os.jvm()
       def ivyDeps = Agg(
-        ivy"net.java.dev.jna:jna:5.0.0"
+        ivy"net.java.dev.jna:jna:5.12.1"
       )
       object test extends Tests with OsLibTestModule {
         def platformSegment = "jvm"
@@ -72,12 +68,11 @@ object os extends Module {
 }
 
 trait OsLibModule extends CrossScalaModule with PublishModule{
-  def isDotty = crossScalaVersion.startsWith("0") || crossScalaVersion.startsWith("3")
   def publishVersion = VcsVersion.vcsState().format()
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "com.lihaoyi",
-    url = "https://github.com/lihaoyi/os",
+    url = "https://github.com/com-lihaoyi/os-lib",
     licenses = Seq(License.MIT),
     versionControl = VersionControl.github(
       owner = "com-lihaoyi",
@@ -94,16 +89,16 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
     millSourcePath / "src",
     millSourcePath / s"src-$platformSegment"
   )
-  def acyclicDep: T[Agg[Dep]] = T { if (!isDotty) Agg(ivy"com.lihaoyi:::acyclic:0.3.2") else Agg() }
+  def acyclicDep: T[Agg[Dep]] = T { if (!isScala3(crossScalaVersion)) Agg(ivy"com.lihaoyi:::acyclic:0.3.3") else Agg() }
   def compileIvyDeps = acyclicDep
-  def scalacOptions = T { if (!isDotty) Seq("-P:acyclic:force") else Seq.empty }
+  def scalacOptions = T { if (!isScala3(crossScalaVersion)) Seq("-P:acyclic:force") else Seq.empty }
   def scalacPluginIvyDeps = acyclicDep
 }
 
-trait OsLibTestModule extends ScalaModule with TestModule{
+trait OsLibTestModule extends ScalaModule with TestModule.Utest {
   def ivyDeps = Agg(
-    ivy"com.lihaoyi::utest::0.7.11",
-    ivy"com.lihaoyi::sourcecode::0.2.8"
+    ivy"com.lihaoyi::utest::0.8.0",
+    ivy"com.lihaoyi::sourcecode::0.3.0"
   )
 
   def platformSegment: String
@@ -112,7 +107,6 @@ trait OsLibTestModule extends ScalaModule with TestModule{
     millSourcePath / s"src-$platformSegment"
   )
 
-  def testFrameworks = Seq("utest.runner.Framework")
   // we check the textual output of system commands and expect it in english
   override def forkEnv: Target[Map[String, String]] = super.forkEnv() ++ Map("LC_ALL" -> "C")
 }
