@@ -93,6 +93,16 @@ object SubprocessTests extends TestSuite{
       }
     }
 
+    test("charSequence"){
+      val charSequence = new StringBuilder("This is a CharSequence")
+      val cmd = Seq(
+        "echo",
+        charSequence
+      )
+      val res = proc(cmd).call()
+      assert(res.out.text().trim() == charSequence.toString())
+    }
+
     test("envArgs"){ if(Unix()){
       val res0 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
       assert(res0.out.lines() == Seq("Hello12"))

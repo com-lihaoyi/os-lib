@@ -211,6 +211,7 @@ case class SubprocessException(result: CommandResult) extends Exception(result.t
 case class Shellable(value: Seq[String])
 object Shellable{
   implicit def StringShellable(s: String): Shellable = Shellable(Seq(s))
+  implicit def CharSequenceShellable(cs: CharSequence): Shellable = Shellable(Seq(cs.toString))
 
   implicit def SymbolShellable(s: Symbol): Shellable = Shellable(Seq(s.name))
   implicit def PathShellable(s: Path): Shellable = Shellable(Seq(s.toString))
