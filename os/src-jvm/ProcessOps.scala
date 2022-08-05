@@ -44,7 +44,7 @@ case class proc(command: Shellable*) {
     * @param stdout          How the process's output stream is configured.
     * @param stderr          How the process's error stream is configured.
     * @param mergeErrIntoOut merges the subprocess's stderr stream into it's stdout
-    * @param timeout         how long to wait for the subprocess to complete
+    * @param timeout         how long to wait in milliseconds for the subprocess to complete
     * @param check           disable this to avoid throwing an exception if the subprocess
     *                        fails with a non-zero exit code
     * @param propagateEnv    disable this to avoid passing in this parent process's
