@@ -3,6 +3,7 @@ package os
 import java.io._
 import java.util.concurrent.TimeUnit
 
+import scala.concurrent.blocking
 import scala.language.implicitConversions
 
 /**
@@ -50,7 +51,7 @@ class SubProcess(val wrapped: java.lang.Process,
     * indefinitely. Returns `true` if the subprocess has terminated by the time
     * this method returns.
     */
-  def waitFor(timeout: Long = -1): Boolean = {
+  def waitFor(timeout: Long = -1): Boolean = blocking {
     if (timeout == -1) {
       wrapped.waitFor()
       true
