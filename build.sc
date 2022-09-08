@@ -1,4 +1,4 @@
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.1.4`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.2.0`
 
 import mill._
 import mill.define.Target
