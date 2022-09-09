@@ -1,52 +1,78 @@
+// plugins
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.2.0`
+import $ivy.`com.github.lolgab::mill-mima::0.0.12`
 
+// imports
 import mill._
 import mill.define.Target
 import mill.scalalib._
 import mill.scalanativelib._
 import mill.scalalib.publish._
-import mill.scalalib.api.Util.isScala3
+import mill.scalalib.api.ZincWorkerUtil
+// avoid name collisions
+import _root_.{os => oslib}
+import com.github.lolgab.mill.mima.Mima
 
 import de.tobiasroeser.mill.vcs.version.VcsVersion
 
 val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 
-val scalaVersions = "3.1.3" :: "2.12.16" :: "2.13.8" :: "2.11.12" :: communityBuildDottyVersion
+val scalaVersions = Seq(
+  "3.1.3",
+  "2.12.16",
+  "2.13.8",
+  "2.11.12"
+) ++ communityBuildDottyVersion
 
 val scalaNativeVersions = scalaVersions.map((_, "0.4.5"))
 
-object os extends Module {
-  object jvm extends Cross[OsJvmModule](scalaVersions:_*)
+val backwardCompatibleVersions: Seq[String] = Seq()
 
-  class OsJvmModule(val crossScalaVersion: String) extends OsModule {
+object Deps {
+  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.3"
+  val jna = ivy"net.java.dev.jna:jna:5.12.1"
+  val geny = ivy"com.lihaoyi::geny::0.7.1"
+  val sourcecode = ivy"com.lihaoyi::sourcecode::0.3.0"
+  val utest = ivy"com.lihaoyi::utest::0.8.0"
+}
+
+object os extends Module {
+
+  object jvm extends Cross[OsJvmModule](scalaVersions: _*)
+  class OsJvmModule(val crossScalaVersion: String) extends OsModule with MiMaChecks {
     def platformSegment = "jvm"
-    object test extends Tests with OsLibTestModule{
+    object test extends Tests with OsLibTestModule {
       def platformSegment = "jvm"
     }
   }
-  object native extends Cross[OsNativeModule](scalaNativeVersions:_*)
 
-  class OsNativeModule(val crossScalaVersion: String, crossScalaNativeVersion: String) extends OsModule with ScalaNativeModule {
+  object native extends Cross[OsNativeModule](scalaNativeVersions: _*)
+  class OsNativeModule(
+      val crossScalaVersion: String,
+      crossScalaNativeVersion: String
+  ) extends OsModule
+      with ScalaNativeModule {
     def platformSegment = "native"
-    def millSourcePath = super.millSourcePath / _root_.os.up
+    override def millSourcePath = super.millSourcePath / oslib.up
     def scalaNativeVersion = crossScalaNativeVersion
-    object test extends Tests with OsLibTestModule{
+    object test extends Tests with OsLibTestModule {
       def platformSegment = "native"
-      def nativeLinkStubs = true
+      override def nativeLinkStubs = true
     }
   }
 
   object watch extends Module {
-    object jvm extends Cross[WatchJvmModule](scalaVersions:_*)
+
+    object jvm extends Cross[WatchJvmModule](scalaVersions: _*)
     class WatchJvmModule(val crossScalaVersion: String) extends WatchModule {
       def platformSegment = "jvm"
-      def moduleDeps = super.moduleDeps :+ os.jvm()
-      def ivyDeps = Agg(
-        ivy"net.java.dev.jna:jna:5.12.1"
+      override def moduleDeps = super.moduleDeps :+ os.jvm()
+      override def ivyDeps = Agg(
+        Deps.jna
       )
       object test extends Tests with OsLibTestModule {
         def platformSegment = "jvm"
-        def moduleDeps = super.moduleDeps :+ os.jvm().test
+        override def moduleDeps = super.moduleDeps :+ os.jvm().test
       }
     }
 
@@ -63,11 +89,11 @@ object os extends Module {
         def nativeLinkStubs = true
       }
     }
-    */
+     */
   }
 }
 
-trait OsLibModule extends CrossScalaModule with PublishModule{
+trait OsLibModule extends CrossScalaModule with PublishModule {
   def publishVersion = VcsVersion.vcsState().format()
   def pomSettings = PomSettings(
     description = artifactName(),
@@ -84,40 +110,63 @@ trait OsLibModule extends CrossScalaModule with PublishModule{
   )
 
   def platformSegment: String
-  def millSourcePath = super.millSourcePath / _root_.os.up
-  def sources = T.sources(
+  override def millSourcePath = super.millSourcePath / oslib.up
+  override def sources = T.sources(
     millSourcePath / "src",
     millSourcePath / s"src-$platformSegment"
   )
-  def acyclicDep: T[Agg[Dep]] = T { if (!isScala3(crossScalaVersion)) Agg(ivy"com.lihaoyi:::acyclic:0.3.3") else Agg() }
-  def compileIvyDeps = acyclicDep
-  def scalacOptions = T { if (!isScala3(crossScalaVersion)) Seq("-P:acyclic:force") else Seq.empty }
-  def scalacPluginIvyDeps = acyclicDep
+
+  def acyclicDep: T[Agg[Dep]] = T {
+    if (!ZincWorkerUtil.isScala3(scalaVersion())) Agg(Deps.acyclic)
+    else Agg.empty[Dep]
+  }
+  def acyclicOptions: T[Seq[String]] = T {
+    if (!ZincWorkerUtil.isScala3(scalaVersion())) Seq("-P:acyclic:force")
+    else Seq.empty
+  }
+  override def compileIvyDeps = acyclicDep
+  override def scalacPluginIvyDeps = acyclicDep
+  override def scalacOptions = T { super.scalacOptions() ++ acyclicOptions() }
 }
 
 trait OsLibTestModule extends ScalaModule with TestModule.Utest {
-  def ivyDeps = Agg(
-    ivy"com.lihaoyi::utest::0.8.0",
-    ivy"com.lihaoyi::sourcecode::0.3.0"
+  override def ivyDeps = Agg(
+    Deps.utest,
+    Deps.sourcecode
   )
-
   def platformSegment: String
-  def sources = T.sources(
+  override def sources = T.sources(
     millSourcePath / "src",
     millSourcePath / s"src-$platformSegment"
   )
 
   // we check the textual output of system commands and expect it in english
-  override def forkEnv: Target[Map[String, String]] = super.forkEnv() ++ Map("LC_ALL" -> "C")
+  override def forkEnv: Target[Map[String, String]] = T {
+    super.forkEnv() ++ Map("LC_ALL" -> "C")
+  }
 }
-trait OsModule extends OsLibModule{
-  def artifactName = "os-lib"
 
-  def ivyDeps = Agg(
-    ivy"com.lihaoyi::geny::0.7.1"
+trait OsModule extends OsLibModule {
+  override def artifactName = "os-lib"
+  override def ivyDeps = Agg(
+    Deps.geny
   )
 }
 
-trait WatchModule extends OsLibModule{
-  def artifactName = "os-lib-watch"
+trait WatchModule extends OsLibModule {
+  override def artifactName = "os-lib-watch"
+}
+
+trait MiMaChecks extends Mima {
+  override def mimaPreviousVersions = backwardCompatibleVersions
+  override def mimaPreviousArtifacts: Target[Agg[Dep]] = T {
+    val versions = mimaPreviousVersions().distinct
+    if (versions.isEmpty)
+      T.log.error("No binary compatible versions configured!")
+    Agg.from(
+      versions.map(version =>
+        ivy"${pomSettings().organization}:${artifactId()}:${version}"
+      )
+    )
+  }
 }
