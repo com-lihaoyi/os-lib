@@ -33,7 +33,7 @@ object Deps {
   val jna = ivy"net.java.dev.jna:jna:5.12.1"
   val geny = ivy"com.lihaoyi::geny::0.7.1"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.3.0"
-  val utest = ivy"com.lihaoyi::utest::0.8.0"
+  val utest = ivy"com.lihaoyi::utest::0.8.1"
 }
 
 object os extends Module {
