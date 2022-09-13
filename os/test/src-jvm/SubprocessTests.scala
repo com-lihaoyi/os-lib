@@ -8,13 +8,13 @@ import utest._
 
 import scala.collection.mutable
 
-object SubprocessTests extends TestSuite{
-  val scriptFolder = pwd/"os"/"test"/"resources"/"test"
+object SubprocessTests extends TestSuite {
+  val scriptFolder = pwd / "os" / "test" / "resources" / "test"
 
   val lsCmd = if (scala.util.Properties.isWin) "dir" else "ls"
 
   val tests = Tests {
-    test("lines"){
+    test("lines") {
       val res = TestUtil.proc(lsCmd, scriptFolder).call()
       assert(
         res.out.lines().exists(_.contains("File.txt")),
@@ -22,7 +22,7 @@ object SubprocessTests extends TestSuite{
         res.out.lines().exists(_.contains("folder2"))
       )
     }
-    test("string"){
+    test("string") {
       val res = TestUtil.proc(lsCmd, scriptFolder).call()
       assert(
         res.out.text().contains("File.txt"),
@@ -30,35 +30,35 @@ object SubprocessTests extends TestSuite{
         res.out.text().contains("folder2")
       )
     }
-    test("bytes"){
-      if(Unix()){
+    test("bytes") {
+      if (Unix()) {
         val res = proc(scriptFolder / "misc" / "echo", "abc").call()
         val listed = res.out.bytes
         listed ==> "abc\n".getBytes
       }
     }
-    test("chained"){
+    test("chained") {
       assert(
         proc("git", "init").call().out.text().contains("Reinitialized existing Git repository"),
         proc("git", "init").call().out.text().contains("Reinitialized existing Git repository"),
         TestUtil.proc(lsCmd, pwd).call().out.text().contains("readme.md")
       )
     }
-    test("basicList"){
+    test("basicList") {
       val files = List("readme.md", "build.sc")
       val output = TestUtil.proc(lsCmd, files).call().out.text()
       assert(files.forall(output.contains))
     }
-    test("listMixAndMatch"){
+    test("listMixAndMatch") {
       val stuff = List("I", "am", "bovine")
       val result = TestUtil.proc("echo", "Hello,", stuff, "hear me roar").call()
-      if(Unix())
+      if (Unix())
         assert(result.out.text().contains("Hello, " + stuff.mkString(" ") + " hear me roar"))
       else // win quotes multiword args
         assert(result.out.text().contains("Hello, " + stuff.mkString(" ") + " \"hear me roar\""))
     }
-    test("failures"){
-      val ex = intercept[os.SubprocessException]{
+    test("failures") {
+      val ex = intercept[os.SubprocessException] {
         TestUtil.proc(lsCmd, "does-not-exist").call(check = true, stderr = os.Pipe)
       }
       val res: CommandResult = ex.result
@@ -69,22 +69,21 @@ object SubprocessTests extends TestSuite{
       )
     }
 
-    test("filebased"){
-      if(Unix()){
-        assert(proc(scriptFolder/"misc"/"echo", "HELLO").call().out.lines().mkString == "HELLO")
+    test("filebased") {
+      if (Unix()) {
+        assert(proc(scriptFolder / "misc" / "echo", "HELLO").call().out.lines().mkString == "HELLO")
 
         val res: CommandResult =
-          proc(root/"bin"/"bash", "-c", "echo 'Hello'$ENV_ARG").call(
+          proc(root / "bin" / "bash", "-c", "echo 'Hello'$ENV_ARG").call(
             env = Map("ENV_ARG" -> "123")
           )
 
-        assert(res.out.text().trim()== "Hello123")
+        assert(res.out.text().trim() == "Hello123")
       }
     }
-    test("filebased2"){
-      if(Unix()){
-        val possiblePaths = Seq(root / "bin",
-                                root / "usr" / "bin").map { pfx => pfx / "echo" }
+    test("filebased2") {
+      if (Unix()) {
+        val possiblePaths = Seq(root / "bin", root / "usr" / "bin").map { pfx => pfx / "echo" }
         val res = proc("which", "echo").call()
         val echoRoot = Path(res.out.text().trim())
         assert(possiblePaths.contains(echoRoot))
@@ -93,7 +92,7 @@ object SubprocessTests extends TestSuite{
       }
     }
 
-    test("charSequence"){
+    test("charSequence") {
       val charSequence = new StringBuilder("This is a CharSequence")
       val cmd = Seq(
         "echo",
@@ -103,38 +102,45 @@ object SubprocessTests extends TestSuite{
       assert(res.out.text().trim() == charSequence.toString())
     }
 
-    test("envArgs"){ if(Unix()){
-      val res0 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
-      assert(res0.out.lines() == Seq("Hello12"))
+    test("envArgs") {
+      if (Unix()) {
+        val res0 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
+        assert(res0.out.lines() == Seq("Hello12"))
 
-      val res1 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
-      assert(res1.out.lines() == Seq("Hello12"))
+        val res1 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
+        assert(res1.out.lines() == Seq("Hello12"))
 
-      val res2 = proc("bash", "-c", "echo 'Hello$ENV_ARG'").call(env = Map("ENV_ARG" -> "12"))
-      assert(res2.out.lines() == Seq("Hello$ENV_ARG"))
+        val res2 = proc("bash", "-c", "echo 'Hello$ENV_ARG'").call(env = Map("ENV_ARG" -> "12"))
+        assert(res2.out.lines() == Seq("Hello$ENV_ARG"))
 
-      val res3 = proc("bash", "-c", "echo 'Hello'$ENV_ARG").call(env = Map("ENV_ARG" -> "123"))
-      assert(res3.out.lines() == Seq("Hello123"))
-    }}
-    test("multiChunk"){
+        val res3 = proc("bash", "-c", "echo 'Hello'$ENV_ARG").call(env = Map("ENV_ARG" -> "123"))
+        assert(res3.out.lines() == Seq("Hello123"))
+      }
+    }
+    test("multiChunk") {
       // Make sure that in the case where multiple chunks are being read from
       // the subprocess in quick succession, we ensure that the output handler
       // callbacks are properly ordered such that the output is aggregated
       // correctly
-      test("bashC"){ if(TestUtil.isInstalled("python")) {
-        os.proc("python", "-c",
-        """import sys, time
-          |for i in range(5):
-          |  for j in range(10):
-          |    sys.stdout.write(str(j))
-          |    # Make sure it comes as multiple chunks, but close together!
-          |    # Vary how close they are together to try and trigger race conditions
-          |    time.sleep(0.00001 * i)
-          |    sys.stdout.flush()
-        """.stripMargin).call().out.text() ==>
-          "01234567890123456789012345678901234567890123456789"
-      }}
-      test("jarTf"){
+      test("bashC") {
+        if (TestUtil.isInstalled("python")) {
+          os.proc(
+            "python",
+            "-c",
+            """import sys, time
+              |for i in range(5):
+              |  for j in range(10):
+              |    sys.stdout.write(str(j))
+              |    # Make sure it comes as multiple chunks, but close together!
+              |    # Vary how close they are together to try and trigger race conditions
+              |    time.sleep(0.00001 * i)
+              |    sys.stdout.flush()
+        """.stripMargin
+          ).call().out.text() ==>
+            "01234567890123456789012345678901234567890123456789"
+        }
+      }
+      test("jarTf") {
         // This was the original repro for the multi-chunk concurrency bugs
         val jarFile = os.pwd / "os" / "test" / "resources" / "misc" / "out.jar"
         assert(TestUtil.eqIgnoreNewlineStyle(
@@ -150,21 +156,21 @@ object SubprocessTests extends TestSuite{
         ))
       }
     }
-    test("workingDirectory"){
+    test("workingDirectory") {
       val listed1 = TestUtil.proc(lsCmd).call(cwd = pwd)
       val listed2 = TestUtil.proc(lsCmd).call(cwd = pwd / up)
 
       assert(listed2 != listed1)
     }
-    test("customWorkingDir"){
+    test("customWorkingDir") {
       val res1 = TestUtil.proc(lsCmd).call(cwd = pwd) // explicitly
       // or implicitly
       val res2 = TestUtil.proc(lsCmd).call()
     }
 
-    test("fileCustomWorkingDir"){
-      if(Unix()){
-        val output = proc(scriptFolder/"misc"/"echo_with_wd", "HELLO").call(cwd = root/"usr")
+    test("fileCustomWorkingDir") {
+      if (Unix()) {
+        val output = proc(scriptFolder / "misc" / "echo_with_wd", "HELLO").call(cwd = root / "usr")
         assert(output.out.lines() == Seq("HELLO /usr"))
       }
     }
