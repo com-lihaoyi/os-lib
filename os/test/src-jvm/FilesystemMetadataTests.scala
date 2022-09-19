@@ -8,9 +8,9 @@ object FilesystemMetadataTests extends TestSuite {
   // on unix it is 81 bytes, win adds 3 bytes (3 \r characters)
   private val multilineSizes = Set[Long](81, 84)
 
-  def tests = Tests {
-    test("stat") {
-      test - prep { wd =>
+  def tests = Tests{
+    test("stat"){
+      test - prep{ wd =>
         os.stat(wd / "File.txt").size ==> 8
         assert(multilineSizes contains os.stat(wd / "Multi Line.txt").size)
         os.stat(wd / "folder1").fileType ==> os.FileType.Dir
@@ -23,8 +23,8 @@ object FilesystemMetadataTests extends TestSuite {
 //        }
 //      }
     }
-    test("isFile") {
-      test - prep { wd =>
+    test("isFile"){
+      test - prep{ wd =>
         os.isFile(wd / "File.txt") ==> true
         os.isFile(wd / "folder1") ==> false
 
@@ -33,8 +33,8 @@ object FilesystemMetadataTests extends TestSuite {
         os.isFile(wd / "misc" / "file-symlink", followLinks = false) ==> false
       }
     }
-    test("isDir") {
-      test - prep { wd =>
+    test("isDir"){
+      test - prep{ wd =>
         os.isDir(wd / "File.txt") ==> false
         os.isDir(wd / "folder1") ==> true
 
@@ -43,21 +43,21 @@ object FilesystemMetadataTests extends TestSuite {
         os.isDir(wd / "misc" / "folder-symlink", followLinks = false) ==> false
       }
     }
-    test("isLink") {
-      test - prep { wd =>
+    test("isLink"){
+      test - prep{ wd =>
         os.isLink(wd / "misc" / "file-symlink") ==> true
         os.isLink(wd / "misc" / "folder-symlink") ==> true
         os.isLink(wd / "folder1") ==> false
       }
     }
-    test("size") {
-      test - prep { wd =>
+    test("size"){
+      test - prep{ wd =>
         os.size(wd / "File.txt") ==> 8
         assert(multilineSizes contains os.size(wd / "Multi Line.txt"))
       }
     }
-    test("mtime") {
-      test - prep { wd =>
+    test("mtime"){
+      test - prep{ wd =>
         os.mtime.set(wd / "File.txt", 0)
         os.mtime(wd / "File.txt") ==> 0
 

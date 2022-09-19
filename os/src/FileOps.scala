@@ -12,16 +12,17 @@ import java.nio.file.attribute.{FileAttribute, PosixFilePermission, PosixFilePer
 
 import scala.util.Try
 
+
 /**
  * Create a single directory at the specified path. Optionally takes in a
- * [[PermSet]] to specify the filesystem permissions of the created
- * directory.
- *
- * Errors out if the directory already exists, or if the parent directory of the
- * specified path does not exist. To automatically create enclosing directories and
- * ignore the destination if it already exists, using [[os.makeDir.all]]
+  * [[PermSet]] to specify the filesystem permissions of the created
+  * directory.
+  *
+  * Errors out if the directory already exists, or if the parent directory of the
+  * specified path does not exist. To automatically create enclosing directories and
+  * ignore the destination if it already exists, using [[os.makeDir.all]]
  */
-object makeDir extends Function1[Path, Unit] {
+object makeDir extends Function1[Path, Unit]{
   def apply(path: Path): Unit = Files.createDirectory(path.wrapped)
   def apply(path: Path, perms: PermSet): Unit = {
     Files.createDirectory(
@@ -29,13 +30,12 @@ object makeDir extends Function1[Path, Unit] {
       PosixFilePermissions.asFileAttribute(perms.toSet())
     )
   }
-
   /**
-   * Similar to [[os.makeDir]], but automatically creates any necessary
-   * enclosing directories if they do not exist, and does not raise an error if the
-   * destination path already containts a directory
-   */
-  object all extends Function1[Path, Unit] {
+    * Similar to [[os.makeDir]], but automatically creates any necessary
+    * enclosing directories if they do not exist, and does not raise an error if the
+    * destination path already containts a directory
+    */
+  object all extends Function1[Path, Unit]{
     def apply(path: Path): Unit = apply(path, null, true)
     def apply(path: Path, perms: PermSet = null, acceptLinkedDirectory: Boolean = true): Unit = {
       // We special case calling makeDir.all on a symlink to a directory;
@@ -54,21 +54,21 @@ object makeDir extends Function1[Path, Unit] {
   }
 }
 
+
 /**
- * Moves a file or folder from one path to another. Errors out if the destination
- * path already exists, or is within the source path.
+  * Moves a file or folder from one path to another. Errors out if the destination
+  * path already exists, or is within the source path.
  */
 object move {
-  def matching(
-      replaceExisting: Boolean = false,
-      atomicMove: Boolean = false,
-      createFolders: Boolean = false
-  )(partialFunction: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
+  def matching(replaceExisting: Boolean = false,
+               atomicMove: Boolean = false,
+               createFolders: Boolean = false)
+              (partialFunction: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
     new PartialFunction[Path, Unit] {
       def isDefinedAt(x: Path) = partialFunction.isDefinedAt(x)
       def apply(from: Path) = {
         val dest = partialFunction(from)
-        makeDir.all(dest / up)
+        makeDir.all(dest/up)
         os.move(from, dest, replaceExisting, atomicMove, createFolders)
       }
     }
@@ -77,14 +77,12 @@ object move {
   def matching(partialFunction: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
     matching()(partialFunction)
   }
-  def apply(
-      from: Path,
-      to: Path,
-      replaceExisting: Boolean = false,
-      atomicMove: Boolean = false,
-      createFolders: Boolean = false
-  ): Unit = {
-    if (createFolders) makeDir.all(to / up)
+  def apply(from: Path,
+            to: Path,
+            replaceExisting: Boolean = false,
+            atomicMove: Boolean = false,
+            createFolders: Boolean = false): Unit = {
+    if (createFolders) makeDir.all(to/up)
     val opts1 =
       if (replaceExisting) Array[CopyOption](StandardCopyOption.REPLACE_EXISTING)
       else Array[CopyOption]()
@@ -95,37 +93,33 @@ object move {
       !to.startsWith(from),
       s"Can't move a directory into itself: $to is inside $from"
     )
-    java.nio.file.Files.move(from.wrapped, to.wrapped, opts1 ++ opts2: _*)
+    java.nio.file.Files.move(from.wrapped, to.wrapped, opts1 ++ opts2:_*)
   }
 
   /**
-   * Move a file into a particular folder, rather
-   * than into a particular path
-   */
+    * Move a file into a particular folder, rather
+    * than into a particular path
+    */
   object into {
-    def apply(
-        from: Path,
-        to: Path,
-        replaceExisting: Boolean = false,
-        atomicMove: Boolean = false,
-        createFolders: Boolean = false
-    ): Unit = {
-      move.apply(from, to / from.last, replaceExisting, atomicMove, createFolders)
+    def apply(from: Path,
+              to: Path,
+              replaceExisting: Boolean = false,
+              atomicMove: Boolean = false,
+              createFolders: Boolean = false): Unit = {
+      move.apply(from, to/from.last, replaceExisting, atomicMove, createFolders)
     }
   }
 
   /**
-   * Move a file into a particular folder, rather
-   * than into a particular path
-   */
+    * Move a file into a particular folder, rather
+    * than into a particular path
+    */
   object over {
-    def apply(
-        from: Path,
-        to: Path,
-        replaceExisting: Boolean = false,
-        atomicMove: Boolean = false,
-        createFolders: Boolean = false
-    ): Unit = {
+    def apply(from: Path,
+              to: Path,
+              replaceExisting: Boolean = false,
+              atomicMove: Boolean = false,
+              createFolders: Boolean = false): Unit = {
       os.remove.all(to)
       move.apply(from, to, replaceExisting, atomicMove, createFolders)
     }
@@ -133,31 +127,24 @@ object move {
 }
 
 /**
- * Copy a file or folder from one path to another. Recursively copies folders with
- * all their contents. Errors out if the destination path already exists, or is
- * within the source path.
+  * Copy a file or folder from one path to another. Recursively copies folders with
+  * all their contents. Errors out if the destination path already exists, or is
+  * within the source path.
  */
 object copy {
-  def matching(
-      followLinks: Boolean = true,
-      replaceExisting: Boolean = false,
-      copyAttributes: Boolean = false,
-      createFolders: Boolean = false,
-      mergeFolders: Boolean = false
-  )(partialFunction: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
+  def matching(followLinks: Boolean = true,
+               replaceExisting: Boolean = false,
+               copyAttributes: Boolean = false,
+               createFolders: Boolean = false,
+               mergeFolders: Boolean = false)
+              (partialFunction: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
     new PartialFunction[Path, Unit] {
       def isDefinedAt(x: Path) = partialFunction.isDefinedAt(x)
       def apply(from: Path) = {
         val dest = partialFunction(from)
-        makeDir.all(dest / up)
+        makeDir.all(dest/up)
         os.copy(
-          from,
-          dest,
-          followLinks,
-          replaceExisting,
-          copyAttributes,
-          createFolders,
-          mergeFolders
+          from, dest, followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders
         )
       }
     }
@@ -168,14 +155,14 @@ object copy {
   }
 
   def apply(
-      from: Path,
-      to: Path,
-      followLinks: Boolean = true,
-      replaceExisting: Boolean = false,
-      copyAttributes: Boolean = false,
-      createFolders: Boolean = false,
-      mergeFolders: Boolean = false
-  ): Unit = {
+             from: Path,
+             to: Path,
+             followLinks: Boolean = true,
+             replaceExisting: Boolean = false,
+             copyAttributes: Boolean = false,
+             createFolders: Boolean = false,
+             mergeFolders: Boolean = false
+           ): Unit = {
     if (createFolders) makeDir.all(to / up)
     val opts1 =
       if (followLinks) Array[CopyOption]()
@@ -205,19 +192,16 @@ object copy {
     if (stat(from, followLinks = followLinks).isDir) walk(from).map(copyOne)
   }
 
-  /** This overload is only to keep binary compatibility with older os-lib versions. */
-  @deprecated(
-    "Use os.copy(from, to, followLinks, replaceExisting, copyAttributes, " +
-      "createFolders, mergeFolders) instead",
-    "os-lib 0.7.5"
-  )
+  /** This overload is only to keep binary compatibility with older os-lib versions.  */
+  @deprecated("Use os.copy(from, to, followLinks, replaceExisting, copyAttributes, " +
+    "createFolders, mergeFolders) instead", "os-lib 0.7.5")
   def apply(
-      from: Path,
-      to: Path,
-      followLinks: Boolean,
-      replaceExisting: Boolean,
-      copyAttributes: Boolean,
-      createFolders: Boolean
+    from: Path,
+    to: Path,
+    followLinks: Boolean,
+    replaceExisting: Boolean,
+    copyAttributes: Boolean,
+    createFolders: Boolean
   ): Unit = apply(
     from = from,
     to = to,
@@ -229,43 +213,33 @@ object copy {
   )
 
   /**
-   * Copy a file into a particular folder, rather
-   * than into a particular path
-   */
+    * Copy a file into a particular folder, rather
+    * than into a particular path
+    */
   object into {
-    def apply(
-        from: Path,
-        to: Path,
-        followLinks: Boolean = true,
-        replaceExisting: Boolean = false,
-        copyAttributes: Boolean = false,
-        createFolders: Boolean = false,
-        mergeFolders: Boolean = false
-    ): Unit = {
+    def apply(from: Path,
+              to: Path,
+              followLinks: Boolean = true,
+              replaceExisting: Boolean = false,
+              copyAttributes: Boolean = false,
+              createFolders: Boolean = false,
+              mergeFolders: Boolean = false): Unit = {
       os.copy(
-        from,
-        to / from.last,
-        followLinks,
-        replaceExisting,
-        copyAttributes,
-        createFolders,
-        mergeFolders
+        from, to/from.last,
+        followLinks, replaceExisting, copyAttributes, createFolders, mergeFolders
       )
     }
 
-    /** This overload is only to keep binary compatibility with older os-lib versions. */
-    @deprecated(
-      "Use os.copy.into(from, to, followLinks, replaceExisting, copyAttributes, " +
-        "createFolders, mergeFolders) instead",
-      "os-lib 0.7.5"
-    )
+    /** This overload is only to keep binary compatibility with older os-lib versions.  */
+    @deprecated("Use os.copy.into(from, to, followLinks, replaceExisting, copyAttributes, " +
+      "createFolders, mergeFolders) instead", "os-lib 0.7.5")
     def apply(
-        from: Path,
-        to: Path,
-        followLinks: Boolean,
-        replaceExisting: Boolean,
-        copyAttributes: Boolean,
-        createFolders: Boolean
+      from: Path,
+      to: Path,
+      followLinks: Boolean,
+      replaceExisting: Boolean,
+      copyAttributes: Boolean,
+      createFolders: Boolean
     ): Unit = apply(
       from = from,
       to = to,
@@ -278,17 +252,15 @@ object copy {
   }
 
   /**
-   * Copy a file into a particular path
-   */
-  object over {
-    def apply(
-        from: Path,
-        to: Path,
-        followLinks: Boolean = true,
-        replaceExisting: Boolean = false,
-        copyAttributes: Boolean = false,
-        createFolders: Boolean = false
-    ): Unit = {
+    * Copy a file into a particular path
+    */
+  object over{
+    def apply(from: Path,
+              to: Path,
+              followLinks: Boolean = true,
+              replaceExisting: Boolean = false,
+              copyAttributes: Boolean = false,
+              createFolders: Boolean = false): Unit = {
       os.remove.all(to)
       os.copy(
         from = from,
@@ -308,18 +280,18 @@ object copy {
  * any files or folders in the target path, or
  * does nothing if there aren't any
  */
-object remove extends Function1[Path, Boolean] {
+object remove extends Function1[Path, Boolean]{
   def apply(target: Path): Boolean = apply(target, false)
   def apply(target: Path, checkExists: Boolean = false): Boolean = {
     if (checkExists) {
       Files.delete(target.wrapped)
       true
-    } else {
+    }else{
       Files.deleteIfExists(target.wrapped)
     }
   }
 
-  object all extends Function1[Path, Unit] {
+  object all extends Function1[Path, Unit]{
     def apply(target: Path) = {
       require(target.segmentCount != 0, s"Cannot remove a root directory: $target")
 
@@ -335,19 +307,19 @@ object remove extends Function1[Path, Boolean] {
 }
 
 /**
- * Checks if a file or folder exists at the given path.
- */
-object exists extends Function1[Path, Boolean] {
+  * Checks if a file or folder exists at the given path.
+  */
+object exists extends Function1[Path, Boolean]{
   def apply(p: Path): Boolean = Files.exists(p.wrapped)
   def apply(p: Path, followLinks: Boolean = true): Boolean = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
-    Files.exists(p.wrapped, opts: _*)
+    Files.exists(p.wrapped, opts:_*)
   }
 }
 
 /**
- * Creates a hardlink between two paths
- */
+  * Creates a hardlink between two paths
+  */
 object hardlink {
   def apply(link: Path, dest: Path) = {
     Files.createLink(link.wrapped, dest.wrapped)
@@ -355,8 +327,8 @@ object hardlink {
 }
 
 /**
- * Creates a symbolic link between two paths
- */
+  * Creates a symbolic link between two paths
+  */
 object symlink {
   def apply(link: Path, dest: FilePath, perms: PermSet = null): Unit = {
     val permArray: Array[FileAttribute[_]] =
@@ -365,31 +337,34 @@ object symlink {
 
     Files.createSymbolicLink(
       link.toNIO,
-      dest match {
+      dest match{
         // Special case empty relative paths, because for some reason `createSymbolicLink`
         // doesn't like it when the path is "" (most other Files.* functions are fine)
         case p: RelPath if p.segments.isEmpty && p.ups == 0 => java.nio.file.Paths.get(".")
         case p: SubPath if p.segments.isEmpty => java.nio.file.Paths.get(".")
         case _ => dest.toNIO
       },
-      permArray: _*
+      permArray:_*
     )
   }
 }
 
+
 /**
- * Attempts to any symbolic links in the given path and return the canonical path.
- * Returns `None` if the path cannot be resolved (i.e. some symbolic link in the
- * given path is broken)
- */
-object followLink extends Function1[Path, Option[Path]] {
+  * Attempts to any symbolic links in the given path and return the canonical path.
+  * Returns `None` if the path cannot be resolved (i.e. some symbolic link in the
+  * given path is broken)
+  */
+object followLink extends Function1[Path, Option[Path]]{
   def apply(src: Path): Option[Path] = Try(Path(src.wrapped.toRealPath())).toOption
 }
 
+
 /**
- * Reads the destination that the given symbolic link is pointed to
- */
-object readLink extends Function1[Path, os.FilePath] {
+  * Reads the destination that the given symbolic link is pointed to
+  */
+object readLink extends Function1[Path, os.FilePath]{
   def apply(src: Path): FilePath = os.FilePath(Files.readSymbolicLink(src.toNIO))
   def absolute(src: Path): os.Path = os.Path(Files.readSymbolicLink(src.toNIO), src / up)
 }
+

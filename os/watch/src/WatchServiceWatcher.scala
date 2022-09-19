@@ -11,11 +11,9 @@ import com.sun.nio.file.SensitivityWatchEventModifier
 import scala.collection.mutable
 import collection.JavaConverters._
 
-class WatchServiceWatcher(
-    roots: Seq[os.Path],
-    onEvent: Set[os.Path] => Unit,
-    logger: (String, Any) => Unit = (_, _) => ()
-) extends Watcher {
+class WatchServiceWatcher(roots: Seq[os.Path],
+                          onEvent: Set[os.Path] => Unit,
+                          logger: (String, Any) => Unit = (_, _) => ()) extends Watcher{
 
   val nioWatchService = FileSystems.getDefault.newWatchService()
   val currentlyWatchedPaths = mutable.Map.empty[os.Path, WatchKey]
@@ -56,11 +54,11 @@ class WatchServiceWatcher(
 
     logger("WATCH KINDS", events.map(_.kind()))
 
-    for (e <- events) {
+    for(e <- events){
       bufferedEvents.add(p / e.context().toString)
     }
 
-    for (e <- events if e.kind() == ENTRY_CREATE) {
+    for(e <- events if e.kind() == ENTRY_CREATE){
       watchSinglePath(p / e.context().toString)
     }
 
@@ -68,55 +66,52 @@ class WatchServiceWatcher(
   }
 
   def recursiveWatches() = {
-    while (newlyWatchedPaths.nonEmpty) {
+    while(newlyWatchedPaths.nonEmpty){
       val top = newlyWatchedPaths.remove(newlyWatchedPaths.length - 1)
-      val listing =
-        try os.list(top)
-        catch { case e: java.nio.file.NotDirectoryException => Nil }
-      for (p <- listing) watchSinglePath(p)
+      val listing = try os.list(top) catch {case e: java.nio.file.NotDirectoryException => Nil }
+      for(p <- listing) watchSinglePath(p)
       bufferedEvents.add(top)
     }
   }
 
   def run(): Unit = {
-    while (isRunning.get())
-      try {
-        logger("WATCH CURRENT", currentlyWatchedPaths)
-        val watchKey0 = nioWatchService.take()
-        if (watchKey0 != null) {
-          logger("WATCH KEY0", watchKey0.watchable())
-          processEvent(watchKey0)
-          while ({
-            nioWatchService.poll() match {
-              case null => false
-              case watchKey =>
-                logger("WATCH KEY", watchKey.watchable())
-                processEvent(watchKey)
-                true
-            }
-          }) ()
-
-          // cleanup stale watches, but do so before we register new ones
-          // because when folders are moved, the old watch is moved as well
-          // and we need to make sure we re-register the watch after disabling
-          // it due to the old file path within the old folder no longer existing
-          for (p <- currentlyWatchedPaths.keySet if !os.isDir(p, followLinks = false)) {
-            logger("WATCH CANCEL", p)
-            currentlyWatchedPaths.remove(p).foreach(_.cancel())
+    while (isRunning.get()) try {
+      logger("WATCH CURRENT", currentlyWatchedPaths)
+      val watchKey0 = nioWatchService.take()
+      if (watchKey0 != null){
+        logger("WATCH KEY0", watchKey0.watchable())
+        processEvent(watchKey0)
+        while({
+          nioWatchService.poll() match{
+            case null => false
+            case watchKey =>
+              logger("WATCH KEY", watchKey.watchable())
+              processEvent(watchKey)
+              true
           }
+        })()
 
-          recursiveWatches()
-          triggerListener()
+        // cleanup stale watches, but do so before we register new ones
+        // because when folders are moved, the old watch is moved as well
+        // and we need to make sure we re-register the watch after disabling
+        // it due to the old file path within the old folder no longer existing
+        for(p <- currentlyWatchedPaths.keySet if !os.isDir(p, followLinks = false)){
+          logger("WATCH CANCEL", p)
+          currentlyWatchedPaths.remove(p).foreach(_.cancel())
         }
 
-      } catch {
-        case e: InterruptedException =>
-          println("Interrupted, exiting: " + e)
-          isRunning.set(false)
-        case e: ClosedWatchServiceException =>
-          println("Watcher closed, exiting: " + e)
-          isRunning.set(false)
+        recursiveWatches()
+        triggerListener()
       }
+
+    } catch {
+      case e: InterruptedException =>
+        println("Interrupted, exiting: " + e)
+        isRunning.set(false)
+      case e: ClosedWatchServiceException =>
+        println("Watcher closed, exiting: " + e)
+        isRunning.set(false)
+    }
   }
 
   def close(): Unit = {

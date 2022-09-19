@@ -2,23 +2,19 @@ package os.watch
 
 import com.sun.jna.{NativeLong, Pointer}
 
-class FSEventsWatcher(
-    srcs: Seq[os.Path],
-    onEvent: Set[os.Path] => Unit,
-    logger: (String, Any) => Unit = (_, _) => (),
-    latency: Double
-) extends Watcher {
+class FSEventsWatcher(srcs: Seq[os.Path],
+                      onEvent: Set[os.Path] => Unit,
+                      logger: (String, Any) => Unit = (_, _) => (),
+                      latency: Double) extends Watcher{
   private[this] var closed = false
   private[this] val existingFolders = collection.mutable.Set.empty[os.Path]
-  private[this] val callback = new FSEventStreamCallback {
-    def invoke(
-        streamRef: FSEventStreamRef,
-        clientCallBackInfo: Pointer,
-        numEvents: NativeLong,
-        eventPaths: Pointer,
-        eventFlags: Pointer,
-        eventIds: Pointer
-    ) = {
+  private[this] val callback = new FSEventStreamCallback{
+    def invoke(streamRef: FSEventStreamRef,
+               clientCallBackInfo: Pointer,
+               numEvents: NativeLong,
+               eventPaths: Pointer,
+               eventFlags: Pointer,
+               eventIds: Pointer) = {
       val length = numEvents.intValue
       val pathStrings = eventPaths.getStringArray(0, length)
       logger("FSEVENT", pathStrings)
@@ -27,12 +23,12 @@ class FSEventsWatcher(
       // When folders are moved, OS-X does not emit file events for all sub-paths
       // within the new folder, so we are forced to walk that folder and emit the
       // paths ourselves
-      for (p <- paths) {
+      for(p <- paths){
         if (!os.isDir(p, followLinks = false)) existingFolders.remove(p)
         else {
           existingFolders.add(p)
           try os.walk.stream(p).foreach(nestedPaths.append(_))
-          catch { case e: Throwable => /*do nothing*/ }
+          catch{case e: Throwable => /*do nothing*/}
         }
       }
       onEvent((paths ++ nestedPaths).toSet)
@@ -57,11 +53,11 @@ class FSEventsWatcher(
     // File-level notifications https://developer.apple.com/documentation/coreservices
     // /1455376-fseventstreamcreateflags/kfseventstreamcreateflagfileevents?language=objc
     0x00000010 |
-      //
-      // Don't defer https://developer.apple.com/documentation/coreservices
-      // /1455376-fseventstreamcreateflags/kfseventstreamcreateflagnodefer?language=objc
-      //
-      0x00000002
+    //
+    // Don't defer https://developer.apple.com/documentation/coreservices
+    // /1455376-fseventstreamcreateflags/kfseventstreamcreateflagnodefer?language=objc
+    //
+    0x00000002
   )
 
   private[this] var current: CFRunLoopRef = null
