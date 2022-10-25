@@ -5,6 +5,8 @@
 :toc:
 :link-geny: https://github.com/lihaoyi/geny
 :link-oslib: https://github.com/com-lihaoyi/os-lib
+:idprefix:
+:idseparator: -
 
 image:https://github.com/lihaoyi/os-lib/actions/workflows/build.yml/badge.svg[Build Status,link=https://github.com/lihaoyi/os-lib/actions]
 image:https://badges.gitter.im/Join%20Chat.svg[Gitter Chat,link=https://gitter.im/lihaoyi/os-lib?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge]
@@ -83,7 +85,7 @@ ivy"com.lihaoyi::os-lib:{version}"
 
 == Cookbook
 
-Most operation in OS-Lib take place on <<_os_path>>s, which are
+Most operation in OS-Lib take place on <<os-path>>s, which are
 constructed from a base path or working directory `wd`. Most often, the first
 thing to do is to define a `wd` path representing the folder you want to work
 with:
@@ -213,7 +215,7 @@ os.read(arg: os.Path,
         charSet: Codec = java.nio.charset.StandardCharsets.UTF_8): String
 ----
 
-Reads the contents of a <<_os_path>> or other <<_os_source>> as a
+Reads the contents of a <<os-path>> or other <<os-source>> as a
 `java.lang.String`. Defaults to reading the entire file as UTF-8, but you can
 also select a different `charSet` to use, and provide an `offset`/`count` to
 read from if the source supports seeking.
@@ -237,7 +239,7 @@ os.read.bytes(arg: os.ReadablePath): Array[Byte]
 os.read.bytes(arg: os.Path, offset: Long, count: Int): Array[Byte]
 ----
 
-Reads the contents of a <<_os_path>> or <<_os_source>> as an
+Reads the contents of a <<os-path>> or <<os-source>> as an
 `Array[Byte]`; you can provide an `offset`/`count` to read from if the source
 supports seeking.
 
@@ -289,7 +291,7 @@ os.read.lines(arg: os.ReadablePath): IndexedSeq[String]
 os.read.lines(arg: os.ReadablePath, charSet: Codec): IndexedSeq[String]
 ----
 
-Reads the given <<_os_path>> or other <<_os_source>> as a string
+Reads the given <<os-path>> or other <<os-source>> as a string
 and splits it into lines; defaults to reading as UTF-8, which you can override
 by specifying a `charSet`.
 
@@ -312,8 +314,8 @@ os.read.lines(arg: os.ReadablePath): os.Generator[String]
 os.read.lines(arg: os.ReadablePath, charSet: Codec): os.Generator[String]
 ----
 
-Identical to <<_os_read_lines>>, but streams the results back to you
-in a <<_os_generator>> rather than accumulating them in memory.
+Identical to <<os-read-lines>>, but streams the results back to you
+in a <<os-generator>> rather than accumulating them in memory.
 Useful if the file is large.
 
 [source,scala]
@@ -384,13 +386,13 @@ os.write(target: Path,
          createFolders: Boolean = false): Unit
 ----
 
-Writes data from the given file or <<_os_source>> to a file at the
-target <<_os_path>>. You can specify the filesystem permissions of the
-newly created file by passing in a <<_os_permset>>.
+Writes data from the given file or <<os-source>> to a file at the
+target <<os-path>>. You can specify the filesystem permissions of the
+newly created file by passing in a <<os-permset>>.
 
 This throws an exception if the file already exists. To over-write or append to
-an existing file, see <<_os_write_over>> or
-<<_os_write_append>>.
+an existing file, see <<os-write-over>> or
+<<os-write-append>>.
 
 By default, this doesn't create enclosing folders; you can enable this
 behavior by setting `createFolders = true`
@@ -414,7 +416,7 @@ os.write.append(target: Path,
                 createFolders: Boolean = false): Unit
 ----
 
-Similar to <<_os_write>>, except if the file already exists this appends
+Similar to <<os-write>>, except if the file already exists this appends
 the written data to the existing file contents.
 
 [source,scala]
@@ -445,7 +447,7 @@ os.write.over(target: Path,
               truncate: Boolean = true): Unit
 ----
 
-Similar to <<_os_write>>, except if the file already exists this
+Similar to <<os-write>>, except if the file already exists this
 over-writes the existing file contents. You can also pass in `truncate = false`
 to avoid truncating the file if the new contents is shorter than the old
 contents, and an `offset` to the file you want to write to.
@@ -519,8 +521,8 @@ os.list(p: Path, sort: Boolean = true): IndexedSeq[Path]
 
 Returns all the files and folders directly within the given folder. If the given
 path is not a folder, raises an error. Can be called via
-<<_os_list_stream>> to stream the results. To list files recursively,
-use <<_os_walk>>.
+<<os-list-stream>> to stream the results. To list files recursively,
+use <<os-walk>>.
 
 For convenience `os.list` sorts the entries in the folder before returning
 them. You can disable sorted by passing in the flag `sort = false`.
@@ -541,7 +543,7 @@ os.list(wd / "folder2") ==> Seq(
 os.list.stream(p: Path): os.Generator[Path]
 ----
 
-Similar to <<_os_list>>, except provides a <<_os_generator>> of
+Similar to <<os-list>>, except provides a <<os-generator>> of
 results rather than accumulating all of them in memory. Useful if the result set
 is large.
 
@@ -634,7 +636,7 @@ os.walk.attrs(path: Path,
               includeTarget: Boolean = false): IndexedSeq[(Path, os.StatInfo)]
 ----
 
-Similar to <<_os_walk>>, except it also provides the `os.StatInfo`
+Similar to <<os-walk>>, except it also provides the `os.StatInfo`
 filesystem metadata of every path that it returns. Can save time by allowing you
 to avoid querying the filesystem for metadata later. Note that `os.StatInfo`
 does not include filesystem ownership and permissions data; use `os.stat.posix` on
@@ -667,7 +669,7 @@ os.walk.stream(path: Path,
               includeTarget: Boolean = false): os.Generator[Path]
 ----
 
-Similar to <<_os_walk>>, except returns a <<_os_generator>> of
+Similar to <<os-walk>>, except returns a <<os-generator>> of
 the results rather than accumulating them in memory. Useful if you are walking
 very large folder hierarchies, or if you wish to begin processing the output
 even before the walk has completed.
@@ -693,7 +695,7 @@ os.walk.stream.attrs(path: Path,
                      includeTarget: Boolean = false): os.Generator[(Path, os.StatInfo)]
 ----
 
-Similar to <<_os_walk_stream>>, except it also provides the filesystem
+Similar to <<os-walk-stream>>, except it also provides the filesystem
 metadata of every path that it returns. Can save time by allowing you to avoid
 querying the filesystem for metadata later.
 
@@ -896,7 +898,7 @@ os.list(wd / "folder1") ==> Seq(wd / "folder1" / "File.txt", wd / "folder1" / "o
 os.copy.over(from: Path, to: Path): Unit
 ----
 
-Similar to <<_os_copy>>, but if the destination file already exists then
+Similar to <<os-copy>>, but if the destination file already exists then
 overwrite it instead of erroring out.
 
 [source,scala]
@@ -911,7 +913,7 @@ os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
 _Since 0.7.5_
 
 If you want to copy a directory over another but don't want to overwrite the whole destination directory (and loose it's content),
-you can use the `mergeFolders` option of <<_os_copy>>.
+you can use the `mergeFolders` option of <<os-copy>>.
 
 [source,scala]
 ----
@@ -930,13 +932,13 @@ os.makeDir(path: Path, perms: PermSet): Unit
 ----
 
 Create a single directory at the specified path. Optionally takes in a
-<<_os_permset>> to specify the filesystem permissions of the created
+<<os-permset>> to specify the filesystem permissions of the created
 directory.
 
 Errors out if the directory already exists, or if the parent directory of the
 specified path does not exist. To automatically create enclosing directories and
 ignore the destination if it already exists, using
-<<_os_makedir_all>>
+<<os-makedir-all>>
 
 [source,scala]
 ----
@@ -955,7 +957,7 @@ os.makeDir.all(path: Path,
                acceptLinkedDirectory: Boolean = true): Unit
 ----
 
-Similar to <<_os_makedir>>, but automatically creates any necessary
+Similar to <<os-makedir>>, but automatically creates any necessary
 enclosing directories if they do not exist, and does not raise an error if the
 destination path already contains a directory. Also does not raise an error if
 the destination path contains a symlink to a directory, though you can force it
@@ -976,7 +978,7 @@ os.remove(target: Path): Unit
 ----
 
 Remove the target file or folder. Folders need to be empty to be removed; if you
-want to remove a folder tree recursively, use <<_os_remove_all>>
+want to remove a folder tree recursively, use <<os-remove-all>>
 
 [source,scala]
 ----
@@ -1010,7 +1012,7 @@ os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
 ----
 
 If you wish to remove the destination of a symlink, use
-<<_os_readlink>>.
+<<os-readlink>>.
 
 ==== `os.remove.all`
 
@@ -1049,7 +1051,7 @@ os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
 ----
 
 If you wish to remove the destination of a symlink, use
-<<_os_readlink>>.
+<<os-readlink>>.
 
 ==== `os.hardlink`
 
@@ -1076,7 +1078,7 @@ os.symlink(link: Path, dest: FilePath, perms: PermSet = null): Unit
 ----
 
 Create a symbolic to the source path from the destination path. Optionally takes
-a <<_os_permset>> to customize the filesystem permissions of the symbolic
+a <<os-permset>> to customize the filesystem permissions of the symbolic
 link.
 
 [source,scala]
@@ -1162,9 +1164,9 @@ os.temp(contents: os.Source = null,
 
 Creates a temporary file. You can optionally provide a `dir` to specify where
 this file lives, file-`prefix` and file-`suffix` to customize what it looks
-like, and a <<_os_permset>> to customize its filesystem permissions.
+like, and a <<os-permset>> to customize its filesystem permissions.
 
-Passing in a <<_os_source>> will initialize the contents of that file to
+Passing in a <<os-source>> will initialize the contents of that file to
 the provided data; otherwise it is created empty.
 
 By default, temporary files are deleted on JVM exit. You can disable that
@@ -1190,7 +1192,7 @@ os.temp.dir(dir: Path = null,
 
 Creates a temporary directory. You can optionally provide a `dir` to specify
 where this file lives, a `prefix` to customize what it looks like, and a
-<<_os_permset>> to customize its filesystem permissions.
+<<os-permset>> to customize its filesystem permissions.
 
 By default, temporary directories are deleted on JVM exit. You can disable that
 behavior by setting `deleteOnExit = false`
@@ -1345,11 +1347,11 @@ os.perms.set(p: Path, arg2: PermSet): Unit
 ----
 
 Gets or sets the filesystem permissions of the given file or folder, as an
-<<_os_permset>>.
+<<os-permset>>.
 
 Note that if you want to create a file or folder with a given set of
-permissions, you can pass in an <<_os_permset>> to <<_os_write>>
-or <<_os_makedir>>. That will ensure the file or folder is created
+permissions, you can pass in an <<os-permset>> to <<os-write>>
+or <<os-makedir>>. That will ensure the file or folder is created
 atomically with the given permissions, rather than being created with the
 default set of permissions and having `os.perms.set` over-write them later
 
@@ -1443,7 +1445,7 @@ directly to the parent process's standard output or error
 path, reading its standard input from a file or writing its standard
 output/error to the file.
 
-In addition, you can pass any <<_os_source>>s to a Subprocess's `stdin`
+In addition, you can pass any <<os-source>>s to a Subprocess's `stdin`
 (``String``s, ``InputStream``s, ``Array[Byte]``s, ...), and pass in a
 `os.ProcessOutput` value to `stdout`/`stderr` to register callbacks that are run
 when output is received on those streams.
@@ -1715,16 +1717,16 @@ paths changed: /Users/lihaoyi/Github/Ammonite/out/version/log,/Users/lihaoyi/Git
 OS-Lib uses strongly-typed data-structures to represent filesystem paths. The
 two basic versions are:
 
-* <<_os_path>>: an absolute path, starting from the root
-* <<_os_relpath>>: a relative path, not rooted anywhere
-* <<_os_subpath>>: a sub path, without any `..` segments, not
+* <<os-path>>: an absolute path, starting from the root
+* <<os-relpath>>: a relative path, not rooted anywhere
+* <<os-subpath>>: a sub path, without any `..` segments, not
 rooted anywhere
 
 Generally, almost all commands take absolute ``os.Path``s. These are
 basically ``java.nio.file.Path``s with additional guarantees:
 
 * ``os.Path``s are always absolute. Relative paths are a separate type
-<<_os_relpath>>
+<<os-relpath>>
 * ``os.Path``s are always canonical. You will never find `.` or `..` segments in
 them, and never need to worry about calling `.normalize` before operations.
 
@@ -1905,8 +1907,8 @@ In this definition, ThisType represents the same type as the current path; e.g.
 a Path's / returns a Path while a RelPath's / returns a RelPath. Similarly, you
 can only compare or subtract paths of the same type.
 
-Apart from <<_os_relpath>>s themselves, a number of other data
-structures are convertible into <<_os_relpath>>s when spliced into a
+Apart from <<os-relpath>>s themselves, a number of other data
+structures are convertible into <<os-relpath>>s when spliced into a
 path using `/`:
 
 * ``String``s
@@ -1963,8 +1965,8 @@ intercept[PathError.AbsolutePathOutsideRoot.type]{
 }
 ----
 
-As you can see, attempting to parse a relative path with <<_os_path>> or
-an absolute path with <<_os_relpath>> throws an exception. If you're
+As you can see, attempting to parse a relative path with <<os-path>> or
+an absolute path with <<os-relpath>> throws an exception. If you're
 uncertain about what kind of path you are getting, you could use `BasePath` to
 parse it :
 
@@ -1978,8 +1980,8 @@ assert(
 )
 ----
 
-This converts it into a `BasePath`, which is either a <<_os_path>> or
-<<_os_relpath>>. It's then up to you to pattern-match on the types and
+This converts it into a `BasePath`, which is either a <<os-path>> or
+<<os-relpath>>. It's then up to you to pattern-match on the types and
 decide what you want to do in each case.
 
 You can also pass in a second argument to `+Path(..., base)+`. If the path being
@@ -2199,7 +2201,7 @@ string, int or set representations of the `os.PermSet` via:
 
 ==== 0.4.2
 
-* Added a new <<_os_subpath>> data type, for safer handling of
+* Added a new <<os-subpath>> data type, for safer handling of
 sub-paths within a directory.
 * Removed `os.proc.stream`, since you can now customize the `stdout` or
 `stderr` of `os.proc.call` to handle output in a streaming fashion
@@ -2210,7 +2212,7 @@ explicitly to get back the old behavior
 https://github.com/lihaoyi/os-lib/issues/27[#27]
 * Attempt to fix crasher accessing `os.pwd`
 https://github.com/lihaoyi/os-lib/issues/24[#24]
-* Added an <<_os_watch_watch,os-lib-watch>> package, which can be used to
+* Added an <<os-watch-watch,os-lib-watch>> package, which can be used to
 efficiently recursively watch folders for updates
 https://github.com/lihaoyi/os-lib/issues/23[#23]
 * `os.stat` no longer provides POSIX owner/permissions related metadata
