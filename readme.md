@@ -161,9 +161,9 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 
 ```scala
 // SBT
-"com.lihaoyi" %% "os-lib" % "0.8.0"
+"com.lihaoyi" %% "os-lib" % "0.8.1"
 // Mill
-ivy"com.lihaoyi::os-lib:0.8.0"
+ivy"com.lihaoyi::os-lib:0.8.1"
 ```
 
 ## Cookbook
@@ -2092,6 +2092,10 @@ string, int or set representations of the `os.PermSet` via:
 - `perms.value: Set[PosixFilePermission]`
 
 ## Changelog
+
+### 0.8.1 - 2022-01-31
+
+- Added support for Scala Native on Scala 3
 
 ### 0.8.0 - 2021-12-11
 
