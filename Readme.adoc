@@ -92,7 +92,7 @@ with:
 
 [source,scala]
 ----
-val wd = os.pwd/"my-test-folder"
+val wd = os.pwd / "my-test-folder"
 ----
 
 You can of course multiple base paths, to use in different parts of your program
@@ -105,11 +105,11 @@ where convenient, or simply work with one of the pre-defined paths `os.pwd`,
 ----
 // Find and concatenate all .txt files directly in the working directory
 os.write(
-  wd/"all.txt",
+  wd / "all.txt",
   os.list(wd).filter(_.ext == "txt").map(os.read)
 )
 
-os.read(wd/"all.txt") ==>
+os.read(wd / "all.txt") ==>
   """I am cowI am cow
     |Hear me moo
     |I weigh twice as much as you
@@ -121,9 +121,9 @@ os.read(wd/"all.txt") ==>
 [source,scala]
 ----
 // Find and concatenate all .txt files directly in the working directory using `cat`
-os.proc("cat", os.list(wd).filter(_.ext == "txt")).call(stdout = wd/"all.txt")
+os.proc("cat", os.list(wd).filter(_.ext == "txt")).call(stdout = wd / "all.txt")
 
-os.read(wd/"all.txt") ==>
+os.read(wd / "all.txt") ==>
   """I am cowI am cow
     |Hear me moo
     |I weigh twice as much as you
@@ -185,7 +185,7 @@ largestThree ==> Seq(
 ----
 // Move all files inside the "misc" folder out of it
 import os.{GlobSyntax, /}
-os.list(wd/"misc").map(os.move.matching{case p/"misc"/x => p/x })
+os.list(wd / "misc").map(os.move.matching { case p/"misc"/x => p/x } )
 ----
 
 === Calculate word frequencies
@@ -194,7 +194,7 @@ os.list(wd/"misc").map(os.move.matching{case p/"misc"/x => p/x })
 ----
 // Calculate the word frequency of all the text files in the folder tree
 def txt = os.walk(wd).filter(_.ext == "txt").map(os.read)
-def freq(s: Seq[String]) = s groupBy (x => x) mapValues (_.length) toSeq
+def freq(s: Seq[String]) = s.groupBy(x => x).mapValues(_.length).toSeq
 val map = freq(txt.flatMap(_.split("[^a-zA-Z0-9_]"))).sortBy(-_._2)
 map
 ----
