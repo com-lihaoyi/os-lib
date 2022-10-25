@@ -19,8 +19,8 @@ val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 
 val scalaVersions = Seq(
   "3.1.3",
-  "2.12.16",
-  "2.13.8",
+  "2.12.17",
+  "2.13.10",
   "2.11.12"
 ) ++ communityBuildDottyVersion
 
@@ -29,7 +29,7 @@ val scalaNativeVersions = scalaVersions.map((_, "0.4.5"))
 val backwardCompatibleVersions: Seq[String] = Seq()
 
 object Deps {
-  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.3"
+  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.6"
   val jna = ivy"net.java.dev.jna:jna:5.12.1"
   val geny = ivy"com.lihaoyi::geny::1.0.0"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.3.0"
