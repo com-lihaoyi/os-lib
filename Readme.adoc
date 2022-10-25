@@ -3,7 +3,7 @@
 :toc-placement: preamble
 :toclevels: 3
 :toc:
-:link-geny: https://github.com/lihaoyi/geny
+:link-geny: https://github.com/com-lihaoyi/geny
 :link-oslib: https://github.com/com-lihaoyi/os-lib
 :idprefix:
 :idseparator: -
@@ -2093,8 +2093,8 @@ be used where `os.SeekableSource` is required:
 * `java.nio.channels.SeekableByteChannel`
 
 `os.Source` also supports anything that implements the
-https://github.com/lihaoyi/geny#writable[Writable] interface, such as
-http://www.lihaoyi.com/upickle/#uJson[ujson.Value]s,
+{link-geny}#writable[Writable] interface, such as
+http://www.lihaoyi.com/upickle/#uJson[`ujson.Value`]s,
 http://www.lihaoyi.com/upickle[uPickle]'s `upickle.default.writable` values,
 or http://www.lihaoyi.com/scalatags/[Scalatags]'s ``Tag``s
 
