@@ -41,11 +41,11 @@ object SubprocessTests extends TestSuite{
       assert(
         proc("git", "init").call().out.text().contains("Reinitialized existing Git repository"),
         proc("git", "init").call().out.text().contains("Reinitialized existing Git repository"),
-        TestUtil.proc(lsCmd, pwd).call().out.text().contains("readme.md")
+        TestUtil.proc(lsCmd, pwd).call().out.text().contains("Readme.adoc")
       )
     }
     test("basicList"){
-      val files = List("readme.md", "build.sc")
+      val files = List("Readme.adoc", "build.sc")
       val output = TestUtil.proc(lsCmd, files).call().out.text()
       assert(files.forall(output.contains))
     }
