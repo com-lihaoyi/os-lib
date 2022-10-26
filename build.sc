@@ -116,7 +116,7 @@ trait SafeDeps extends ScalaModule {
   override def mapDependencies: Task[coursier.Dependency => coursier.Dependency] = T.task {
     val sd = Deps.scalaLibrary(scala213Version)
     super.mapDependencies().andThen { d =>
-      // enforce up-to-date Scala 3.13 version
+      // enforce up-to-date Scala 2.13.x version
       if (d.module == sd.dep.module && d.version.startsWith("2.13.")) {
         sd.dep
       } else d
