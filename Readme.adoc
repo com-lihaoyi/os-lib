@@ -6,10 +6,12 @@
 :link-geny: https://github.com/com-lihaoyi/geny
 :link-oslib: https://github.com/com-lihaoyi/os-lib
 :link-oslib-gitter: https://gitter.im/lihaoyi/os-lib
+:link-upickle-doc: https://com-lihaoyi.github.io/upickle
+:link-scalatags-doc: https://com-lihaoyi.github.io/scalatags/
 :idprefix:
 :idseparator: -
 
-image:https://github.com/lihaoyi/os-lib/actions/workflows/build.yml/badge.svg[Build Status,link={link-oslib}/actions]
+image:{link-oslib}/actions/workflows/build.yml/badge.svg[Build Status,link={link-oslib}/actions]
 image:https://badges.gitter.im/Join%20Chat.svg[Gitter Chat,link={link-oslib-gitter}]
 image:https://img.shields.io/badge/patreon-sponsor-ff69b4.svg[Patreon,link=https://www.patreon.com/lihaoyi]
 
@@ -2095,9 +2097,9 @@ be used where `os.SeekableSource` is required:
 
 `os.Source` also supports anything that implements the
 {link-geny}#writable[Writable] interface, such as
-http://www.lihaoyi.com/upickle/#uJson[`ujson.Value`]s,
-http://www.lihaoyi.com/upickle[uPickle]'s `upickle.default.writable` values,
-or http://www.lihaoyi.com/scalatags/[Scalatags]'s ``Tag``s
+{link-upickle-doc}/#uJson[`ujson.Value`]s,
+{link-upickle-doc}[uPickle]'s `upickle.default.writable` values,
+or {link-scalatags-doc}[Scalatags]'s ``Tag``s
 
 You can also convert an `os.Path` or `os.ResourcePath` to an `os.Source` via
 `.toSource`.
@@ -2210,14 +2212,14 @@ sub-paths within a directory.
 `os.Inherit` rather than `os.Pipe`; pass in `stderr = os.Pipe`
 explicitly to get back the old behavior
 * Fix timeout not working with `os.proc.call`
-https://github.com/lihaoyi/os-lib/issues/27[#27]
+{link-oslib}/issues/27[#27]
 * Attempt to fix crasher accessing `os.pwd`
-https://github.com/lihaoyi/os-lib/issues/24[#24]
+{link-oslib}/issues/24[#24]
 * Added an <<os-watch-watch,os-lib-watch>> package, which can be used to
 efficiently recursively watch folders for updates
-https://github.com/lihaoyi/os-lib/issues/23[#23]
+{link-oslib}/issues/23[#23]
 * `os.stat` no longer provides POSIX owner/permissions related metadata
-by default https://github.com/lihaoyi/os-lib/issues/15[#15], use
+by default {link-oslib}/issues/15[#15], use
 `os.stat.posix` to fetch that separately
 * `os.stat.full` has been superseded by `os.stat` and `os.stat.posix`
 * Removed `os.BasicStatInfo`, which has been superseded by `os.StatInfo`
