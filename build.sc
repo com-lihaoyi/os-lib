@@ -4,7 +4,7 @@ import $ivy.`com.github.lolgab::mill-mima::0.0.13`
 
 // imports
 import mill._
-import mill.define.Target
+import mill.define.{Task, Target}
 import mill.scalalib._
 import mill.scalanativelib._
 import mill.scalalib.publish._
@@ -17,10 +17,12 @@ import de.tobiasroeser.mill.vcs.version.VcsVersion
 
 val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 
+val scala213Version = "2.13.10"
+
 val scalaVersions = Seq(
   "3.1.3",
   "2.12.17",
-  "2.13.10",
+  scala213Version,
   "2.11.12"
 ) ++ communityBuildDottyVersion
 
@@ -34,6 +36,7 @@ object Deps {
   val geny = ivy"com.lihaoyi::geny::1.0.0"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.3.0"
   val utest = ivy"com.lihaoyi::utest::0.8.1"
+  def scalaLibrary(version: String) = ivy"org.scala-lang:scala-library:${version}"
 }
 
 object os extends Module {
@@ -93,7 +96,35 @@ object os extends Module {
   }
 }
 
-trait OsLibModule extends CrossScalaModule with PublishModule {
+trait AcyclicModule extends ScalaModule {
+  def acyclicDep: T[Agg[Dep]] = T {
+    if (!ZincWorkerUtil.isScala3(scalaVersion())) Agg(Deps.acyclic)
+    else Agg.empty[Dep]
+  }
+  def acyclicOptions: T[Seq[String]] = T {
+    if (!ZincWorkerUtil.isScala3(scalaVersion())) Seq("-P:acyclic:force")
+    else Seq.empty
+  }
+  override def compileIvyDeps = acyclicDep
+  override def scalacPluginIvyDeps = acyclicDep
+  override def scalacOptions = T {
+    super.scalacOptions() ++ acyclicOptions()
+  }
+}
+
+trait SafeDeps extends ScalaModule {
+  override def mapDependencies: Task[coursier.Dependency => coursier.Dependency] = T.task {
+    val sd = Deps.scalaLibrary(scala213Version)
+    super.mapDependencies().andThen { d =>
+      // enforce up-to-date Scala 2.13.x version
+      if (d.module == sd.dep.module && d.version.startsWith("2.13.")) {
+        sd.dep
+      } else d
+    }
+  }
+}
+
+trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule with SafeDeps {
   def publishVersion = VcsVersion.vcsState().format()
   def pomSettings = PomSettings(
     description = artifactName(),
@@ -108,28 +139,15 @@ trait OsLibModule extends CrossScalaModule with PublishModule {
       Developer("lihaoyi", "Li Haoyi", "https://github.com/lihaoyi")
     )
   )
-
   def platformSegment: String
   override def millSourcePath = super.millSourcePath / oslib.up
   override def sources = T.sources(
     millSourcePath / "src",
     millSourcePath / s"src-$platformSegment"
   )
-
-  def acyclicDep: T[Agg[Dep]] = T {
-    if (!ZincWorkerUtil.isScala3(scalaVersion())) Agg(Deps.acyclic)
-    else Agg.empty[Dep]
-  }
-  def acyclicOptions: T[Seq[String]] = T {
-    if (!ZincWorkerUtil.isScala3(scalaVersion())) Seq("-P:acyclic:force")
-    else Seq.empty
-  }
-  override def compileIvyDeps = acyclicDep
-  override def scalacPluginIvyDeps = acyclicDep
-  override def scalacOptions = T { super.scalacOptions() ++ acyclicOptions() }
 }
 
-trait OsLibTestModule extends ScalaModule with TestModule.Utest {
+trait OsLibTestModule extends ScalaModule with TestModule.Utest with SafeDeps {
   override def ivyDeps = Agg(
     Deps.utest,
     Deps.sourcecode
@@ -161,11 +179,12 @@ trait MiMaChecks extends Mima {
   override def mimaPreviousVersions = backwardCompatibleVersions
   override def mimaPreviousArtifacts: Target[Agg[Dep]] = T {
     val versions = mimaPreviousVersions().distinct
+    val info = artifactMetadata()
     if (versions.isEmpty)
       T.log.error("No binary compatible versions configured!")
     Agg.from(
       versions.map(version =>
-        ivy"${pomSettings().organization}:${artifactId()}:${version}"
+        ivy"${info.group}:${info.id}:${version}"
       )
     )
   }
