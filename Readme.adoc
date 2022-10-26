@@ -1859,15 +1859,15 @@ They can be created in the following ways:
 [source,scala]
 ----
 // The path "folder/file"
-val sub1 = os.sub/'folder/'file
-val sub2 = os.sub/'folder/'file
+val sub1 = os.sub / "folder" / "file"
+val sub2 = os.sub / "folder" / "file"
 
 // The relative difference between two paths
-val target = os.pwd/'out/'scratch/'file
-assert((target subRelativeTo os.pwd) == os.sub/'out/'scratch/'file)
+val target = os.pwd / "out" / "scratch" / "file"
+assert((target subRelativeTo os.pwd) == os.sub / "out" / "scratch" / "file")
 
 // Converting os.RelPath to os.SubPath
-val rel3 = os.rel/'folder/'file
+val rel3 = os.rel / "folder" / "file"
 val sub3 = rel3.asSubPath
 ----
 
@@ -1930,10 +1930,10 @@ val relStr = "hello/cow/world/.."
 val absStr = "/hello/world"
 
 assert(
-  RelPath(relStr) == 'hello/'cow,
+  RelPath(relStr) == "hello" / "cow",
   // Path(...) also allows paths starting with ~,
   // which is expanded to become your home directory
-  Path(absStr) == root/'hello/'world
+  Path(absStr) == os.root / "hello" / "world"
 )
 
 // You can also pass in java.io.File and java.nio.file.Path
@@ -1942,9 +1942,9 @@ val relIoFile = new java.io.File(relStr)
 val absNioFile = java.nio.file.Paths.get(absStr)
 
 assert(
-  RelPath(relIoFile) == 'hello/'cow,
-  Path(absNioFile) == root/'hello/'world,
-  Path(relIoFile, root/'base) == root/'base/'hello/'cow
+  RelPath(relIoFile) ==  "hello" / "cow",
+  Path(absNioFile) == os.root / "hello" / "world",
+  Path(relIoFile, root / "base") == os.root / "base" / "hello" / "cow"
 )
 ----
 
@@ -1978,8 +1978,8 @@ parse it :
 val relStr = "hello/cow/world/.."
 val absStr = "/hello/world"
 assert(
-  FilePath(relStr) == 'hello/'cow,
-  FilePath(absStr) == root/'hello/'world
+  FilePath(relStr) == "hello" / "cow",
+  FilePath(absStr) == os.root / "hello" / "world"
 )
 ----
 
@@ -1997,9 +1997,9 @@ val relStr = "hello/cow/world/.."
 val absStr = "/hello/world"
 val basePath: FilePath = FilePath(relStr)
 assert(
-  os.Path(relStr, os.root/'base) == os.root/'base/'hello/'cow,
-  os.Path(absStr, os.root/'base) == os.root/'hello/'world,
-  os.Path(basePath, os.root/'base) == os.root/'base/'hello/'cow,
+  os.Path(relStr,   os.root / "base") == os.root / "base" / "hello" / "cow",
+  os.Path(absStr,   os.root / "base") == os.root / "hello" / "world",
+  os.Path(basePath, os.root / "base") == os.root / "base" / "hello" / "cow",
   os.Path(".", os.pwd).last != ""
 )
 ----
@@ -2027,7 +2027,7 @@ default, the path used to load resources is absolute, using the
 
 [source,scala]
 ----
-val contents = os.read(os.resource/'test/'ammonite/'ops/'folder/"file.txt")
+val contents = os.read(os.resource / "test" / "ammonite" / "ops" / "folder" / "file.txt")
 assert(contents.contains("file contents lols"))
 ----
 
