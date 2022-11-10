@@ -984,7 +984,7 @@ os.remove(target: Path, checkExists: Boolean = false): Boolean
 Remove the target file or folder. Folders need to be empty to be removed; if you
 want to remove a folder tree recursively, use <<os-remove-all>>. 
 Returns `true` if the file was present before.
-It will fail with when the file is missing but `checkExists` is `true`, 
+It will fail with an exception when the file is missing but `checkExists` is `true`, 
 or when the directory to remove is not empty.
 
 [source,scala]
