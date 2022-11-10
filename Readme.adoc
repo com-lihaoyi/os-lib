@@ -977,11 +977,13 @@ os.exists(wd / "new_folder" / "inner" / "deep") ==> true
 
 [source,scala]
 ----
-os.remove(target: Path): Unit
+os.remove(target: Path): Boolean
+os.remove(target: Path, checkExists: Boolean = false): Boolean
 ----
 
 Remove the target file or folder. Folders need to be empty to be removed; if you
-want to remove a folder tree recursively, use <<os-remove-all>>
+want to remove a folder tree recursively, use <<os-remove-all>>. 
+Returns `true` if the file was present before.
 
 [source,scala]
 ----
