@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.8.1
+:version: 0.9.0
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -2148,6 +2148,15 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+=== 0.9.0 - 2022-11-28
+
+* `os.proc` now also supports `CharSequence(s)` as `Shellable`
+* `ProcessResult` now also contains the actual used command
+* Fixed handling of `atime` and `ctime` in `StatInfo`
+* Deleted `ConcurrentLinkedQueue` from Scala Native jars, as it is now provided by Scala Native 0.4 itself
+* Enabled MiMa checks to CI setup and officially support early semantic versioning since this release
+* Documentation improvements
 
 === 0.8.1 - 2022-01-31
 
