@@ -1,5 +1,8 @@
 package os
 
+import java.net.URI
+import java.nio.file.Paths
+
 import collection.JavaConverters._
 import scala.language.implicitConversions
 
@@ -501,12 +504,21 @@ sealed trait PathConvertible[T] {
 
 object PathConvertible {
   implicit object StringConvertible extends PathConvertible[String] {
-    def apply(t: String) = java.nio.file.Paths.get(t)
+    def apply(t: String) = Paths.get(t)
   }
   implicit object JavaIoFileConvertible extends PathConvertible[java.io.File] {
-    def apply(t: java.io.File) = java.nio.file.Paths.get(t.getPath)
+    def apply(t: java.io.File) = Paths.get(t.getPath)
   }
   implicit object NioPathConvertible extends PathConvertible[java.nio.file.Path] {
     def apply(t: java.nio.file.Path) = t
+  }
+  implicit object UriPathConvertible extends PathConvertible[URI] {
+    def apply(uri: URI) = uri.getScheme() match {
+      case "file" => Paths.get(uri)
+      case uriType =>
+        throw new IllegalArgumentException(
+          s"""os.Path can only be created from a "file" URI scheme, but found "${uriType}""""
+        )
+    }
   }
 }
