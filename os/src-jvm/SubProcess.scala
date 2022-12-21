@@ -6,50 +6,52 @@ import java.util.concurrent.TimeUnit
 import scala.language.implicitConversions
 
 /**
-  * Represents a spawn subprocess that has started and may or may not have
-  * completed.
-  */
-class SubProcess(val wrapped: java.lang.Process,
-                 val inputPumperThread: Option[Thread],
-                 val outputPumperThread: Option[Thread],
-                 val errorPumperThread: Option[Thread]) extends java.lang.AutoCloseable{
+ * Represents a spawn subprocess that has started and may or may not have
+ * completed.
+ */
+class SubProcess(
+    val wrapped: java.lang.Process,
+    val inputPumperThread: Option[Thread],
+    val outputPumperThread: Option[Thread],
+    val errorPumperThread: Option[Thread]
+) extends java.lang.AutoCloseable {
   val stdin: SubProcess.InputStream = new SubProcess.InputStream(wrapped.getOutputStream)
   val stdout: SubProcess.OutputStream = new SubProcess.OutputStream(wrapped.getInputStream)
   val stderr: SubProcess.OutputStream = new SubProcess.OutputStream(wrapped.getErrorStream)
 
   /**
-    * The subprocess' exit code. Conventionally, 0 exit code represents a
-    * successful termination, and non-zero exit code indicates a failure.
-    *
-    * Throws an exception if the subprocess has not terminated
-    */
+   * The subprocess' exit code. Conventionally, 0 exit code represents a
+   * successful termination, and non-zero exit code indicates a failure.
+   *
+   * Throws an exception if the subprocess has not terminated
+   */
   def exitCode(): Int = wrapped.exitValue()
 
   /**
-    * Returns `true` if the subprocess is still running and has not terminated
-    */
+   * Returns `true` if the subprocess is still running and has not terminated
+   */
   def isAlive(): Boolean = wrapped.isAlive
 
   /**
-    * Attempt to destroy the subprocess (gently), via the underlying JVM APIs
-    */
+   * Attempt to destroy the subprocess (gently), via the underlying JVM APIs
+   */
   def destroy(): Unit = wrapped.destroy()
 
   /**
-    * Force-destroys the subprocess, via the underlying JVM APIs
-    */
+   * Force-destroys the subprocess, via the underlying JVM APIs
+   */
   def destroyForcibly(): Unit = wrapped.destroyForcibly()
 
   /**
-    * Alias for [[destroy]]
-    */
+   * Alias for [[destroy]]
+   */
   def close() = wrapped.destroy()
 
   /**
-    * Wait up to `millis` for the subprocess to terminate, by default waits
-    * indefinitely. Returns `true` if the subprocess has terminated by the time
-    * this method returns.
-    */
+   * Wait up to `millis` for the subprocess to terminate, by default waits
+   * indefinitely. Returns `true` if the subprocess has terminated by the time
+   * this method returns.
+   */
   def waitFor(timeout: Long = -1): Boolean = {
     if (timeout == -1) {
       wrapped.waitFor()
@@ -60,11 +62,11 @@ class SubProcess(val wrapped: java.lang.Process,
   }
 
   /**
-    * Wait up to `millis` for the subprocess to terminate and all stdout and stderr
-    * from the subprocess to be handled. By default waits indefinitely; if a time
-    * limit is given, explicitly destroys the subprocess if it has not completed by
-    * the time the timeout has occurred
-    */
+   * Wait up to `millis` for the subprocess to terminate and all stdout and stderr
+   * from the subprocess to be handled. By default waits indefinitely; if a time
+   * limit is given, explicitly destroys the subprocess if it has not completed by
+   * the time the timeout has occurred
+   */
   def join(timeout: Long = -1): Boolean = {
     val exitedCleanly = waitFor(timeout)
     if (!exitedCleanly) {
@@ -78,18 +80,17 @@ class SubProcess(val wrapped: java.lang.Process,
   }
 }
 
-
-object SubProcess{
+object SubProcess {
 
   /**
-    * A [[BufferedWriter]] with the underlying [[java.io.OutputStream]] exposed
-    *
-    * Note that all writes that occur through this class are thread-safe and
-    * synchronized. If you wish to perform writes without the synchronization
-    * overhead, you can use the underlying [[wrapped]] stream directly
-    */
+   * A [[BufferedWriter]] with the underlying [[java.io.OutputStream]] exposed
+   *
+   * Note that all writes that occur through this class are thread-safe and
+   * synchronized. If you wish to perform writes without the synchronization
+   * overhead, you can use the underlying [[wrapped]] stream directly
+   */
   class InputStream(val wrapped: java.io.OutputStream)
-  extends java.io.OutputStream with DataOutput {
+      extends java.io.OutputStream with DataOutput {
     val data = new DataOutputStream(wrapped)
     val buffered = new BufferedWriter(new OutputStreamWriter(wrapped))
 
@@ -122,16 +123,16 @@ object SubProcess{
   }
 
   /**
-    * A combination [[BufferedReader]] and [[java.io.InputStream]], this allows
-    * you to read both bytes and lines, without worrying about the buffer used
-    * for reading lines messing up your reading of bytes.
-    *
-    * Note that all reads that occur through this class are thread-safe and
-    * synchronized. If you wish to perform writes without the synchronization
-    * overhead, you can use the underlying [[wrapped]] stream directly
-    */
+   * A combination [[BufferedReader]] and [[java.io.InputStream]], this allows
+   * you to read both bytes and lines, without worrying about the buffer used
+   * for reading lines messing up your reading of bytes.
+   *
+   * Note that all reads that occur through this class are thread-safe and
+   * synchronized. If you wish to perform writes without the synchronization
+   * overhead, you can use the underlying [[wrapped]] stream directly
+   */
   class OutputStream(val wrapped: java.io.InputStream)
-  extends java.io.InputStream with DataInput with geny.ByteData {
+      extends java.io.InputStream with DataInput with geny.ByteData {
     val data = new DataInputStream(wrapped)
     val buffered = new BufferedReader(new InputStreamReader(wrapped))
 
@@ -158,7 +159,7 @@ object SubProcess{
 
     def readLine() = buffered.readLine()
 
-    def bytes: Array[Byte] = synchronized{
+    def bytes: Array[Byte] = synchronized {
       val out = new ByteArrayOutputStream()
       Internals.transfer(wrapped, out)
       out.toByteArray
@@ -169,77 +170,82 @@ object SubProcess{
 }
 
 /**
-  * Represents the configuration of a SubProcess's input stream. Can either be
-  * [[os.Inherit]], [[os.Pipe]], [[os.Path]] or a [[os.Source]]
-  */
-trait ProcessInput{
+ * Represents the configuration of a SubProcess's input stream. Can either be
+ * [[os.Inherit]], [[os.Pipe]], [[os.Path]] or a [[os.Source]]
+ */
+trait ProcessInput {
   def redirectFrom: ProcessBuilder.Redirect
   def processInput(stdin: => SubProcess.InputStream): Option[Runnable]
 }
-object ProcessInput{
+object ProcessInput {
   implicit def makeSourceInput[T](r: T)(implicit f: T => Source): ProcessInput = SourceInput(f(r))
   implicit def makePathRedirect(p: Path): ProcessInput = PathRedirect(p)
   case class SourceInput(r: Source) extends ProcessInput {
     def redirectFrom = ProcessBuilder.Redirect.PIPE
 
-    def processInput(stdin: => SubProcess.InputStream): Option[Runnable] = Some{
-      new Runnable{def run() = {
-        r.writeBytesTo(stdin)
-        stdin.close()
-      }}
+    def processInput(stdin: => SubProcess.InputStream): Option[Runnable] = Some {
+      new Runnable {
+        def run() = {
+          r.writeBytesTo(stdin)
+          stdin.close()
+        }
+      }
     }
   }
 }
 
 /**
-  * Represents the configuration of a SubProcess's output or error stream. Can
-  * either be [[os.Inherit]], [[os.Pipe]], [[os.Path]] or a [[os.ProcessOutput]]
-  */
-trait ProcessOutput{
+ * Represents the configuration of a SubProcess's output or error stream. Can
+ * either be [[os.Inherit]], [[os.Pipe]], [[os.Path]] or a [[os.ProcessOutput]]
+ */
+trait ProcessOutput {
   def redirectTo: ProcessBuilder.Redirect
   def processOutput(out: => SubProcess.OutputStream): Option[Runnable]
 }
-object ProcessOutput{
+object ProcessOutput {
   implicit def makePathRedirect(p: Path): ProcessOutput = PathRedirect(p)
 
   def apply(f: (Array[Byte], Int) => Unit) = ReadBytes(f)
 
   case class ReadBytes(f: (Array[Byte], Int) => Unit)
-  extends ProcessOutput {
+      extends ProcessOutput {
     def redirectTo = ProcessBuilder.Redirect.PIPE
-    def processOutput(out: => SubProcess.OutputStream) = Some{
-      new Runnable {def run(): Unit = os.Internals.transfer0(out, f)}
+    def processOutput(out: => SubProcess.OutputStream) = Some {
+      new Runnable { def run(): Unit = os.Internals.transfer0(out, f) }
     }
   }
 
   case class Readlines(f: String => Unit)
-  extends ProcessOutput {
+      extends ProcessOutput {
     def redirectTo = ProcessBuilder.Redirect.PIPE
-    def processOutput(out: => SubProcess.OutputStream) = Some{
-      new Runnable {def run(): Unit = {
-        val buffered = new BufferedReader(new InputStreamReader(out))
-        while({
-          val lineOpt = try {
-            buffered.readLine() match{
-              case null => None
-              case line => Some(line)
+    def processOutput(out: => SubProcess.OutputStream) = Some {
+      new Runnable {
+        def run(): Unit = {
+          val buffered = new BufferedReader(new InputStreamReader(out))
+          while ({
+            val lineOpt =
+              try {
+                buffered.readLine() match {
+                  case null => None
+                  case line => Some(line)
+                }
+              } catch { case e: Throwable => None }
+            lineOpt match {
+              case None => false
+              case Some(s) =>
+                f(s)
+                true
             }
-          }catch{case e: Throwable => None}
-          lineOpt match{
-            case None => false
-            case Some(s) =>
-              f(s)
-              true
-          }
-        })()
-      }}
+          }) ()
+        }
+      }
     }
   }
 }
 
 /**
-  * Inherit the input/output stream from the current process
-  */
+ * Inherit the input/output stream from the current process
+ */
 object Inherit extends ProcessInput with ProcessOutput {
   def redirectTo = ProcessBuilder.Redirect.INHERIT
   def redirectFrom = ProcessBuilder.Redirect.INHERIT
@@ -248,9 +254,9 @@ object Inherit extends ProcessInput with ProcessOutput {
 }
 
 /**
-  * Pipe the input/output stream to the current process to be used via
-  * `java.lang.Process#{getInputStream,getOutputStream,getErrorStream}`
-  */
+ * Pipe the input/output stream to the current process to be used via
+ * `java.lang.Process#{getInputStream,getOutputStream,getErrorStream}`
+ */
 object Pipe extends ProcessInput with ProcessOutput {
   def redirectTo = ProcessBuilder.Redirect.PIPE
   def redirectFrom = ProcessBuilder.Redirect.PIPE
@@ -258,13 +264,13 @@ object Pipe extends ProcessInput with ProcessOutput {
   def processOutput(stdin: => SubProcess.OutputStream) = None
 }
 
-case class PathRedirect(p: Path) extends ProcessInput with ProcessOutput{
+case class PathRedirect(p: Path) extends ProcessInput with ProcessOutput {
   def redirectFrom = ProcessBuilder.Redirect.from(p.toIO)
   def processInput(stdin: => SubProcess.InputStream) = None
   def redirectTo = ProcessBuilder.Redirect.to(p.toIO)
   def processOutput(out: => SubProcess.OutputStream) = None
 }
-case class PathAppendRedirect(p: Path) extends ProcessOutput{
+case class PathAppendRedirect(p: Path) extends ProcessOutput {
   def redirectTo = ProcessBuilder.Redirect.appendTo(p.toIO)
   def processOutput(out: => SubProcess.OutputStream) = None
 }
