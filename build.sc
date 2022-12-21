@@ -6,6 +6,7 @@ import $ivy.`com.github.lolgab::mill-mima::0.0.13`
 import mill._
 import mill.define.{Task, Target}
 import mill.scalalib._
+import mill.scalalib.scalafmt._
 import mill.scalanativelib._
 import mill.scalalib.publish._
 import mill.scalalib.api.ZincWorkerUtil
@@ -124,7 +125,8 @@ trait SafeDeps extends ScalaModule {
   }
 }
 
-trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule with SafeDeps {
+trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule with SafeDeps
+    with ScalafmtModule {
   def publishVersion = VcsVersion.vcsState().format()
   def pomSettings = PomSettings(
     description = artifactName(),
