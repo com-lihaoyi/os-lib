@@ -4,6 +4,7 @@ import java.nio.file.Paths
 
 import os._
 import utest.{assert => _, _}
+import java.net.URI
 object PathTests extends TestSuite{
   val tests = Tests {
     test("Basic"){
@@ -18,6 +19,20 @@ object PathTests extends TestSuite{
           assert(root/"omg" == Path(Paths.get("/omg")))
           assert(rel/"omg" == RelPath(Paths.get("omg")))
           assert(sub/"omg" == SubPath(Paths.get("omg")))
+
+          // URI to os.Path
+          assert(root / "omg" == Path(Paths.get("/omg").toUri()))
+
+          // We only support file schemes like above, but nothing else
+          val httpUri = URI.create(
+            "https://john.doe@www.example.com:123/forum/questions/?tag=networking&order=newest#top"
+          )
+          val ldapUri = URI.create(
+            "ldap://[2001:db8::7]/c=GB?objectClass?one"
+          )
+          intercept[IllegalArgumentException](Path(httpUri))
+          intercept[IllegalArgumentException](Path(ldapUri))
+
 
           // os.Path to String
           assert((root/"omg").toString == "/omg")
