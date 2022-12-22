@@ -1,13 +1,16 @@
 package os
 
+import java.net.URI
+import java.nio.file.Paths
+
 import collection.JavaConverters._
 import scala.language.implicitConversions
 
-trait PathChunk{
+trait PathChunk {
   def segments: Seq[String]
   def ups: Int
 }
-object PathChunk{
+object PathChunk {
   implicit class RelPathChunk(r: RelPath) extends PathChunk {
     def segments = r.segments
     def ups = r.ups
@@ -40,78 +43,79 @@ object PathChunk{
   implicit class SeqPathChunk[T](a: Seq[T])(implicit f: T => PathChunk) extends PathChunk {
     var segments0 = Nil
     var ups0 = 0
-    val (segments, ups) = a.map(f).foldLeft((Seq[String](), 0)){ case ((segments, ups), chunk) =>
-      (segments.dropRight(chunk.ups) ++ chunk.segments,
-      math.max(chunk.ups - segments.length, 0))
+    val (segments, ups) = a.map(f).foldLeft((Seq[String](), 0)) { case ((segments, ups), chunk) =>
+      (segments.dropRight(chunk.ups) ++ chunk.segments, math.max(chunk.ups - segments.length, 0))
     }
 
     override def toString() = segments.mkString("/")
   }
 }
+
 /**
-  * A path which is either an absolute [[Path]], a relative [[RelPath]],
-  * or a [[ResourcePath]] with shared APIs and implementations.
-  *
-  * Most of the filesystem-independent path-manipulation logic that lets you
-  * splice paths together or navigate in and out of paths lives in this interface
-  */
-trait BasePath{
+ * A path which is either an absolute [[Path]], a relative [[RelPath]],
+ * or a [[ResourcePath]] with shared APIs and implementations.
+ *
+ * Most of the filesystem-independent path-manipulation logic that lets you
+ * splice paths together or navigate in and out of paths lives in this interface
+ */
+trait BasePath {
   type ThisType <: BasePath
+
   /**
-    * Combines this path with the given relative path, returning
-    * a path of the same type as this one (e.g. `Path` returns `Path`,
-    * `RelPath` returns `RelPath`
-    */
+   * Combines this path with the given relative path, returning
+   * a path of the same type as this one (e.g. `Path` returns `Path`,
+   * `RelPath` returns `RelPath`
+   */
   def /(chunk: PathChunk): ThisType
 
   /**
-    * Relativizes this path with the given `target` path, finding a
-    * relative path `p` such that base/p == this.
-    *
-    * Note that you can only relativize paths of the same type, e.g.
-    * `Path` & `Path` or `RelPath` & `RelPath`. In the case of `RelPath`,
-    * this can throw a [[PathError.NoRelativePath]] if there is no
-    * relative path that satisfies the above requirement in the general
-    * case.
-    */
+   * Relativizes this path with the given `target` path, finding a
+   * relative path `p` such that base/p == this.
+   *
+   * Note that you can only relativize paths of the same type, e.g.
+   * `Path` & `Path` or `RelPath` & `RelPath`. In the case of `RelPath`,
+   * this can throw a [[PathError.NoRelativePath]] if there is no
+   * relative path that satisfies the above requirement in the general
+   * case.
+   */
   def relativeTo(target: ThisType): RelPath
 
   /**
-    * Relativizes this path with the given `target` path, finding a
-    * sub path `p` such that base/p == this.
-    */
+   * Relativizes this path with the given `target` path, finding a
+   * sub path `p` such that base/p == this.
+   */
   def subRelativeTo(target: ThisType): SubPath = relativeTo(target).asSubPath
 
   /**
-    * This path starts with the target path, including if it's identical
-    */
+   * This path starts with the target path, including if it's identical
+   */
   def startsWith(target: ThisType): Boolean
 
   /**
-    * This path ends with the target path, including if it's identical
-    */
+   * This path ends with the target path, including if it's identical
+   */
   def endsWith(target: RelPath): Boolean
 
   /**
-    * The last segment in this path. Very commonly used, e.g. it
-    * represents the name of the file/folder in filesystem paths
-    */
+   * The last segment in this path. Very commonly used, e.g. it
+   * represents the name of the file/folder in filesystem paths
+   */
   def last: String
 
   /**
-    * Gives you the file extension of this path, or the empty
-    * string if there is no extension
-    */
+   * Gives you the file extension of this path, or the empty
+   * string if there is no extension
+   */
   def ext: String
 
   /**
-    * Gives you the base name of this path, ie without the extension
-    */
+   * Gives you the base name of this path, ie without the extension
+   */
   def baseName: String
 
   /**
-    * The individual path segments of this path.
-    */
+   * The individual path segments of this path.
+   */
   def segments: TraversableOnce[String]
 
 }
@@ -122,18 +126,18 @@ object BasePath {
     def considerStr =
       "use the Path(...) or RelPath(...) constructor calls to convert them. "
 
-    s.indexOf('/') match{
+    s.indexOf('/') match {
       case -1 => // do nothing
       case c => fail(
-        s"[/] is not a valid character to appear in a path segment. " +
-          "If you want to parse an absolute or relative path that may have " +
-          "multiple segments, e.g. path-strings coming from external sources " +
-          considerStr
-      )
+          s"[/] is not a valid character to appear in a path segment. " +
+            "If you want to parse an absolute or relative path that may have " +
+            "multiple segments, e.g. path-strings coming from external sources " +
+            considerStr
+        )
 
     }
     def externalStr = "If you are dealing with path-strings coming from external sources, "
-    s match{
+    s match {
       case "" =>
         fail(
           "OS-Lib does not allow empty path segments " +
@@ -162,11 +166,12 @@ object BasePath {
   }
 }
 
-trait SegmentedPath extends BasePath{
+trait SegmentedPath extends BasePath {
   protected[this] def make(p: Seq[String], ups: Int): ThisType
+
   /**
-    * The individual path segments of this path.
-    */
+   * The individual path segments of this path.
+   */
   def segments: IndexedSeq[String]
 
   def /(chunk: PathChunk) = make(
@@ -179,16 +184,16 @@ trait SegmentedPath extends BasePath{
   }
 }
 
-trait BasePathImpl extends BasePath{
+trait BasePathImpl extends BasePath {
   def /(chunk: PathChunk): ThisType
 
   def ext = {
-    lastOpt match{
+    lastOpt match {
       case None => ""
       case Some(lastSegment) =>
         val li = lastSegment.lastIndexOf('.')
         if (li == -1) ""
-        else last.slice(li+1, last.length)
+        else last.slice(li + 1, last.length)
     }
 
   }
@@ -204,7 +209,7 @@ trait BasePathImpl extends BasePath{
   def lastOpt: Option[String]
 }
 
-object PathError{
+object PathError {
   type IAE = IllegalArgumentException
   private[this] def errorMsg(s: String, msg: String) =
     s"[$s] is not a valid path segment. $msg"
@@ -212,21 +217,21 @@ object PathError{
   case class InvalidSegment(segment: String, msg: String) extends IAE(errorMsg(segment, msg))
 
   case object AbsolutePathOutsideRoot
-    extends IAE("The path created has enough ..s that it would start outside the root directory")
+      extends IAE("The path created has enough ..s that it would start outside the root directory")
 
   case class NoRelativePath(src: RelPath, base: RelPath)
-    extends IAE(s"Can't relativize relative paths $src from $base")
+      extends IAE(s"Can't relativize relative paths $src from $base")
 
   case class LastOnEmptyPath()
-    extends IAE("empty path has no last segment")
+      extends IAE("empty path has no last segment")
 }
 
 /**
-  * Represents a value that is either an absolute [[Path]] or a
-  * relative [[RelPath]], and can be constructed from a
-  * java.nio.file.Path or java.io.File
-  */
-sealed trait FilePath extends BasePath{
+ * Represents a value that is either an absolute [[Path]] or a
+ * relative [[RelPath]], and can be constructed from a
+ * java.nio.file.Path or java.io.File
+ */
+sealed trait FilePath extends BasePath {
   def toNIO: java.nio.file.Path
   def resolveFrom(base: os.Path): os.Path
 }
@@ -243,13 +248,13 @@ object FilePath {
 }
 
 /**
-  * A relative path on the filesystem. Note that the path is
-  * normalized and cannot contain any empty or ".". Parent ".."
-  * segments can only occur at the left-end of the path, and
-  * are collapsed into a single number [[ups]].
-  */
-class RelPath private[os](segments0: Array[String], val ups: Int)
-  extends FilePath with BasePathImpl with SegmentedPath {
+ * A relative path on the filesystem. Note that the path is
+ * normalized and cannot contain any empty or ".". Parent ".."
+ * segments can only occur at the left-end of the path, and
+ * are collapsed into a single number [[ups]].
+ */
+class RelPath private[os] (segments0: Array[String], val ups: Int)
+    extends FilePath with BasePathImpl with SegmentedPath {
   def lastOpt = segments.lastOption
   val segments: IndexedSeq[String] = segments0.toIndexedSeq
   type ThisType = RelPath
@@ -312,10 +317,10 @@ object RelPath {
 }
 
 /**
-  * A relative path on the filesystem, without any `..` or `.` segments
-  */
-class SubPath private[os](val segments0: Array[String])
-  extends FilePath with BasePathImpl with SegmentedPath {
+ * A relative path on the filesystem, without any `..` or `.` segments
+ */
+class SubPath private[os] (val segments0: Array[String])
+    extends FilePath with BasePathImpl with SegmentedPath {
   def lastOpt = segments.lastOption
   val segments: IndexedSeq[String] = segments0.toIndexedSeq
   type ThisType = SubPath
@@ -348,7 +353,7 @@ object SubPath {
     val commonPrefix = {
       val maxSize = scala.math.min(segments0.length, segments.length)
       var i = 0
-      while ( i < maxSize && segments0(i) == segments(i)) i += 1
+      while (i < maxSize && segments0(i) == segments(i)) i += 1
       i
     }
     val newUps = segments.length - commonPrefix
@@ -370,21 +375,21 @@ object SubPath {
 }
 
 object Path {
-  def apply(p: FilePath, base: Path) = p match{
+  def apply(p: FilePath, base: Path) = p match {
     case p: RelPath => base / p
     case p: SubPath => base / p
     case p: Path => p
   }
 
   /**
-    * Equivalent to [[os.Path.apply]], but automatically expands a
-    * leading `~/` into the user's home directory, for convenience
-    */
+   * Equivalent to [[os.Path.apply]], but automatically expands a
+   * leading `~/` into the user's home directory, for convenience
+   */
   def expandUser[T: PathConvertible](f0: T, base: Path = null) = {
     val f = implicitly[PathConvertible[T]].apply(f0)
     if (f.subpath(0, 1).toString != "~") if (base == null) Path(f0) else Path(f0, base)
     else {
-      Path(System.getProperty("user.home"))(PathConvertible.StringConvertible)/
+      Path(System.getProperty("user.home"))(PathConvertible.StringConvertible) /
         RelPath(f.subpath(0, 1).relativize(f))(PathConvertible.NioPathConvertible)
     }
   }
@@ -392,7 +397,7 @@ object Path {
   def apply[T: PathConvertible](f: T, base: Path): Path = apply(FilePath(f), base)
   def apply[T: PathConvertible](f0: T): Path = {
     val f = implicitly[PathConvertible[T]].apply(f0)
-    if (f.iterator.asScala.count(_.startsWith("..")) > f.getNameCount/ 2) {
+    if (f.iterator.asScala.count(_.startsWith("..")) > f.getNameCount / 2) {
       throw PathError.AbsolutePathOutsideRoot
     }
 
@@ -400,14 +405,14 @@ object Path {
     new Path(normalized)
   }
 
-  implicit val pathOrdering: Ordering[Path] = new Ordering[Path]{
+  implicit val pathOrdering: Ordering[Path] = new Ordering[Path] {
     def compare(x: Path, y: Path): Int = {
       val xSegCount = x.segmentCount
       val ySegCount = y.segmentCount
       if (xSegCount < ySegCount) -1
       else if (xSegCount > ySegCount) 1
       else if (xSegCount == 0 && ySegCount == 0) 0
-      else{
+      else {
         var xSeg = ""
         var ySeg = ""
         var i = 0
@@ -431,17 +436,17 @@ object Path {
 
 }
 
-trait ReadablePath{
+trait ReadablePath {
   def toSource: os.Source
   def getInputStream: java.io.InputStream
 }
 
 /**
-  * An absolute path on the filesystem. Note that the path is
-  * normalized and cannot contain any empty `""`, `"."` or `".."` segments
-  */
-class Path private[os](val wrapped: java.nio.file.Path)
-  extends FilePath with ReadablePath with BasePathImpl {
+ * An absolute path on the filesystem. Note that the path is
+ * normalized and cannot contain any empty `""`, `"."` or `".."` segments
+ */
+class Path private[os] (val wrapped: java.nio.file.Path)
+    extends FilePath with ReadablePath with BasePathImpl {
   def toSource: SeekableSource =
     new SeekableSource.ChannelSource(java.nio.file.Files.newByteChannel(wrapped))
 
@@ -473,11 +478,11 @@ class Path private[os](val wrapped: java.nio.file.Path)
   def relativeTo(base: Path): RelPath = {
 
     val nioRel = base.wrapped.relativize(wrapped)
-    val segments = nioRel.iterator().asScala.map(_.toString).toArray match{
+    val segments = nioRel.iterator().asScala.map(_.toString).toArray match {
       case Array("") => Internals.emptyStringArray
       case arr => arr
     }
-    val nonUpIndex = segments.indexWhere(_ != "..") match{
+    val nonUpIndex = segments.indexWhere(_ != "..") match {
       case -1 => segments.length
       case n => n
     }
@@ -493,18 +498,27 @@ class Path private[os](val wrapped: java.nio.file.Path)
   def getInputStream = java.nio.file.Files.newInputStream(wrapped)
 }
 
-sealed trait PathConvertible[T]{
+sealed trait PathConvertible[T] {
   def apply(t: T): java.nio.file.Path
 }
 
-object PathConvertible{
-  implicit object StringConvertible extends PathConvertible[String]{
-    def apply(t: String) = java.nio.file.Paths.get(t)
+object PathConvertible {
+  implicit object StringConvertible extends PathConvertible[String] {
+    def apply(t: String) = Paths.get(t)
   }
-  implicit object JavaIoFileConvertible extends PathConvertible[java.io.File]{
-    def apply(t: java.io.File) = java.nio.file.Paths.get(t.getPath)
+  implicit object JavaIoFileConvertible extends PathConvertible[java.io.File] {
+    def apply(t: java.io.File) = Paths.get(t.getPath)
   }
-  implicit object NioPathConvertible extends PathConvertible[java.nio.file.Path]{
+  implicit object NioPathConvertible extends PathConvertible[java.nio.file.Path] {
     def apply(t: java.nio.file.Path) = t
+  }
+  implicit object UriPathConvertible extends PathConvertible[URI] {
+    def apply(uri: URI) = uri.getScheme() match {
+      case "file" => Paths.get(uri)
+      case uriType =>
+        throw new IllegalArgumentException(
+          s"""os.Path can only be created from a "file" URI scheme, but found "${uriType}""""
+        )
+    }
   }
 }
