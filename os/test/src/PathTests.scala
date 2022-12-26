@@ -54,6 +54,7 @@ object PathTests extends TestSuite{
           assert((base / "baseName.v2.0.ext").baseName == "baseName.v2.0")
           assert((base / "baseOnly").baseName == "baseOnly")
           assert((base / "baseOnly.").baseName == "baseOnly")
+          assert((base / ".well-known").baseName == ".well-known")
         }
 
         test("ext"){

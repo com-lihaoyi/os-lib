@@ -200,7 +200,8 @@ trait BasePathImpl extends BasePath {
 
   override def baseName: String = {
     val li = last.lastIndexOf('.')
-    if (li == -1) last
+    // We also check 0 for things like hidden files/directories that start with .
+    if (li == -1 || li == 0) last
     else last.slice(0, li)
   }
 
