@@ -498,6 +498,11 @@ class Path private[os] (val wrapped: java.nio.file.Path)
   def getInputStream = java.nio.file.Files.newInputStream(wrapped)
 }
 
+class TempPath private[os] (wrapped: java.nio.file.Path)
+  extends Path(wrapped) with AutoCloseable {
+  override def close(): Unit = os.remove.all(this)
+}
+
 sealed trait PathConvertible[T] {
   def apply(t: T): java.nio.file.Path
 }
