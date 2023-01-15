@@ -33,7 +33,7 @@ val backwardCompatibleVersions: Seq[String] = Seq("0.9.0")
 
 object Deps {
   val acyclic = ivy"com.lihaoyi:::acyclic:0.3.6"
-  val jna = ivy"net.java.dev.jna:jna:5.12.1"
+  val jna = ivy"net.java.dev.jna:jna:5.13.0"
   val geny = ivy"com.lihaoyi::geny::1.0.0"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.3.0"
   val utest = ivy"com.lihaoyi::utest::0.8.1"
