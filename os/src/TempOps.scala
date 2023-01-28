@@ -1,7 +1,7 @@
 package os
 
 import java.nio.file.attribute.{FileAttribute, PosixFilePermissions}
-import scala.util.{Using, Try}
+import scala.util.Using
 
 /**
  * Create temporary files and directories. [[withTempFile]] and [[withTempDir]] 
@@ -92,8 +92,8 @@ object temp {
     * }
     * }}} 
     */
-  def withTempFile[A](fun: Path => A): Try[A] =
-    Using(os.temp(
+  def withTempFile[A](fun: Path => A): A =
+    Using.resource(os.temp(
       deleteOnExit = false // TempFile.close() deletes it, no need to register with JVM
     ))(fun)
 
@@ -108,8 +108,8 @@ object temp {
     * }
     * }}} 
     */
-  def withTempDir[A](fun: Path => A): Try[A] =
-    Using(os.temp.dir(
+  def withTempDir[A](fun: Path => A): A =
+    Using.resource(os.temp.dir(
       deleteOnExit = false // TempFile.close() deletes it, no need to register with JVM
     ))(fun)
 
