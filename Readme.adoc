@@ -1157,11 +1157,11 @@ os.followLink(wd / "misc" / "folder-symlink") ==> Some(wd / "folder1")
 os.followLink(wd / "misc" / "broken-symlink") ==> None
 ----
 
-==== `os.temp.withTempFile`
+==== `os.temp.withFile`
 
 [source,scala]
 ----
-os.temp.withTempFile[A](fun: Path => A): Try[A]
+os.temp.withFile[A](fun: Path => A): A
 ----
 
 Creates a temporary file, passes it to the given function and removes it immediately after the function completed, even if the function threw an exception. 
@@ -1170,16 +1170,16 @@ This doesn't rely on the JVM's `deleteOnExit` handler, therefor the temp file ge
 
 [source,scala]
 ----
-withTempFile { file =>
+os.temp.withFile { file =>
   os.write(file, "some content")
 }
 ----
 
-==== `os.temp.withTempDir`
+==== `os.temp.withDir`
 
 [source,scala]
 ----
-os.temp.withTempDir[A](fun: Path => A): Try[A]
+os.temp.withDir[A](fun: Path => A): A
 ----
 
 Creates a temporary directory, passes it to the given function and removes it immediately after the function completed, even if the function threw an exception. 
@@ -1188,7 +1188,7 @@ This doesn't rely on the JVM's `deleteOnExit` handler, therefor the temp dir get
 
 [source,scala]
 ----
-withTempDir { file =>
+os.temp.withDir { file =>
   val file = dir / "somefile"
   os.write(file, "some content")
 }

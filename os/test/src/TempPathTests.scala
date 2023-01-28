@@ -1,7 +1,6 @@
 package test.os
 
 import os._
-import os.temp.{withTempFile, withTempDir}
 import scala.util.Using
 import utest.{assert => _, _}
 
@@ -9,18 +8,18 @@ object TempPathTests extends TestSuite{
   val tests = Tests {
 
     test("convenience methods") {
-      test("withTempFile") {
+      test("temp.withFile") {
         var tempFilePath: String = null
-        withTempFile { file =>
+        os.temp.withFile { file =>
           tempFilePath = file.toString
           assert(os.exists(file))
         }
         assert(!os.exists(os.Path(tempFilePath)), s"temp file did not get auto-deleted after `Using` block: $tempFilePath")
       }
-      test("withTempDir") {
+      test("temp.withDir") {
         var tempDirPath: String = null
         var tempFilePath: String = null
-        withTempDir { dir =>
+        os.temp.withDir { dir =>
           val file = dir / "somefile"
           tempDirPath = dir.toString
           tempFilePath = file.toString

@@ -4,13 +4,13 @@ import java.nio.file.attribute.{FileAttribute, PosixFilePermissions}
 import scala.util.Using
 
 /**
- * Create temporary files and directories. [[withTempFile]] and [[withTempDir]] 
+ * Create temporary files and directories. [[withFile]] and [[withDir]] 
  * are convenience methods that handle the most common case. They delete the temp
  * file/dir immediately after the given function completed - even if the given
  * function threw an exception. 
  * 
  * {{{
- * withTempFile { file =>
+ * os.temp.withFile { file =>
  *   os.write(file, "some content")
  * }
  * }}} 
@@ -87,12 +87,12 @@ object temp {
     * after the given function completed - even if the function throws an exception. 
     * 
     * {{{
-    * withTempFile { file =>
+    * os.temp.withFile { file =>
     *   os.write(file, "some content")
     * }
     * }}} 
     */
-  def withTempFile[A](fun: Path => A): A =
+  def withFile[A](fun: Path => A): A =
     Using.resource(os.temp(
       deleteOnExit = false // TempFile.close() deletes it, no need to register with JVM
     ))(fun)
@@ -102,13 +102,13 @@ object temp {
     * after the given function completed - even if the function throws an exception. 
     * 
     * {{{
-    * withTempDir { file =>
+    * os.temp.withDir { file =>
     *   val file = dir / "somefile"
     *   os.write(file, "some content")
     * }
     * }}} 
     */
-  def withTempDir[A](fun: Path => A): A =
+  def withDir[A](fun: Path => A): A =
     Using.resource(os.temp.dir(
       deleteOnExit = false // TempFile.close() deletes it, no need to register with JVM
     ))(fun)
