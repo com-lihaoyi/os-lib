@@ -92,10 +92,23 @@ object temp {
     * }
     * }}} 
     */
-  def withFile[A](fun: Path => A): A =
+  def withFile[A](
+    fun: Path => A,
+    contents: Source = null,
+    dir: Path = null,
+    prefix: String = null,
+    suffix: String = null,
+    perms: PermSet = null
+  ): A = {
     Using.resource(os.temp(
-      deleteOnExit = false // TempFile.close() deletes it, no need to register with JVM
+      contents = contents,
+      dir = dir,
+      prefix = prefix,
+      suffix = suffix,
+      deleteOnExit = false, // TempFile.close() deletes it, no need to register with JVM
+      perms = perms
     ))(fun)
+  }
 
   /**
     * Convenience method that creates a temporary directory and automatically deletes it
@@ -108,9 +121,17 @@ object temp {
     * }
     * }}} 
     */
-  def withDir[A](fun: Path => A): A =
+  def withDir[A](
+    fun: Path => A,
+    dir: Path = null,
+    prefix: String = null,
+    perms: PermSet = null
+  ): A =
     Using.resource(os.temp.dir(
-      deleteOnExit = false // TempFile.close() deletes it, no need to register with JVM
+      dir = dir,
+      prefix = prefix,
+      deleteOnExit = false, // TempFile.close() deletes it, no need to register with JVM
+      perms = perms
     ))(fun)
 
 }
