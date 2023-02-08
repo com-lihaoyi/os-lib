@@ -143,10 +143,15 @@ trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule
   )
   def platformSegment: String
   override def millSourcePath = super.millSourcePath / oslib.up
-  override def sources = T.sources(
-    millSourcePath / "src",
-    millSourcePath / s"src-$platformSegment"
-  )
+  override def sources = T.sources {
+    Seq(
+      PathRef(millSourcePath / "src"),
+      PathRef(millSourcePath / s"src-$platformSegment")
+    ) ++
+      ZincWorkerUtil.versionRanges(crossScalaVersion, scalaVersions).map(vr =>
+      PathRef(millSourcePath / s"src-${vr}"))
+
+  }
 }
 
 trait OsLibTestModule extends ScalaModule with TestModule.Utest with SafeDeps {
