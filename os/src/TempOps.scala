@@ -52,7 +52,7 @@ object temp {
 
     if (contents != null) write.over(Path(nioPath), contents)
     if (deleteOnExit) nioPath.toFile.deleteOnExit()
-    TempPath(nioPath)
+    new TempPath(nioPath)
   }
 
   /**
@@ -79,7 +79,7 @@ object temp {
     }
 
     if (deleteOnExit) nioPath.toFile.deleteOnExit()
-    TempPath(nioPath)
+    new TempPath(nioPath)
   }
 
   /**
