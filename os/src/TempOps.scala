@@ -1,7 +1,7 @@
 package os
 
 import java.nio.file.attribute.{FileAttribute, PosixFilePermissions}
-import scala.util.Using
+import os.util.Using
 
 /**
  * Create temporary files and directories. [[withFile]] and [[withDir]] 

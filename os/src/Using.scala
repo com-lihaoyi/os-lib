@@ -1,4 +1,8 @@
 /*
+ * Verbatim copy of scala.util.Using - only copied here because we're also targeting
+ * scala 2.12 and 2.11, which don't ship that by default. Changed the package to
+ * os.util to avoid any clashes in dowstream projects. 
+ * 
  * Scala (https://www.scala-lang.org)
  *
  * Copyright EPFL and Lightbend, Inc.
@@ -10,8 +14,9 @@
  * additional information regarding copyright ownership.
  */
 
-package scala.util
+package os.util
 
+import scala.util.Try
 import scala.util.control.{ControlThrowable, NonFatal}
 
 /** A utility for performing automatic resource management. It can be used to perform an

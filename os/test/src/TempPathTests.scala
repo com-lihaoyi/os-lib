@@ -1,7 +1,8 @@
 package test.os
 
 import os._
-import scala.util.Using
+// if running with scala 2.13+, this can be the regular `scala.util.Using`
+import os.util.Using
 import utest.{assert => _, _}
 
 object TempPathTests extends TestSuite{
