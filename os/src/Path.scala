@@ -2,6 +2,7 @@ package os
 
 import java.net.URI
 import java.nio.file.Paths
+import java.nio.file.Files
 
 import collection.JavaConverters._
 import scala.language.implicitConversions
@@ -281,7 +282,7 @@ class RelPath private[os] (segments0: Array[String], val ups: Int)
     case _ => false
   }
 
-  def toNIO = java.nio.file.Paths.get(toString)
+  def toNIO = Paths.get(toString)
 
   def asSubPath = {
     require(ups == 0)
@@ -342,7 +343,7 @@ class SubPath private[os] (val segments0: Array[String])
     case _ => false
   }
 
-  def toNIO = java.nio.file.Paths.get(toString)
+  def toNIO = Paths.get(toString)
 
   def resolveFrom(base: os.Path) = base / this
 }
@@ -448,7 +449,7 @@ trait ReadablePath {
 class Path private[os] (val wrapped: java.nio.file.Path)
     extends FilePath with ReadablePath with BasePathImpl {
   def toSource: SeekableSource =
-    new SeekableSource.ChannelSource(java.nio.file.Files.newByteChannel(wrapped))
+    new SeekableSource.ChannelSource(Files.newByteChannel(wrapped))
 
   require(wrapped.isAbsolute, s"$wrapped is not an absolute path")
   def segments: Iterator[String] = wrapped.iterator().asScala.map(_.toString)
@@ -495,12 +496,23 @@ class Path private[os] (val wrapped: java.nio.file.Path)
 
   def resolveFrom(base: os.Path) = this
 
-  def getInputStream = java.nio.file.Files.newInputStream(wrapped)
+  def getInputStream = Files.newInputStream(wrapped)
 }
 
 class TempPath private[os] (wrapped: java.nio.file.Path)
   extends Path(wrapped) with AutoCloseable {
-  override def close(): Unit = os.remove.all(this)
+
+  override def close(): Unit = deleteRecursively(wrapped)
+
+  /** Wouldn't it be nice if we could just call `os.remove.all(this)`?
+    * For some reason, Scala 2 throws a rather obscure `[error] Unwanted cyclic dependency`
+    */
+  private def deleteRecursively(ioPath: java.nio.file.Path): Unit = {
+    if (Files.isDirectory(ioPath)) {
+      Files.list(ioPath).forEach(deleteRecursively)
+    }
+    Files.deleteIfExists(ioPath)
+  }
 }
 
 sealed trait PathConvertible[T] {
