@@ -1,7 +1,7 @@
 package os
 
 import java.net.URI
-import java.nio.file.Paths
+import java.nio.file.{LinkOption, Paths}
 import java.nio.file.Files
 
 import collection.JavaConverters._
@@ -282,7 +282,7 @@ class RelPath private[os] (segments0: Array[String], val ups: Int)
     case _ => false
   }
 
-  def toNIO = Paths.get(toString)
+  def toNIO = java.nio.file.Paths.get(toString)
 
   def asSubPath = {
     require(ups == 0)
@@ -343,7 +343,7 @@ class SubPath private[os] (val segments0: Array[String])
     case _ => false
   }
 
-  def toNIO = Paths.get(toString)
+  def toNIO = java.nio.file.Paths.get(toString)
 
   def resolveFrom(base: os.Path) = base / this
 }
@@ -509,7 +509,16 @@ class TempPath private[os] (wrapped: java.nio.file.Path)
     */
   private def deleteRecursively(ioPath: java.nio.file.Path): Unit = {
     if (Files.isDirectory(ioPath)) {
-      Files.list(ioPath).forEach(deleteRecursively)
+      // while we support Scala 2.11 we need (something like) this:
+      Files.list(ioPath).forEach(
+        new java.util.function.Consumer[java.nio.file.Path] {
+          override def accept(path: java.nio.file.Path): Unit =
+            deleteRecursively(path)
+        }
+      )
+
+      // this works for Scala 2.12+
+      // Files.list(ioPath).forEach(deleteRecursively)
     }
     Files.deleteIfExists(ioPath)
   }
