@@ -15,7 +15,8 @@ object TempPathTests extends TestSuite{
           tempFilePath = file.toString
           assert(os.exists(file))
         }
-        assert(!os.exists(os.Path(tempFilePath)), s"temp file did not get auto-deleted after `Using` block: $tempFilePath")
+        assert(!os.exists(os.Path(tempFilePath)),
+          s"temp file did not get auto-deleted after `Using` block: $tempFilePath")
       }
       test("temp.withDir") {
         var tempDirPath: String = null
@@ -28,7 +29,8 @@ object TempPathTests extends TestSuite{
           assert(os.exists(dir))
           assert(os.exists(file))
         }
-        assert(!os.exists(os.Path(tempDirPath)), s"temp dir did not get auto-deleted after `Using` block: $tempDirPath")
+        assert(!os.exists(os.Path(tempDirPath)),
+          s"temp dir did not get auto-deleted after `Using` block: $tempDirPath")
       }
     }
 
@@ -39,7 +41,8 @@ object TempPathTests extends TestSuite{
           tempFilePath = file.toString
           assert(os.exists(file))
         }
-        assert(!os.exists(os.Path(tempFilePath)), s"temp file did not get auto-deleted after `Using` block: $tempFilePath")
+        assert(!os.exists(os.Path(tempFilePath)),
+          s"temp file did not get auto-deleted after `Using` block: $tempFilePath")
       }
       test("directory") {
         var tempDirPath: String = null
@@ -52,7 +55,8 @@ object TempPathTests extends TestSuite{
           assert(os.exists(dir))
           assert(os.exists(file))
         }
-        assert(!os.exists(os.Path(tempDirPath)), s"temp dir did not get auto-deleted after `Using` block: $tempDirPath")
+        assert(!os.exists(os.Path(tempDirPath)),
+          s"temp dir did not get auto-deleted after `Using` block: $tempDirPath")
       }
 
       test("multiple files") {
@@ -65,7 +69,8 @@ object TempPathTests extends TestSuite{
           files.foreach(file => assert(os.exists(file)))
         }
         tempFilePaths.foreach { file =>
-          assert(!os.exists(os.Path(file)), s"temp file did not get auto-deleted after `Using` block: $file")
+          assert(!os.exists(os.Path(file)),
+            s"temp file did not get auto-deleted after `Using` block: $file")
         }
       }
     }

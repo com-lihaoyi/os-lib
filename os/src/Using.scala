@@ -95,7 +95,8 @@ import scala.util.control.{ControlThrowable, NonFatal}
   *   - `java.lang.VirtualMachineError`
   *   - `java.lang.LinkageError`
   *   - `java.lang.InterruptedException` and `java.lang.ThreadDeath`
-  *   - [[scala.util.control.NonFatal fatal exceptions]], excluding `scala.util.control.ControlThrowable`
+  *   - [[scala.util.control.NonFatal fatal exceptions]], excluding
+  *     `scala.util.control.ControlThrowable`
   *   - `scala.util.control.ControlThrowable`
   *   - all other exceptions
   *
@@ -115,7 +116,8 @@ object Using {
     * @return a [[Try]] containing an exception if one or more were thrown,
     *         or the result of the operation if no exceptions were thrown
     */
-  def apply[R: Releasable, A](resource: => R)(f: R => A): Try[A] = Try { Using.resource(resource)(f) }
+  def apply[R: Releasable, A](resource: => R)(f: R => A): Try[A] =
+    Try { Using.resource(resource)(f) }
 
   /** A resource manager.
     *
@@ -236,10 +238,13 @@ object Using {
       case _: LinkageError                          => 3
       case _: InterruptedException | _: ThreadDeath => 2
       case _: ControlThrowable                      => 0
-      case e if !NonFatal(e)                        => 1 // in case this method gets out of sync with NonFatal
+      case e if !NonFatal(e)                        =>
+        1 // in case this method gets out of sync with NonFatal
       case _                                        => -1
     }
-    @inline def suppress(t: Throwable, suppressed: Throwable): Throwable = { t.addSuppressed(suppressed); t }
+    @inline def suppress(t: Throwable, suppressed: Throwable): Throwable = {
+      t.addSuppressed(suppressed); t
+    }
 
     if (score(secondary) > score(primary)) suppress(secondary, primary)
     else suppress(primary, secondary)
