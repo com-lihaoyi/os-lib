@@ -174,7 +174,7 @@ trait SegmentedPath extends BasePath {
    */
   def segments: IndexedSeq[String]
 
-  def /(chunk: PathChunk) = make(
+  override def /(chunk: PathChunk): ThisType = make(
     segments.dropRight(chunk.ups) ++ chunk.segments,
     math.max(chunk.ups - segments.length, 0)
   )
@@ -259,7 +259,7 @@ class RelPath private[os] (segments0: Array[String], val ups: Int)
   val segments: IndexedSeq[String] = segments0.toIndexedSeq
   type ThisType = RelPath
   require(ups >= 0)
-  protected[this] def make(p: Seq[String], ups: Int) = {
+  override protected[this] def make(p: Seq[String], ups: Int): RelPath = {
     new RelPath(p.toArray[String], ups + this.ups)
   }
 
@@ -323,8 +323,8 @@ class SubPath private[os] (val segments0: Array[String])
     extends FilePath with BasePathImpl with SegmentedPath {
   def lastOpt = segments.lastOption
   val segments: IndexedSeq[String] = segments0.toIndexedSeq
-  type ThisType = SubPath
-  protected[this] def make(p: Seq[String], ups: Int) = {
+  override type ThisType = SubPath
+  override protected[this] def make(p: Seq[String], ups: Int): SubPath = {
     require(ups == 0)
     new SubPath(p.toArray[String])
   }
@@ -454,11 +454,11 @@ class Path private[os] (val wrapped: java.nio.file.Path)
   def segments: Iterator[String] = wrapped.iterator().asScala.map(_.toString)
   def getSegment(i: Int): String = wrapped.getName(i).toString
   def segmentCount = wrapped.getNameCount
-  type ThisType = Path
+  override type ThisType = Path
 
   def lastOpt = Option(wrapped.getFileName).map(_.toString)
 
-  def /(chunk: PathChunk): ThisType = {
+  override def /(chunk: PathChunk): Path = {
     if (chunk.ups > wrapped.getNameCount) throw PathError.AbsolutePathOutsideRoot
     val resolved = wrapped.resolve(chunk.toString).normalize()
     new Path(resolved)
