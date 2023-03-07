@@ -178,8 +178,10 @@ object ExampleTests extends TestSuite{
       val minus = os.pwd relativeTo target
       val ups = os.up/os.up/os.up
       assert(minus == ups)
-      rel1: os.RelPath
-      rel2: os.RelPath
+      (
+        rel1: os.RelPath,
+        rel2: os.RelPath
+      )
     }
     test("subPaths"){
 
