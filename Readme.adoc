@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.9.0
+:version: 0.9.1
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -2148,6 +2148,11 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+=== 0.9.1 - 2023-03-07
+
+* Refined return types when constructing paths with `/` and get rid of long `ThisType#ThisType` cascades.
+* Added a new `PathConvertible` to support `URI`s when constructing paths.
 
 === 0.9.0 - 2022-11-28
 
