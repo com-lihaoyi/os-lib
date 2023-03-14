@@ -35,6 +35,7 @@ object Deps {
   val acyclic = ivy"com.lihaoyi:::acyclic:0.3.6"
   val jna = ivy"net.java.dev.jna:jna:5.13.0"
   val geny = ivy"com.lihaoyi::geny::1.0.0"
+  val scalaCollectionCompat = ivy"org.scala-lang.modules::scala-collection-compat::2.9.0"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.3.0"
   val utest = ivy"com.lihaoyi::utest::0.8.1"
   def scalaLibrary(version: String) = ivy"org.scala-lang:scala-library:${version}"
@@ -173,9 +174,13 @@ trait OsLibTestModule extends ScalaModule with TestModule.Utest with SafeDeps {
 
 trait OsModule extends OsLibModule {
   override def artifactName = "os-lib"
-  override def ivyDeps = Agg(
-    Deps.geny
-  )
+  override def ivyDeps = T {
+    val scalaV = scalaVersion()
+    if (scalaV.startsWith("2.11") || scalaV.startsWith("2.12")) {
+      // include collection compat, mostly for a backported scala.util.Using
+      Agg(Deps.geny, Deps.scalaCollectionCompat)
+    } else Agg(Deps.geny)
+  }
 }
 
 trait WatchModule extends OsLibModule {
