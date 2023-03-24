@@ -43,9 +43,9 @@ object PathChunk {
   implicit class SeqPathChunk[T](a: Seq[T])(implicit f: T => PathChunk) extends PathChunk {
     var segments0 = Nil
     var ups0 = 0
-    val (segments, ups) = a.map(f).foldLeft((Seq[String](), 0)) { case ((segments, ups), chunk) =>
-      (segments.dropRight(chunk.ups) ++ chunk.segments, math.max(chunk.ups - segments.length, 0))
-    }
+
+    val rel = a.map(f).foldLeft(os.rel) { case (current, chunk) => current / chunk}
+    val (segments, ups) = (rel.segments, rel.ups)
 
     override def toString() = segments.mkString("/")
   }

@@ -425,5 +425,10 @@ object PathTests extends TestSuite{
         }
       }
     }
+    test("issue159"){
+      val result = os.rel / Seq(os.up, os.rel/"hello", os.rel/"world")
+      val expected = os.up / "hello" / "world"
+      assert(result == expected)
+    }
   }
 }
