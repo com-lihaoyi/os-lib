@@ -46,7 +46,7 @@ object PathChunk {
     @deprecated("never used, really shouldn't exist, kept for bincompat")
     var ups0 = 0
 
-    private val rel = a.map(f).foldLeft(RelPath.rel) { case (current, chunk) => current / chunk}
+    private val rel = a.map(f).foldLeft(RelPath.rel) { case (current, chunk) => current / chunk }
     val (segments, ups) = (rel.segments, rel.ups)
 
     override def toString() = segments.mkString("/")
