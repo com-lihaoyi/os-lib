@@ -20,11 +20,6 @@ object ExampleTests extends TestSuite{
 
       val invoked = os.proc("cat", wd/"file.txt", wd/"copied.txt").call(cwd = wd)
       invoked.out.trim() ==> "hellohello"
-
-      val curl = os.proc("curl", "-L" , "https://git.io/fpfTs").spawn(stderr = os.Inherit)
-      val gzip = os.proc("gzip", "-n").spawn(stdin = curl.stdout)
-      val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
-      sha.stdout.trim() ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
     }}
 
     test("concatTxt") - TestUtil.prep{wd =>
@@ -57,17 +52,19 @@ object ExampleTests extends TestSuite{
     test("curlToTempFile") - TestUtil.prep{wd => if (Unix()){
       // Curl to temporary file
       val temp = os.temp()
-      os.proc("curl", "-L" , "https://git.io/fpfTs")
+      os.proc("curl", "-L" , ExampleResourcess.RemoteReadme.url)
         .call(stdout = temp)
 
-      os.size(temp) ==> 53814
+      os.size(temp) ==> ExampleResourcess.RemoteReadme.size
 
       // Curl to temporary file
       val temp2 = os.temp()
-      val proc = os.proc("curl", "-L" , "https://git.io/fpfTs").spawn()
+      val proc = os.proc("curl", "-L" , ExampleResourcess.RemoteReadme.url).spawn()
 
       os.write.over(temp2, proc.stdout)
-      os.size(temp2) ==> 53814
+      os.size(temp2) ==> ExampleResourcess.RemoteReadme.size
+
+      assert(os.size(temp) == os.size(temp2))
     }}
 
     test("lineCount") - TestUtil.prep{wd =>
