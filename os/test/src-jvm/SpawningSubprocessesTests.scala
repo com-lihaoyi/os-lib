@@ -134,6 +134,7 @@ object SpawningSubprocessesTests extends TestSuite {
       }
       test("spawn curl") {
         if (
+          Unix() &&
           TestUtil.isInstalled("curl") &&
           TestUtil.isInstalled("gzip") &&
           TestUtil.isInstalled("shasum")
