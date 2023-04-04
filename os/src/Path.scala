@@ -41,11 +41,13 @@ object PathChunk {
     override def toString() = inner.toString
   }
   implicit class SeqPathChunk[T](a: Seq[T])(implicit f: T => PathChunk) extends PathChunk {
+    @deprecated("never used, really shouldn't exist, kept for bincompat")
     var segments0 = Nil
+    @deprecated("never used, really shouldn't exist, kept for bincompat")
     var ups0 = 0
-    val (segments, ups) = a.map(f).foldLeft((Seq[String](), 0)) { case ((segments, ups), chunk) =>
-      (segments.dropRight(chunk.ups) ++ chunk.segments, math.max(chunk.ups - segments.length, 0))
-    }
+
+    private val rel = a.map(f).foldLeft(RelPath.rel) { case (current, chunk) => current / chunk }
+    val (segments, ups) = (rel.segments, rel.ups)
 
     override def toString() = segments.mkString("/")
   }
