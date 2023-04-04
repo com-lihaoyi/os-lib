@@ -59,9 +59,9 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: 8
+          java-version: 17
 
-      - run: ./mill -i -k __.checkFormat
+      - run: ./mill -i mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources
 
   publish-sonatype:
     if: github.repository == 'com-lihaoyi/os-lib' && contains(github.ref, 'refs/tags/')
