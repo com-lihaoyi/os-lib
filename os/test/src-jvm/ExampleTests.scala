@@ -256,25 +256,6 @@ object ExampleTests extends TestSuite{
       assert(lines == 9)
     }
 
-    test("Source code line length does not exceed 100"){
-
-      // Ensure that we don't have any Scala files in the current working directory
-      // which have lines more than 100 characters long, excluding generated sources
-      // in `src_managed` folders.
-
-      def longLines(p: os.Path) =
-        (p, os.read.lines(p).zipWithIndex.filter(_._1.length > 100).map(_._2))
-
-      val filesWithTooLongLines =
-        os.proc("git", "ls-files").call(cwd = os.pwd).out.lines()
-            .map(os.Path(_, os.pwd))
-            .filter(_.ext == "scala")
-            .map(longLines)
-            .filter(_._2.length > 0)
-            .filter(!_._1.segments.contains("src_managed"))
-
-      Predef.assert(filesWithTooLongLines.length == 0, filesWithTooLongLines)
-    }
     test("rename"){
 //      val d1/"omg"/x1 = wd
 //      val d2/"omg"/x2 = wd

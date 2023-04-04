@@ -123,10 +123,12 @@ object SpawningSubprocessesTests extends TestSuite {
           sub.destroy()
 
           // You can chain multiple subprocess' stdin/stdout together
+          // https://raw.githubusercontent.com/lihaoyi/os-lib/d6695db4e484afac2c0adf67016cd5d3df6b92ae/readme.md
+          // curl -L https://git.io/fpfTs | gzip -n | shasum -a 256
           val curl = os.proc("curl", "-L" , "https://git.io/fpfTs").spawn(stderr = os.Inherit)
           val gzip = os.proc("gzip", "-n").spawn(stdin = curl.stdout)
           val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
-          sha.stdout.trim()==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
+          sha.stdout.trim() ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
         }}
       }
       test("spawn callback"){
