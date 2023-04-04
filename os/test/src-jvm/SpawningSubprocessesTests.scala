@@ -131,24 +131,24 @@ object SpawningSubprocessesTests extends TestSuite {
             sub.destroy()
           }
         }
-        test("spawn curl") {
-          if (
-            TestUtil.isInstalled("curl") &&
-            TestUtil.isInstalled("gzip") &&
-            TestUtil.isInstalled("shasum")
-          ) {
-            // You can chain multiple subprocess' stdin/stdout together
-            val curl =
-              os.proc("curl", "-L", ExampleResourcess.RemoteReadme.url).spawn(stderr = os.Inherit)
-            val gzip = os.proc("gzip", "-n", "-6").spawn(stdin = curl.stdout)
-            val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
-            sha.stdout.trim() ==> s"${ExampleResourcess.RemoteReadme.gzip6ShaSum256}  -"
-          }
+      }
+      test("spawn curl") {
+        if (
+          TestUtil.isInstalled("curl") &&
+          TestUtil.isInstalled("gzip") &&
+          TestUtil.isInstalled("shasum")
+        ) {
+          // You can chain multiple subprocess' stdin/stdout together
+          val curl =
+            os.proc("curl", "-L", ExampleResourcess.RemoteReadme.url).spawn(stderr = os.Inherit)
+          val gzip = os.proc("gzip", "-n", "-6").spawn(stdin = curl.stdout)
+          val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
+          sha.stdout.trim() ==> s"${ExampleResourcess.RemoteReadme.gzip6ShaSum256}  -"
         }
       }
       test("spawn callback") {
         test - prep { wd =>
-          if (TestUtil.isInstalled("python") && Unix()) {
+          if (TestUtil.isInstalled("echo") && Unix()) {
             val output: mutable.Buffer[String] = mutable.Buffer()
             val sub = os.proc("echo", "output")
               .spawn(stdout =
