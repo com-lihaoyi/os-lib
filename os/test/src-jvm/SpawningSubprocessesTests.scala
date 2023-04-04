@@ -134,7 +134,7 @@ object SpawningSubprocessesTests extends TestSuite {
       }
       test("spawn curl") {
         if (
-          Unix() &&
+          Unix() && // shasum seems to not accept stdin on Windows
           TestUtil.isInstalled("curl") &&
           TestUtil.isInstalled("gzip") &&
           TestUtil.isInstalled("shasum")
