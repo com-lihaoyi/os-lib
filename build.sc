@@ -26,10 +26,6 @@ val scalaVersions = Seq(
   "2.11.12"
 ) ++ communityBuildDottyVersion
 
-val scalaNativeVersions = scalaVersions.map((_, "0.4.5"))
-
-val backwardCompatibleVersions: Seq[String] = Seq("0.9.0", "0.9.1")
-
 object Deps {
   val acyclic = ivy"com.lihaoyi:::acyclic:0.3.6"
   val jna = ivy"net.java.dev.jna:jna:5.13.0"
@@ -39,58 +35,6 @@ object Deps {
   def scalaLibrary(version: String) = ivy"org.scala-lang:scala-library:${version}"
 }
 
-object os extends Module {
-
-  object jvm extends Cross[OsJvmModule](scalaVersions)
-  trait OsJvmModule extends OsModule with MiMaChecks {
-    def platformSegment = "jvm"
-    object test extends Tests with OsLibTestModule {
-      def platformSegment = "jvm"
-    }
-  }
-
-  object native extends Cross[OsNativeModule](scalaNativeVersions)
-  trait OsNativeModule extends OsModule with ScalaNativeModule with Cross.Module2[String, String]{
-    def platformSegment = "native"
-    override def millSourcePath = super.millSourcePath / oslib.up
-    def scalaNativeVersion = crossValue2
-    object test extends Tests with OsLibTestModule {
-      def platformSegment = "native"
-      override def nativeLinkStubs = true
-    }
-  }
-
-  object watch extends Module {
-
-    object jvm extends Cross[WatchJvmModule](scalaVersions)
-    trait WatchJvmModule extends WatchModule {
-      def platformSegment = "jvm"
-      override def moduleDeps = super.moduleDeps :+ os.jvm()
-      override def ivyDeps = Agg(
-        Deps.jna
-      )
-      object test extends Tests with OsLibTestModule {
-        def platformSegment = "jvm"
-        override def moduleDeps = super.moduleDeps :+ os.jvm().test
-      }
-    }
-
-    /*
-    object native extends Cross[WatchNativeModule](scalaNativeVersions:_*)
-    class WatchNativeModule(val crossScalaVersion: String, crossScalaNativeVersion: String) extends WatchModule with ScalaNativeModule {
-      def platformSegment = "native"
-      def millSourcePath = super.millSourcePath / ammonite.ops.up
-      def scalaNativeVersion = crossScalaNativeVersion
-      def moduleDeps = super.moduleDeps :+ os.native()
-      object test extends Tests with OsLibTestModule {
-        def platformSegment = "native"
-        def moduleDeps = super.moduleDeps :+ os.native().test
-        def nativeLinkStubs = true
-      }
-    }
-     */
-  }
-}
 
 trait AcyclicModule extends ScalaModule {
   def acyclicDep: T[Agg[Dep]] = T {
@@ -103,9 +47,7 @@ trait AcyclicModule extends ScalaModule {
   }
   override def compileIvyDeps = acyclicDep
   override def scalacPluginIvyDeps = acyclicDep
-  override def scalacOptions = T {
-    super.scalacOptions() ++ acyclicOptions()
-  }
+  override def scalacOptions = super.scalacOptions() ++ acyclicOptions()
 }
 
 trait SafeDeps extends ScalaModule {
@@ -113,11 +55,14 @@ trait SafeDeps extends ScalaModule {
     val sd = Deps.scalaLibrary(scala213Version)
     super.mapDependencies().andThen { d =>
       // enforce up-to-date Scala 2.13.x version
-      if (d.module == sd.dep.module && d.version.startsWith("2.13.")) {
-        sd.dep
-      } else d
+      if (d.module == sd.dep.module && d.version.startsWith("2.13.")) sd.dep
+      else d
     }
   }
+}
+
+trait MiMaChecks extends Mima {
+  override def mimaPreviousVersions = Seq("0.9.0", "0.9.1")
 }
 
 trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule with SafeDeps {
@@ -135,24 +80,27 @@ trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule
       Developer("lihaoyi", "Li Haoyi", "https://github.com/lihaoyi")
     )
   )
-  def platformSegment: String
-  override def millSourcePath = super.millSourcePath / oslib.up
-  override def sources = T.sources(
-    millSourcePath / "src",
-    millSourcePath / s"src-$platformSegment"
-  )
+}
+
+trait OsModule extends OsLibModule with PlatformScalaModule{
+  override def ivyDeps = Agg(Deps.geny)
+
+  // TODO: remove this once Mill supports this built-in
+  override def sources = T.sources {
+    val platform = millModuleSegments
+      .value
+      .collect { case l: mill.define.Segment.Label => l.value }
+      .last
+
+    super.sources().flatMap { source =>
+      val platformPath = PathRef(source.path / _root_.os.up / s"${source.path.last}-${platform}")
+      Seq(source, platformPath)
+    }
+  }
 }
 
 trait OsLibTestModule extends ScalaModule with TestModule.Utest with SafeDeps {
-  override def ivyDeps = Agg(
-    Deps.utest,
-    Deps.sourcecode
-  )
-  def platformSegment: String
-  override def sources = T.sources(
-    millSourcePath / "src",
-    millSourcePath / s"src-$platformSegment"
-  )
+  override def ivyDeps = Agg(Deps.utest, Deps.sourcecode)
 
   // we check the textual output of system commands and expect it in english
   override def forkEnv: Target[Map[String, String]] = T {
@@ -160,28 +108,31 @@ trait OsLibTestModule extends ScalaModule with TestModule.Utest with SafeDeps {
   }
 }
 
-trait OsModule extends OsLibModule {
-  override def artifactName = "os-lib"
-  override def ivyDeps = Agg(
-    Deps.geny
-  )
-}
+object os extends Module {
 
-trait WatchModule extends OsLibModule {
-  override def artifactName = "os-lib-watch"
-}
+  object jvm extends Cross[OsJvmModule](scalaVersions)
+  trait OsJvmModule extends OsModule with MiMaChecks {
+    object test extends Tests with OsLibTestModule
+  }
 
-trait MiMaChecks extends Mima {
-  override def mimaPreviousVersions = backwardCompatibleVersions
-  override def mimaPreviousArtifacts: Target[Agg[Dep]] = T {
-    val versions = mimaPreviousVersions().distinct
-    val info = artifactMetadata()
-    if (versions.isEmpty)
-      T.log.error("No binary compatible versions configured!")
-    Agg.from(
-      versions.map(version =>
-        ivy"${info.group}:${info.id}:${version}"
-      )
-    )
+  object native extends Cross[OsNativeModule](scalaVersions)
+  trait OsNativeModule extends OsModule with ScalaNativeModule{
+    def scalaNativeVersion = "0.4.5"
+    object test extends Tests with OsLibTestModule {
+      override def nativeLinkStubs = true
+    }
+  }
+
+  object watch extends Module {
+    object jvm extends Cross[WatchJvmModule](scalaVersions)
+    trait WatchJvmModule extends OsLibModule {
+      override def moduleDeps = super.moduleDeps ++ Seq(os.jvm())
+      override def ivyDeps = Agg(Deps.jna)
+      object test extends Tests with OsLibTestModule {
+        override def moduleDeps = super.moduleDeps ++ Seq(os.jvm().test)
+      }
+    }
   }
 }
+
+
