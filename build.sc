@@ -87,6 +87,8 @@ trait OsLibModule
 
 trait OsModule extends OsLibModule { outer =>
   def ivyDeps = Agg(Deps.geny)
+
+  def artifactName = "os-lib"
 }
 
 object os extends Module {
