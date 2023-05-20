@@ -65,7 +65,13 @@ trait MiMaChecks extends Mima {
   def mimaPreviousVersions = Seq("0.9.0", "0.9.1")
 }
 
-trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule with SafeDeps { outer =>
+trait OsLibModule
+  extends CrossScalaModule
+    with PublishModule
+    with AcyclicModule
+    with SafeDeps
+    with PlatformScalaModule { outer =>
+
   def publishVersion = VcsVersion.vcsState().format()
   def pomSettings = PomSettings(
     description = artifactName(),
@@ -81,13 +87,11 @@ trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule
     )
   )
 
-  trait OsLibTestModule extends ScalaModule with TestModule.Utest with SafeDeps with Tests {
+  trait OsLibTestModule extends ScalaModule with TestModule.Utest with SafeDeps {
     def ivyDeps = Agg(Deps.utest, Deps.sourcecode)
 
     // we check the textual output of system commands and expect it in english
-    def forkEnv: Target[Map[String, String]] = T {
-      super.forkEnv() ++ Map("LC_ALL" -> "C")
-    }
+    def forkEnv = super.forkEnv() ++ Map("LC_ALL" -> "C")
 
     override def sources = T.sources {
       for (src <- outer.sources()) yield {
@@ -97,7 +101,7 @@ trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule
   }
 }
 
-trait OsModule extends OsLibModule with PlatformScalaModule{
+trait OsModule extends OsLibModule { outer =>
   def ivyDeps = Agg(Deps.geny)
 
   // Properly identify the last non-cross segment to treat as platform
@@ -120,13 +124,13 @@ object os extends Module {
 
   object jvm extends Cross[OsJvmModule](scalaVersions)
   trait OsJvmModule extends OsModule with MiMaChecks {
-    object test extends OsLibTestModule
+    object test extends Tests with OsLibTestModule
   }
 
   object native extends Cross[OsNativeModule](scalaVersions)
   trait OsNativeModule extends OsModule with ScalaNativeModule{
     def scalaNativeVersion = "0.4.5"
-    object test extends OsLibTestModule {
+    object test extends Tests with OsLibTestModule {
       def nativeLinkStubs = true
     }
   }
