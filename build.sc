@@ -111,7 +111,6 @@ trait OsModule extends OsLibModule { outer =>
   }
 }
 
-
 object os extends Module {
 
   object jvm extends Cross[OsJvmModule](scalaVersions)
