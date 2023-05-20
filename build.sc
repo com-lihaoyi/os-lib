@@ -85,6 +85,8 @@ trait OsLibModule
     // we check the textual output of system commands and expect it in english
     def forkEnv = super.forkEnv() ++ Map("LC_ALL" -> "C")
 
+    // Directly mirror enclosing module's source folders in tests
+    // TODO: remove this once Mill supports this built-in
     override def sources = T.sources {
       for (src <- outer.sources()) yield {
         PathRef(this.millSourcePath / src.path.relativeTo(outer.millSourcePath))
