@@ -8,7 +8,7 @@ import mill.scalalib.api.ZincWorkerUtil
 import com.github.lolgab.mill.mima.Mima
 import de.tobiasroeser.mill.vcs.version.VcsVersion
 
-val communityBuildDottyVersion = .toList
+val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 
 val scala213Version = "2.13.10"
 
