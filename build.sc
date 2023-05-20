@@ -85,6 +85,7 @@ trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule
 trait OsModule extends OsLibModule with PlatformScalaModule{
   override def ivyDeps = Agg(Deps.geny)
 
+  // Properly identify the last non-cross segment to treat as platform
   // TODO: remove this once Mill supports this built-in
   override def sources = T.sources {
     val platform = millModuleSegments
