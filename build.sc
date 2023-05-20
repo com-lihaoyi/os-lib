@@ -86,7 +86,7 @@ trait OsLibModule
     def forkEnv = super.forkEnv() ++ Map("LC_ALL" -> "C")
 
     // Directly mirror enclosing module's source folders in tests
-    // TODO: remove this once Mill supports this built-in
+    // TODO: remove this once Mill supports this built-in https://github.com/com-lihaoyi/mill/pull/2531
     override def sources = T.sources {
       for (src <- outer.sources()) yield {
         PathRef(this.millSourcePath / src.path.relativeTo(outer.millSourcePath))
@@ -99,7 +99,7 @@ trait OsModule extends OsLibModule { outer =>
   def ivyDeps = Agg(Deps.geny)
 
   // Properly identify the last non-cross segment to treat as platform
-  // TODO: remove this once Mill supports this built-in
+  // TODO: remove this once Mill supports this built-in https://github.com/com-lihaoyi/mill/pull/2531
   def sources = T.sources {
     val platform = millModuleSegments
       .value
