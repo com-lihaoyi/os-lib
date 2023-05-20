@@ -3,19 +3,12 @@ import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.3.1-6-e80da7`
 import $ivy.`com.github.lolgab::mill-mima::0.0.20`
 
 // imports
-import mill._
-import mill.define.{Task, Target}
-import mill.scalalib._
-import mill.scalanativelib._
-import mill.scalalib.publish._
+import mill._, scalalib._, scalanativelib._, publish._
 import mill.scalalib.api.ZincWorkerUtil
-// avoid name collisions
-import _root_.{os => oslib}
 import com.github.lolgab.mill.mima.Mima
-
 import de.tobiasroeser.mill.vcs.version.VcsVersion
 
-val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
+val communityBuildDottyVersion = .toList
 
 val scala213Version = "2.13.10"
 
@@ -34,7 +27,6 @@ object Deps {
   val utest = ivy"com.lihaoyi::utest::0.8.1"
   def scalaLibrary(version: String) = ivy"org.scala-lang:scala-library:${version}"
 }
-
 
 trait AcyclicModule extends ScalaModule {
   def acyclicDep: T[Agg[Dep]] = T {
