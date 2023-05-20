@@ -65,7 +65,7 @@ trait MiMaChecks extends Mima {
   def mimaPreviousVersions = Seq("0.9.0", "0.9.1")
 }
 
-trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule with SafeDeps {
+trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule with SafeDeps { outer =>
   def publishVersion = VcsVersion.vcsState().format()
   def pomSettings = PomSettings(
     description = artifactName(),
@@ -80,6 +80,21 @@ trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule
       Developer("lihaoyi", "Li Haoyi", "https://github.com/lihaoyi")
     )
   )
+
+  trait OsLibTestModule extends ScalaModule with TestModule.Utest with SafeDeps with Tests {
+    def ivyDeps = Agg(Deps.utest, Deps.sourcecode)
+
+    // we check the textual output of system commands and expect it in english
+    def forkEnv: Target[Map[String, String]] = T {
+      super.forkEnv() ++ Map("LC_ALL" -> "C")
+    }
+
+    override def sources = T.sources {
+      for (src <- outer.sources()) yield {
+        PathRef(this.millSourcePath / src.path.relativeTo(outer.millSourcePath))
+      }
+    }
+  }
 }
 
 trait OsModule extends OsLibModule with PlatformScalaModule{
@@ -100,26 +115,18 @@ trait OsModule extends OsLibModule with PlatformScalaModule{
   }
 }
 
-trait OsLibTestModule extends ScalaModule with TestModule.Utest with SafeDeps {
-  def ivyDeps = Agg(Deps.utest, Deps.sourcecode)
-
-  // we check the textual output of system commands and expect it in english
-  def forkEnv: Target[Map[String, String]] = T {
-    super.forkEnv() ++ Map("LC_ALL" -> "C")
-  }
-}
 
 object os extends Module {
 
   object jvm extends Cross[OsJvmModule](scalaVersions)
   trait OsJvmModule extends OsModule with MiMaChecks {
-    object test extends Tests with OsLibTestModule
+    object test extends OsLibTestModule
   }
 
   object native extends Cross[OsNativeModule](scalaVersions)
   trait OsNativeModule extends OsModule with ScalaNativeModule{
     def scalaNativeVersion = "0.4.5"
-    object test extends Tests with OsLibTestModule {
+    object test extends OsLibTestModule {
       def nativeLinkStubs = true
     }
   }
