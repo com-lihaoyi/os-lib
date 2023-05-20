@@ -30,12 +30,10 @@ object Deps {
 
 trait AcyclicModule extends ScalaModule {
   def acyclicDep: T[Agg[Dep]] = T {
-    if (!ZincWorkerUtil.isScala3(scalaVersion())) Agg(Deps.acyclic)
-    else Agg.empty[Dep]
+    Agg.from(Option.when(!ZincWorkerUtil.isScala3(scalaVersion()))(Deps.acyclic))
   }
   def acyclicOptions: T[Seq[String]] = T {
-    if (!ZincWorkerUtil.isScala3(scalaVersion())) Seq("-P:acyclic:force")
-    else Seq.empty
+    Option.when(!ZincWorkerUtil.isScala3(scalaVersion()))("-P:acyclic:force").toSeq
   }
   def compileIvyDeps = acyclicDep
   def scalacPluginIvyDeps = acyclicDep
@@ -84,33 +82,11 @@ trait OsLibModule
 
     // we check the textual output of system commands and expect it in english
     def forkEnv = super.forkEnv() ++ Map("LC_ALL" -> "C")
-
-    // Directly mirror enclosing module's source folders in tests
-    // TODO: remove this once Mill supports this built-in https://github.com/com-lihaoyi/mill/pull/2531
-    override def sources = T.sources {
-      for (src <- outer.sources()) yield {
-        PathRef(this.millSourcePath / src.path.relativeTo(outer.millSourcePath))
-      }
-    }
   }
 }
 
 trait OsModule extends OsLibModule { outer =>
   def ivyDeps = Agg(Deps.geny)
-
-  // Properly identify the last non-cross segment to treat as platform
-  // TODO: remove this once Mill supports this built-in https://github.com/com-lihaoyi/mill/pull/2531
-  def sources = T.sources {
-    val platform = millModuleSegments
-      .value
-      .collect { case l: mill.define.Segment.Label => l.value }
-      .last
-
-    super.sources().flatMap { source =>
-      val platformPath = PathRef(source.path / _root_.os.up / s"${source.path.last}-${platform}")
-      Seq(source, platformPath)
-    }
-  }
 }
 
 object os extends Module {
