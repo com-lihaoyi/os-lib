@@ -1,6 +1,6 @@
 // plugins
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.3.0`
-import $ivy.`com.github.lolgab::mill-mima::0.0.13`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.3.1-6-e80da7`
+import $ivy.`com.github.lolgab::mill-mima::0.0.20`
 
 // imports
 import mill._
@@ -42,23 +42,19 @@ object Deps {
 
 object os extends Module {
 
-  object jvm extends Cross[OsJvmModule](scalaVersions: _*)
-  class OsJvmModule(val crossScalaVersion: String) extends OsModule with MiMaChecks {
+  object jvm extends Cross[OsJvmModule](scalaVersions)
+  trait OsJvmModule extends OsModule with MiMaChecks {
     def platformSegment = "jvm"
     object test extends Tests with OsLibTestModule {
       def platformSegment = "jvm"
     }
   }
 
-  object native extends Cross[OsNativeModule](scalaNativeVersions: _*)
-  class OsNativeModule(
-      val crossScalaVersion: String,
-      crossScalaNativeVersion: String
-  ) extends OsModule
-      with ScalaNativeModule {
+  object native extends Cross[OsNativeModule](scalaNativeVersions)
+  trait OsNativeModule extends OsModule with ScalaNativeModule with Cross.Module2[String, String]{
     def platformSegment = "native"
     override def millSourcePath = super.millSourcePath / oslib.up
-    def scalaNativeVersion = crossScalaNativeVersion
+    def scalaNativeVersion = crossValue2
     object test extends Tests with OsLibTestModule {
       def platformSegment = "native"
       override def nativeLinkStubs = true
@@ -67,8 +63,8 @@ object os extends Module {
 
   object watch extends Module {
 
-    object jvm extends Cross[WatchJvmModule](scalaVersions: _*)
-    class WatchJvmModule(val crossScalaVersion: String) extends WatchModule {
+    object jvm extends Cross[WatchJvmModule](scalaVersions)
+    trait WatchJvmModule extends WatchModule {
       def platformSegment = "jvm"
       override def moduleDeps = super.moduleDeps :+ os.jvm()
       override def ivyDeps = Agg(
