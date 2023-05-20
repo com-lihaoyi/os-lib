@@ -45,13 +45,13 @@ trait AcyclicModule extends ScalaModule {
     if (!ZincWorkerUtil.isScala3(scalaVersion())) Seq("-P:acyclic:force")
     else Seq.empty
   }
-  override def compileIvyDeps = acyclicDep
-  override def scalacPluginIvyDeps = acyclicDep
-  override def scalacOptions = super.scalacOptions() ++ acyclicOptions()
+  def compileIvyDeps = acyclicDep
+  def scalacPluginIvyDeps = acyclicDep
+  def scalacOptions = super.scalacOptions() ++ acyclicOptions()
 }
 
 trait SafeDeps extends ScalaModule {
-  override def mapDependencies: Task[coursier.Dependency => coursier.Dependency] = T.task {
+  def mapDependencies: Task[coursier.Dependency => coursier.Dependency] = T.task {
     val sd = Deps.scalaLibrary(scala213Version)
     super.mapDependencies().andThen { d =>
       // enforce up-to-date Scala 2.13.x version
@@ -62,7 +62,7 @@ trait SafeDeps extends ScalaModule {
 }
 
 trait MiMaChecks extends Mima {
-  override def mimaPreviousVersions = Seq("0.9.0", "0.9.1")
+  def mimaPreviousVersions = Seq("0.9.0", "0.9.1")
 }
 
 trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule with SafeDeps {
@@ -83,11 +83,11 @@ trait OsLibModule extends CrossScalaModule with PublishModule with AcyclicModule
 }
 
 trait OsModule extends OsLibModule with PlatformScalaModule{
-  override def ivyDeps = Agg(Deps.geny)
+  def ivyDeps = Agg(Deps.geny)
 
   // Properly identify the last non-cross segment to treat as platform
   // TODO: remove this once Mill supports this built-in
-  override def sources = T.sources {
+  def sources = T.sources {
     val platform = millModuleSegments
       .value
       .collect { case l: mill.define.Segment.Label => l.value }
@@ -101,10 +101,10 @@ trait OsModule extends OsLibModule with PlatformScalaModule{
 }
 
 trait OsLibTestModule extends ScalaModule with TestModule.Utest with SafeDeps {
-  override def ivyDeps = Agg(Deps.utest, Deps.sourcecode)
+  def ivyDeps = Agg(Deps.utest, Deps.sourcecode)
 
   // we check the textual output of system commands and expect it in english
-  override def forkEnv: Target[Map[String, String]] = T {
+  def forkEnv: Target[Map[String, String]] = T {
     super.forkEnv() ++ Map("LC_ALL" -> "C")
   }
 }
@@ -120,17 +120,17 @@ object os extends Module {
   trait OsNativeModule extends OsModule with ScalaNativeModule{
     def scalaNativeVersion = "0.4.5"
     object test extends Tests with OsLibTestModule {
-      override def nativeLinkStubs = true
+      def nativeLinkStubs = true
     }
   }
 
   object watch extends Module {
     object jvm extends Cross[WatchJvmModule](scalaVersions)
     trait WatchJvmModule extends OsLibModule {
-      override def moduleDeps = super.moduleDeps ++ Seq(os.jvm())
-      override def ivyDeps = Agg(Deps.jna)
+      def moduleDeps = super.moduleDeps ++ Seq(os.jvm())
+      def ivyDeps = Agg(Deps.jna)
       object test extends Tests with OsLibTestModule {
-        override def moduleDeps = super.moduleDeps ++ Seq(os.jvm().test)
+        def moduleDeps = super.moduleDeps ++ Seq(os.jvm().test)
       }
     }
   }
