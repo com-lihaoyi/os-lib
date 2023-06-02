@@ -31,7 +31,7 @@ val scalaNativeVersions = scalaVersions.map((_, "0.4.5"))
 val backwardCompatibleVersions: Seq[String] = Seq("0.9.0", "0.9.1")
 
 object Deps {
-  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.6"
+  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.7"
   val jna = ivy"net.java.dev.jna:jna:5.13.0"
   val geny = ivy"com.lihaoyi::geny::1.0.0"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.3.0"
