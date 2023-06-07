@@ -1,6 +1,6 @@
 // plugins
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.3.1-14-7e2bd2`
-import $ivy.`com.github.lolgab::mill-mima::0.0.22`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
+import $ivy.`com.github.lolgab::mill-mima::0.0.23`
 
 // imports
 import mill._, scalalib._, scalanativelib._, publish._
@@ -95,13 +95,13 @@ object os extends Module {
 
   object jvm extends Cross[OsJvmModule](scalaVersions)
   trait OsJvmModule extends OsModule with MiMaChecks {
-    object test extends ScalaModuleTests with OsLibTestModule
+    object test extends ScalaTests with OsLibTestModule
   }
 
   object native extends Cross[OsNativeModule](scalaVersions)
   trait OsNativeModule extends OsModule with ScalaNativeModule{
     def scalaNativeVersion = "0.4.5"
-    object test extends ScalaNativeModuleTests with OsLibTestModule {
+    object test extends ScalaNativeTests with OsLibTestModule {
       def nativeLinkStubs = true
     }
   }
@@ -111,7 +111,7 @@ object os extends Module {
     trait WatchJvmModule extends OsLibModule {
       def moduleDeps = super.moduleDeps ++ Seq(os.jvm())
       def ivyDeps = Agg(Deps.jna)
-      object test extends ScalaModuleTests with OsLibTestModule {
+      object test extends ScalaTests with OsLibTestModule {
         def moduleDeps = super.moduleDeps ++ Seq(os.jvm().test)
       }
     }
