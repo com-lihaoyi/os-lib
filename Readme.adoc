@@ -14,6 +14,7 @@
 image:{link-oslib}/actions/workflows/build.yml/badge.svg[Build Status,link={link-oslib}/actions]
 image:https://badges.gitter.im/Join%20Chat.svg[Gitter Chat,link={link-oslib-gitter}]
 image:https://img.shields.io/badge/patreon-sponsor-ff69b4.svg[Patreon,link=https://www.patreon.com/lihaoyi]
+image:https://javadoc.io/badge2/com.lihaoyi/os-lib_3/javadoc.svg[API Docs (Scala 3),link=https://javadoc.io/doc/com.lihaoyi/os-lib_3]
 
 [source,scala]
 ----
@@ -85,6 +86,8 @@ ivy"com.lihaoyi::os-lib:{version}"
 // SBT
 "com.lihaoyi" %% "os-lib" % "{version}"
 ----
+
+https://javadoc.io/doc/com.lihaoyi/os-lib_3[API Documentation (Scala 3)]
 
 == Cookbook
 
