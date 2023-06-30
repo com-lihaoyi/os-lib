@@ -56,7 +56,7 @@ trait MiMaChecks extends Mima {
 }
 
 trait OsLibModule
-  extends CrossScalaModule
+    extends CrossScalaModule
     with PublishModule
     with AcyclicModule
     with SafeDeps
@@ -99,7 +99,7 @@ object os extends Module {
   }
 
   object native extends Cross[OsNativeModule](scalaVersions)
-  trait OsNativeModule extends OsModule with ScalaNativeModule{
+  trait OsNativeModule extends OsModule with ScalaNativeModule {
     def scalaNativeVersion = "0.4.5"
     object test extends ScalaNativeTests with OsLibTestModule {
       def nativeLinkStubs = true
