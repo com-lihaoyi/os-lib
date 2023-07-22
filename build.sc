@@ -1,6 +1,6 @@
 // plugins
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
-import $ivy.`com.github.lolgab::mill-mima::0.0.23`
+import $ivy.`com.github.lolgab::mill-mima::0.0.24`
 
 // imports
 import mill._, scalalib._, scalanativelib._, publish._
@@ -56,7 +56,7 @@ trait MiMaChecks extends Mima {
 }
 
 trait OsLibModule
-  extends CrossScalaModule
+    extends CrossScalaModule
     with PublishModule
     with AcyclicModule
     with SafeDeps
@@ -99,7 +99,7 @@ object os extends Module {
   }
 
   object native extends Cross[OsNativeModule](scalaVersions)
-  trait OsNativeModule extends OsModule with ScalaNativeModule{
+  trait OsNativeModule extends OsModule with ScalaNativeModule {
     def scalaNativeVersion = "0.4.5"
     object test extends ScalaNativeTests with OsLibTestModule {
       def nativeLinkStubs = true
