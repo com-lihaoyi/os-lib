@@ -6,7 +6,11 @@ package object os {
   /**
    * The root of the filesystem
    */
-  val root: Path = Path(java.nio.file.Paths.get(".").toAbsolutePath.getRoot)
+  val root: RootPathSelector = new RootPathSelector(java.nio.file.Paths.get(".").toAbsolutePath.getRoot)
+
+  class RootPathSelector(wrapped: java.nio.file.Path) extends Path(wrapped) with (String => Path) {
+    override def apply(root: String): Path = Path(root)
+  }
 
   /**
    * The user's home directory

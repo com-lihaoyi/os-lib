@@ -453,6 +453,7 @@ class Path private[os] (val wrapped: java.nio.file.Path)
     new SeekableSource.ChannelSource(java.nio.file.Files.newByteChannel(wrapped))
 
   require(wrapped.isAbsolute, s"$wrapped is not an absolute path")
+  def root = Option(wrapped.getRoot).map(_.toString).getOrElse("")
   def segments: Iterator[String] = wrapped.iterator().asScala.map(_.toString)
   def getSegment(i: Int): String = wrapped.getName(i).toString
   def segmentCount = wrapped.getNameCount
