@@ -1,7 +1,7 @@
 package os
 
 import java.util.concurrent.{ArrayBlockingQueue, Semaphore, TimeUnit}
-
+import collection.JavaConverters._
 import scala.annotation.tailrec
 
 /**
@@ -21,8 +21,11 @@ import scala.annotation.tailrec
  *   the standard stdin/stdout/stderr streams, using whatever protocol you
  *   want
  */
+
 case class proc(command: Shellable*) {
-  def commandChunks: Seq[String] = command.flatMap(_.value)
+  def commandChunks = command.flatMap(_.value)
+
+  def pipeTo(next: proc) = ProcGroup(Seq(this, next))
 
   /**
    * Invokes the given subprocess like a function, passing in input and returning a
@@ -79,7 +82,6 @@ case class proc(command: Shellable*) {
       mergeErrIntoOut,
       propagateEnv
     )
-    import collection.JavaConverters._
 
     sub.join(timeout)
 
@@ -111,6 +113,136 @@ case class proc(command: Shellable*) {
       mergeErrIntoOut: Boolean = false,
       propagateEnv: Boolean = true
   ): SubProcess = {
+    val builder = buildProcess(commandChunks, cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv)
+
+    val cmdChunks = commandChunks
+    val commandStr = cmdChunks.mkString(" ")
+    lazy val proc: SubProcess = new SubProcess(
+      builder.start(),
+      stdin.processInput(proc.stdin).map(new Thread(_, commandStr + " stdin thread")),
+      stdout.processOutput(proc.stdout).map(new Thread(_, commandStr + " stdout thread")),
+      stderr.processOutput(proc.stderr).map(new Thread(_, commandStr + " stderr thread"))
+    )
+
+    proc.inputPumperThread.foreach(_.start())
+    proc.outputPumperThread.foreach(_.start())
+    proc.errorPumperThread.foreach(_.start())
+    proc
+  }
+}
+
+case class ProcGroup(commands: Seq[proc]) {
+  def pipeTo(next: proc) = ProcGroup(commands :+ next)
+
+  def call(
+    cwd: Path = null,
+    env: Map[String, String] = null,
+    stdin: ProcessInput = Pipe,
+    stdout: ProcessOutput = Pipe,
+    stderr: ProcessOutput = os.Inherit,
+    mergeErrIntoOut: Boolean = false,
+    timeout: Long = -1,
+    check: Boolean = true,
+    propagateEnv: Boolean = true,
+    failFast: Boolean = true,
+    pipefail: Boolean = true
+  ): CommandResult = {
+    val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
+
+    val sub = spawn(
+      cwd,
+      env,
+      stdin,
+      if (stdout ne os.Pipe) stdout
+      else os.ProcessOutput.ReadBytes((buf, n) =>
+        chunks.add(Left(new geny.Bytes(java.util.Arrays.copyOf(buf, n))))
+      ),
+      if (stderr ne os.Pipe) stderr
+      else os.ProcessOutput.ReadBytes((buf, n) =>
+        chunks.add(Right(new geny.Bytes(java.util.Arrays.copyOf(buf, n))))
+      ),
+      mergeErrIntoOut,
+      propagateEnv,
+      failFast,
+      pipefail
+    )
+
+    sub.join(timeout)
+
+    val chunksSeq = chunks.iterator.asScala.toIndexedSeq
+    val res = CommandResult(commandChunks, sub.exitCode(), chunksSeq)
+    if (res.exitCode == 0 || !check) res
+    else throw SubprocessException(res)
+  }
+
+  def spawn(
+    cwd: Path = null,
+    env: Map[String, String] = null,
+    stdin: ProcessInput = Pipe,
+    stdout: ProcessOutput = Pipe,
+    stderr: ProcessOutput = os.Inherit,
+    mergeErrIntoOut: Boolean = false,
+    propagateEnv: Boolean = true,
+    failFast: Boolean = true,
+    pipefail: Boolean = true
+  ): SubProcess = {
+    assert(commands.nonEmpty)
+    val builders = commands.zipWithIndex.map { 
+      case (proc(command), 0) => 
+        (buildProcess(command, cwd, env, stdin, Pipe, stderr, mergeErrIntoOut, propagateEnv),
+        (proc: Process) => {
+          val proc = new SubProcess(
+            proc,
+            stdin.processInput(proc.stdin).map(new Thread(_, commandStr + " stdin thread")),
+            None,
+            stderr.processOutput(proc.stderr).map(new Thread(_, commandStr + " stderr thread"))
+          )
+        })
+      case (proc(command), commands.length - 1) => 
+        (buildProcess(command, cwd, env, Pipe, stdout, stderr, mergeErrIntoOut, propagateEnv),
+        (proc: Process) => {
+          val proc = new SubProcess(
+            proc,
+            None,
+            stdout.processOutput(proc.stdout).map(new Thread(_, commandStr + " stdout thread")),
+            stderr.processOutput(proc.stderr).map(new Thread(_, commandStr + " stderr thread"))
+          )
+        })
+      case (proc(command), index) => 
+        (buildProcess(command, cwd, env, Pipe, Pipe, stderr, mergeErrIntoOut, propagateEnv),
+        (proc: Process) => {
+          val proc = new SubProcess(
+            proc,
+            None,
+            None,
+            stderr.processOutput(proc.stderr).map(new Thread(_, commandStr + " stderr thread"))
+          )
+        })
+    }
+
+    val processes: Seq[Process] = ProcessBuilder.startPipeline(builders.asJava).asScala.toSeq
+    val subprocesses = builders.zip(processes).map { case ((_, f), proc) => f(proc) }
+    subprocesses.flatMap(p => Seq(p.inputPumperThread, p.outputPumperThread, p.errorPumperThread).flatten)
+      .foreach(_.start())
+    
+    val pipeline = ProcessesPipeline(subprocesses,  failFast, pipefail)
+    pipeline.brokenPipeHandler.foreach(_.start())
+    pipeline
+  }
+
+}
+
+private[os] object ProcessOps {
+  def buildProcess(
+      command: Seq[String],
+      cwd: Path = null,
+      env: Map[String, String] = null,
+      stdin: ProcessInput = Pipe,
+      stdout: ProcessOutput = Pipe,
+      stderr: ProcessOutput = os.Inherit,
+      mergeErrIntoOut: Boolean = false,
+      propagateEnv: Boolean = true
+  ): ProcessBuilder = {
     val builder = new java.lang.ProcessBuilder()
 
     val baseEnv =
@@ -123,24 +255,11 @@ case class proc(command: Shellable*) {
 
     builder.directory(Option(cwd).getOrElse(os.pwd).toIO)
 
-    val cmdChunks = commandChunks
-    val commandStr = cmdChunks.mkString(" ")
-    lazy val proc: SubProcess = new SubProcess(
-      builder
-        .command(cmdChunks: _*)
-        .redirectInput(stdin.redirectFrom)
-        .redirectOutput(stdout.redirectTo)
-        .redirectError(stderr.redirectTo)
-        .redirectErrorStream(mergeErrIntoOut)
-        .start(),
-      stdin.processInput(proc.stdin).map(new Thread(_, commandStr + " stdin thread")),
-      stdout.processOutput(proc.stdout).map(new Thread(_, commandStr + " stdout thread")),
-      stderr.processOutput(proc.stderr).map(new Thread(_, commandStr + " stderr thread"))
-    )
-
-    proc.inputPumperThread.foreach(_.start())
-    proc.outputPumperThread.foreach(_.start())
-    proc.errorPumperThread.foreach(_.start())
-    proc
+    builder
+      .command(cmdChunks: _*)
+      .redirectInput(stdin.redirectFrom)
+      .redirectOutput(stdout.redirectTo)
+      .redirectError(stderr.redirectTo)
+      .redirectErrorStream(mergeErrIntoOut)
   }
 }

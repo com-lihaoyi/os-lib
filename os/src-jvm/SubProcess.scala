@@ -4,6 +4,26 @@ import java.io._
 import java.util.concurrent.TimeUnit
 
 import scala.language.implicitConversions
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.LinkedTransferQueue
+
+trait ProcessLike {
+
+  def exitCode(): Int
+
+  def isAlive(): Boolean
+
+  def destroy(): Unit
+
+  def destroyForcibly(): Unit
+
+  def close(): Unit
+
+  def waitFor(timeout: Long = -1): Boolean
+
+  def join(timeout: Long = -1): Boolean
+}
+
 
 /**
  * Represents a spawn subprocess that has started and may or may not have
@@ -14,7 +34,7 @@ class SubProcess(
     val inputPumperThread: Option[Thread],
     val outputPumperThread: Option[Thread],
     val errorPumperThread: Option[Thread]
-) extends java.lang.AutoCloseable {
+) extends java.lang.AutoCloseable with ProcessLike {
   val stdin: SubProcess.InputStream = new SubProcess.InputStream(wrapped.getOutputStream)
   val stdout: SubProcess.OutputStream = new SubProcess.OutputStream(wrapped.getInputStream)
   val stderr: SubProcess.OutputStream = new SubProcess.OutputStream(wrapped.getErrorStream)
@@ -166,6 +186,82 @@ object SubProcess {
     }
 
     override def close() = wrapped.close()
+  }
+}
+
+class ProcessesPipeline(
+  processes: Seq[SubProcess],
+  failFast: Boolean,
+  pipefail: Boolean
+) extends AutoCloseable with ProcessLike {
+
+  val failFastHandler: Option[Thread] = Option.when(failFast) {
+    val finishedProcessQueue = new LinkedBlockingQueue[Int]()
+    val processExitListeners = processes.zipWithIndex.map { case (process, index) =>
+      new Thread(() => {
+        process.join()
+        finishedProcessQueue.put(index)
+      })
+    }
+
+    val pipeBreakListener = new Thread(() => {
+      processExitListeners.foreach(_.start())
+
+      var pipelineRunning = true
+      var highestBrokenPipeIndex = -1
+      while(pipelineRunning) {  
+        val brokenPipeIndex = finishedProcessQueue.take()
+        if(brokenPipeIndex > highestBrokenPipeIndex) {
+          highestBrokenPipeIndex = brokenPipeIndex
+          if(brokenPipeIndex == processes.length - 1) 
+            pipelineRunning = false
+          pipelineRunning = pipelineRunning && processes(brokenPipeIndex).exitCode() == 0
+
+          processes.take(brokenPipeIndex).filter(_.isAlive()).foreach(_.destroyForcibly())
+        }
+      }
+      processes.filter(_.isAlive()).foreach(_.destroyForcibly())
+      processExitListeners.foreach(_.join())
+    })
+    pipeBreakListener
+  }
+
+  override def exitCode(): Int = {
+    if (pipefail) 
+      processes.map(_.exitCode())
+      .filter(_ != 0)
+      .headOption
+      .getOrElse(0)
+    else 
+      processes.last.exitCode()
+  }
+
+  override def isAlive(): Boolean = {
+    processes.last.isAlive()
+  }
+
+  override def destroy(): Unit = {
+    processes.foreach(_.destroy())
+  }
+
+  override def destroyForcibly(): Unit = {
+    processes.foreach(_.destroyForcibly())
+  }
+
+  override def close(): Unit = {
+    processes.foreach(_.close())
+  }
+
+  override def waitFor(timeout: Long = -1): Boolean = {
+    processes.last.waitFor(timeout)
+  }
+
+  override def join(timeout: Long = -1): Boolean = {
+    processes.last.join(timeout)
+  }
+
+  override def close(): Boolean = {
+    processes.foreach(_.close())
   }
 }
 
