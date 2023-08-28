@@ -237,10 +237,12 @@ sealed trait FilePath extends BasePath {
   def toNIO: java.nio.file.Path
   def resolveFrom(base: os.Path): os.Path
 }
+
 object FilePath {
   def apply[T: PathConvertible](f0: T) = {
-    val f = implicitly[PathConvertible[T]].apply(f0)
-    if (f.isAbsolute) Path(f0)
+    def f = implicitly[PathConvertible[T]].apply(f0)
+    // if Windows semi-absolute path, convert it to an absolute path
+    if (Path.rootRelative(f0) || f.isAbsolute) Path(f0)
     else {
       val r = RelPath(f0)
       if (r.ups == 0) r.asSubPath
@@ -297,7 +299,7 @@ object RelPath {
   def apply[T: PathConvertible](f0: T): RelPath = {
     val f = implicitly[PathConvertible[T]].apply(f0)
 
-    require(!f.isAbsolute, s"$f is not a relative path")
+    require(!f.isAbsolute && !Path.rootRelative(f0), s"$f is not a relative path")
 
     val segments = BasePath.chunkify(f.normalize())
     val (ups, rest) = segments.partition(_ == "..")
@@ -399,11 +401,14 @@ object Path {
   def apply[T: PathConvertible](f: T, base: Path): Path = apply(FilePath(f), base)
   def apply[T: PathConvertible](f0: T): Path = {
     val f = implicitly[PathConvertible[T]].apply(f0)
-    if (f.iterator.asScala.count(_.startsWith("..")) > f.getNameCount / 2) {
-      throw PathError.AbsolutePathOutsideRoot
+    def nioPath = java.nio.file.Paths.get(s"$currentDrive/$f0").normalize
+    val normalized = if (rootRelative(f0)) nioPath
+    else {
+      if (f.iterator.asScala.count(_.startsWith("..")) > f.getNameCount / 2) {
+        throw PathError.AbsolutePathOutsideRoot
+      }
+      f.normalize()
     }
-
-    val normalized = f.normalize()
     new Path(normalized)
   }
 
@@ -435,7 +440,21 @@ object Path {
       }
     }
   }
-
+  def rootRelative[T: PathConvertible](f0: T): Boolean = {
+    if (currentWorkingDrive.isEmpty) {
+      false // non-Windows os
+    } else {
+      f0.toString.take(1) match {
+        case "\\" | "/" => true
+        case _ => false
+      }
+    }
+  }
+  def currentWorkingDrive: String = Paths.get("").toAbsolutePath.getRoot.toString match {
+    case "/" => ""
+    case s => s"$s/"
+  }
+  def currentDrive: Path = Path(currentWorkingDrive)
 }
 
 trait ReadablePath {

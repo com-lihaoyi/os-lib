@@ -6,12 +6,15 @@ import os._
 import utest.{assert => _, _}
 import java.net.URI
 object PathTests extends TestSuite {
+  val wintest = Option(System.getenv("WINPATHTEST")).nonEmpty
+  def enableTest = Unix() || wintest
   val tests = Tests {
     test("Basic") {
       val base = rel / "src" / "main" / "scala"
       val subBase = sub / "src" / "main" / "scala"
+      def norm(s: String) = s.replace('\\', '/')
       test("Transformers") {
-        if (Unix()) {
+        if (enableTest) {
           // os.Path to java.nio.file.Path
           assert((root / "omg").wrapped == Paths.get("/omg"))
 
@@ -84,7 +87,7 @@ object PathTests extends TestSuite {
       test("RelPath") {
         test("Constructors") {
           test("Symbol") {
-            if (Unix()) {
+            if (enableTest) {
               val rel1 = base / "ammonite"
               assert(
                 rel1.segments == Seq("src", "main", "scala", "ammonite"),
@@ -93,7 +96,7 @@ object PathTests extends TestSuite {
             }
           }
           test("String") {
-            if (Unix()) {
+            if (enableTest) {
               val rel1 = base / "Path.scala"
               assert(
                 rel1.segments == Seq("src", "main", "scala", "Path.scala"),
@@ -107,25 +110,25 @@ object PathTests extends TestSuite {
               rel1.toString == "src/main/scala/sub1/sub2"
             )
             test("ArrayString") {
-              if (Unix()) {
+              if (enableTest) {
                 val arr = Array("sub1", "sub2")
                 check(base / arr)
               }
             }
             test("ArraySymbol") {
-              if (Unix()) {
+              if (enableTest) {
                 val arr = Array("sub1", "sub2")
                 check(base / arr)
               }
             }
             test("SeqString") {
-              if (Unix()) check(base / Seq("sub1", "sub2"))
+              if (enableTest) check(base / Seq("sub1", "sub2"))
             }
             test("SeqSymbol") {
-              if (Unix()) check(base / Seq("sub1", "sub2"))
+              if (enableTest) check(base / Seq("sub1", "sub2"))
             }
             test("SeqSeqSeqSymbol") {
-              if (Unix()) {
+              if (enableTest) {
                 check(
                   base / Seq(Seq(Seq("sub1"), Seq()), Seq(Seq("sub2")), Seq())
                 )
@@ -148,7 +151,7 @@ object PathTests extends TestSuite {
       test("SubPath") {
         test("Constructors") {
           test("Symbol") {
-            if (Unix()) {
+            if (enableTest) {
               val rel1 = subBase / "ammonite"
               assert(
                 rel1.segments == Seq("src", "main", "scala", "ammonite"),
@@ -157,7 +160,7 @@ object PathTests extends TestSuite {
             }
           }
           test("String") {
-            if (Unix()) {
+            if (enableTest) {
               val rel1 = subBase / "Path.scala"
               assert(
                 rel1.segments == Seq("src", "main", "scala", "Path.scala"),
@@ -171,25 +174,25 @@ object PathTests extends TestSuite {
               rel1.toString == "src/main/scala/sub1/sub2"
             )
             test("ArrayString") {
-              if (Unix()) {
+              if (enableTest) {
                 val arr = Array("sub1", "sub2")
                 check(subBase / arr)
               }
             }
             test("ArraySymbol") {
-              if (Unix()) {
+              if (enableTest) {
                 val arr = Array("sub1", "sub2")
                 check(subBase / arr)
               }
             }
             test("SeqString") {
-              if (Unix()) check(subBase / Seq("sub1", "sub2"))
+              if (enableTest) check(subBase / Seq("sub1", "sub2"))
             }
             test("SeqSymbol") {
-              if (Unix()) check(subBase / Seq("sub1", "sub2"))
+              if (enableTest) check(subBase / Seq("sub1", "sub2"))
             }
             test("SeqSeqSeqSymbol") {
-              if (Unix()) {
+              if (enableTest) {
                 check(
                   subBase / Seq(Seq(Seq("sub1"), Seq()), Seq(Seq("sub2")), Seq())
                 )
@@ -210,8 +213,8 @@ object PathTests extends TestSuite {
         val d = pwd
         val abs = d / base
         test("Constructor") {
-          if (Unix()) assert(
-            abs.toString.drop(d.toString.length) == "/src/main/scala",
+          if (enableTest) assert(
+            norm(abs.toString.drop(d.toString.length)) == "/src/main/scala",
             abs.toString.length > d.toString.length
           )
         }
@@ -307,7 +310,7 @@ object PathTests extends TestSuite {
         intercept[PathError.InvalidSegment](rel / "src" / "..")
       }
       test("CannotRelativizeAbsAndRel") {
-        if (Unix()) {
+        if (enableTest) {
           val abs = pwd
           val rel = os.rel / "omg" / "wtf"
           compileError("""
@@ -319,7 +322,7 @@ object PathTests extends TestSuite {
         }
       }
       test("InvalidCasts") {
-        if (Unix()) {
+        if (enableTest) {
           intercept[IllegalArgumentException](Path("omg/cow"))
           intercept[IllegalArgumentException](RelPath("/omg/cow"))
         }
@@ -366,7 +369,7 @@ object PathTests extends TestSuite {
     }
     test("construction") {
       test("success") {
-        if (Unix()) {
+        if (enableTest) {
           val relStr = "hello/cow/world/.."
           val absStr = "/hello/world"
 
@@ -390,7 +393,7 @@ object PathTests extends TestSuite {
         }
       }
       test("basepath") {
-        if (Unix()) {
+        if (enableTest) {
           val relStr = "hello/cow/world/.."
           val absStr = "/hello/world"
           assert(
@@ -400,7 +403,7 @@ object PathTests extends TestSuite {
         }
       }
       test("based") {
-        if (Unix()) {
+        if (enableTest) {
           val relStr = "hello/cow/world/.."
           val absStr = "/hello/world"
           val basePath: FilePath = FilePath(relStr)
@@ -411,7 +414,7 @@ object PathTests extends TestSuite {
         }
       }
       test("failure") {
-        if (Unix()) {
+        if (enableTest) {
           val relStr = "hello/.."
           intercept[java.lang.IllegalArgumentException] {
             Path(relStr)

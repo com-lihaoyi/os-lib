@@ -6,8 +6,13 @@ target/
 .project
 .cache
 .sbtserver
+.scala-build/
+.bsp/
 project/.sbtserver
 tags
 nohup.out
 out
 lowered.hnir
+
+# ignore vim swap files
+*.sw[op]
