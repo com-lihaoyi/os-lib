@@ -13,6 +13,3 @@ tags
 nohup.out
 out
 lowered.hnir
-
-# ignore vim swap files
-*.sw[op]

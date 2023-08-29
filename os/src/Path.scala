@@ -400,10 +400,11 @@ object Path {
 
   def apply[T: PathConvertible](f: T, base: Path): Path = apply(FilePath(f), base)
   def apply[T: PathConvertible](f0: T): Path = {
-    val f = implicitly[PathConvertible[T]].apply(f0)
-    def nioPath = java.nio.file.Paths.get(s"$currentDrive/$f0").normalize
+    // drive letter prefix is empty unless running in Windows.
+    def nioPath = java.nio.file.Paths.get(s"$platformPrefix$f0").normalize
     val normalized = if (rootRelative(f0)) nioPath
     else {
+      val f = implicitly[PathConvertible[T]].apply(f0)
       if (f.iterator.asScala.count(_.startsWith("..")) > f.getNameCount / 2) {
         throw PathError.AbsolutePathOutsideRoot
       }
@@ -440,8 +441,15 @@ object Path {
       }
     }
   }
+  /**
+   * @return true if Windows OS and path begins with slash or backslash.
+   * Examples:
+   *    rootRelative("/Users")   // true in `Windows`, false elsewhere.
+   *    rootRelative("\\Users")  // true in `Windows`, false elsewhere.
+   *    rootRelative("C:/Users") // false always
+   */
   def rootRelative[T: PathConvertible](f0: T): Boolean = {
-    if (currentWorkingDrive.isEmpty) {
+    if (platformPrefix.isEmpty) {
       false // non-Windows os
     } else {
       f0.toString.take(1) match {
@@ -450,11 +458,13 @@ object Path {
       }
     }
   }
-  def currentWorkingDrive: String = Paths.get("").toAbsolutePath.getRoot.toString match {
-    case "/" => ""
-    case s => s"$s/"
+  /**
+   * @return current working drive if Windows, empty string elsewhere.
+   */
+  val platformPrefix: String = Paths.get(".").toAbsolutePath.getRoot.toString match {
+    case "/" => ""   // implies a non-Windows platform
+    case s => s"$s/" // Windows current working drive
   }
-  def currentDrive: Path = Path(currentWorkingDrive)
 }
 
 trait ReadablePath {
