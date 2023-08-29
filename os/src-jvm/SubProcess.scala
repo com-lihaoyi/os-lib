@@ -191,39 +191,25 @@ object SubProcess {
 
 class ProcessesPipeline(
   processes: Seq[SubProcess],
-  failFast: Boolean,
-  pipefail: Boolean
+  pipefail: Boolean,
+  brokenPipeQueue: Option[LinkedBlockingQueue[Int]], // to emulate pipeline behavior in jvm < 9
 ) extends AutoCloseable with ProcessLike {
 
-  val failFastHandler: Option[Thread] = Option.when(failFast) {
-    val finishedProcessQueue = new LinkedBlockingQueue[Int]()
-    val processExitListeners = processes.zipWithIndex.map { case (process, index) =>
-      new Thread(() => {
-        process.join()
-        finishedProcessQueue.put(index)
-      })
-    }
-
-    val pipeBreakListener = new Thread(() => {
-      processExitListeners.foreach(_.start())
-
+  val brokenPipeHandler: Option[Thread] = brokenPipeQueue.map { queue =>
+    new Thread(() => {
       var pipelineRunning = true
       var highestBrokenPipeIndex = -1
-      while(pipelineRunning) {  
-        val brokenPipeIndex = finishedProcessQueue.take()
+      while(highestBrokenPipeIndex < processes.size - 1) {  
+        val brokenPipeIndex = brokenPipeQueue.take()
         if(brokenPipeIndex > highestBrokenPipeIndex) {
           highestBrokenPipeIndex = brokenPipeIndex
-          if(brokenPipeIndex == processes.length - 1) 
-            pipelineRunning = false
-          pipelineRunning = pipelineRunning && processes(brokenPipeIndex).exitCode() == 0
-
-          processes.take(brokenPipeIndex).filter(_.isAlive()).foreach(_.destroyForcibly())
+          processes.take(brokenPipeIndex)
+            .filter(_.isAlive())
+            .foreach(_.destroyForcibly())
         }
       }
       processes.filter(_.isAlive()).foreach(_.destroyForcibly())
-      processExitListeners.foreach(_.join())
     })
-    pipeBreakListener
   }
 
   override def exitCode(): Int = {
