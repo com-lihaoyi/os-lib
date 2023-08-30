@@ -6,7 +6,9 @@ import scala.annotation.tailrec
 import java.lang.ProcessBuilder.Redirect
 import os.SubProcess.InputStream
 import java.io.IOException
-
+import java.util.concurrent.LinkedBlockingQueue
+import ProcessOps._
+import scala.util.Try
 /**
  * Convenience APIs around [[java.lang.Process]] and [[java.lang.ProcessBuilder]]:
  *
@@ -26,7 +28,7 @@ import java.io.IOException
  */
 
 case class proc(command: Shellable*) {
-  def commandChunks = command.flatMap(_.value)
+  def commandChunks: Seq[String] = command.flatMap(_.value)
 
   def pipeTo(next: proc): ProcGroup = ProcGroup(Seq(this, next))
 
@@ -135,7 +137,7 @@ case class proc(command: Shellable*) {
 }
 
 case class ProcGroup(commands: Seq[proc]) {
-  assert(comamnds.size >= 2)
+  assert(commands.size >= 2)
 
   def pipeTo(next: proc) = ProcGroup(commands :+ next)
 
@@ -149,7 +151,6 @@ case class ProcGroup(commands: Seq[proc]) {
     timeout: Long = -1,
     check: Boolean = true,
     propagateEnv: Boolean = true,
-    failFast: Boolean = true,
     pipefail: Boolean = true
   ): CommandResult = {
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
@@ -168,21 +169,20 @@ case class ProcGroup(commands: Seq[proc]) {
       ),
       mergeErrIntoOut,
       propagateEnv,
-      failFast,
       pipefail
     )
 
     sub.join(timeout)
 
     val chunksSeq = chunks.iterator.asScala.toIndexedSeq
-    val res = CommandResult(commandChunks, sub.exitCode(), chunksSeq)
+    val res = CommandResult(commands.flatMap(_.commandChunks :+ "|").init, sub.exitCode(), chunksSeq)
     if (res.exitCode == 0 || !check) res
     else throw SubprocessException(res)
   }
 
   private lazy val isAtLeastJvm9: Boolean = {
     val version = Option(System.getProperty("java.version"))
-    val major = version.flatMap(_.split("\\.")(0).toIntOption)
+    val major = version.map(_.split("\\.")(0)).flatMap(v => Try(v.toInt).toOption)
     major.exists(_ >= 9)
   }
 
@@ -195,8 +195,8 @@ case class ProcGroup(commands: Seq[proc]) {
     mergeErrIntoOut: Boolean = false,
     propagateEnv: Boolean = true,
     pipefail: Boolean = true
-  ): SubProcess = {
-    if(isAtLeastJvm9) spawnJvm9(cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv, failFast, pipefail)
+  ): ProcessPipeline = {
+    if(isAtLeastJvm9) spawnJvm9(cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv, pipefail)
     else spawnJvmOld(cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv, pipefail)
   }
 
@@ -209,62 +209,71 @@ case class ProcGroup(commands: Seq[proc]) {
     mergeErrIntoOut: Boolean = false,
     propagateEnv: Boolean = true,
     pipefail: Boolean = true
-  ): SubProcess = {
+  ): ProcessPipeline = {
     val builders = commands.zipWithIndex.map { 
       // First process in pipeline, we assert that there are at least two proceses in the pipepline,
       // so there is no need to cover the case when the first and the last processes are the same.
-      case (proc(command), 0) => 
-        (buildProcess(command, cwd, env, stdin, Pipe, stderr, mergeErrIntoOut, propagateEnv),
+      case (p, 0) => 
+        (buildProcess(p.commandChunks, cwd, env, stdin, Pipe, stderr, mergeErrIntoOut, propagateEnv),
         (proc: Process) => {
-          val proc = new SubProcess(
+          val commandStr = p.commandChunks.mkString(" ")
+          lazy val subproc: SubProcess = new SubProcess(
             proc,
-            stdin.processInput(proc.stdin).map(new Thread(_, commandStr + " stdin thread")),
-            None, //
-            stderr.processOutput(proc.stderr).map(new Thread(_, commandStr + " stderr thread"))
+            stdin.processInput(subproc.stdin).map(new Thread(_, commandStr + " stdin thread")),
+            None, 
+            stderr.processOutput(subproc.stderr).map(new Thread(_, commandStr + " stderr thread"))
           )
+          subproc
         })
       // Last process in the pipeline
-      case (proc(command), commands.length - 1) => 
-        (buildProcess(command, cwd, env, Pipe, stdout, stderr, mergeErrIntoOut, propagateEnv),
+      case (p, index) if index == commands.length - 1 => 
+        (buildProcess(p.commandChunks, cwd, env, Pipe, stdout, stderr, mergeErrIntoOut, propagateEnv),
         (proc: Process) => {
-          val proc = new SubProcess(
+          val commandStr = p.commandChunks.mkString(" ")
+          lazy val subproc: SubProcess = new SubProcess(
             proc,
             None,
-            stdout.processOutput(proc.stdout).map(new Thread(_, commandStr + " stdout thread")),
-            stderr.processOutput(proc.stderr).map(new Thread(_, commandStr + " stderr thread"))
+            stdout.processOutput(subproc.stdout).map(new Thread(_, commandStr + " stdout thread")),
+            stderr.processOutput(subproc.stderr).map(new Thread(_, commandStr + " stderr thread"))
           )
+          subproc
         })
-      case (proc(command), index) => 
-        (buildProcess(command, cwd, env, Pipe, Pipe, stderr, mergeErrIntoOut, propagateEnv),
+      case (p, index) => 
+        (buildProcess(p.commandChunks, cwd, env, Pipe, Pipe, stderr, mergeErrIntoOut, propagateEnv),
         (proc: Process) => {
-          val proc = new SubProcess(
+          val commandStr = p.commandChunks.mkString(" ")
+          lazy val subproc: SubProcess = new SubProcess(
             proc,
             None,
             None,
-            stderr.processOutput(proc.stderr).map(new Thread(_, commandStr + " stderr thread"))
+            stderr.processOutput(subproc.stderr).map(new Thread(_, commandStr + " stderr thread"))
           )
+          subproc
         })
     }
 
-    val processes: Seq[Process] = ProcessBuilder.startPipeline(builders.asJava).asScala.toSeq
+    val processes: Seq[Process] = ProcessBuilder.startPipeline(builders.map(_._1).asJava).asScala.toSeq
     val subprocesses = builders.zip(processes).map { case ((_, f), proc) => f(proc) }
     subprocesses.flatMap(p => Seq(p.inputPumperThread, p.outputPumperThread, p.errorPumperThread).flatten)
       .foreach(_.start())
     
-    ProcessesPipeline(subprocesses, None, pipefail)
+    new ProcessPipeline(subprocesses, pipefail, None)
   }
 
   private def wrapWithBrokenPipeHandler(wrapped: ProcessInput, index: Int, queue: LinkedBlockingQueue[Int]) = 
     new ProcessInput {
       override def redirectFrom: Redirect = wrapped.redirectFrom
-      override def processInput(stdin: => InputStream): Option[Runnable] = {
-        try {
-          wrapped.processInput(stdin)
-        } catch {
-          case _: IOException => queue.put(index)
+      override def processInput(stdin: => InputStream): Option[Runnable] = wrapped.processInput(stdin).map { runnable => new Runnable {
+        def run() = {
+          try {
+            runnable.run()
+          } catch {
+            case _: IOException => queue.put(index)
+          }
         }
       }
     }
+  }
 
   private def spawnJvmOld(
     cwd: Path = null,
@@ -275,19 +284,20 @@ case class ProcGroup(commands: Seq[proc]) {
     mergeErrIntoOut: Boolean = false,
     propagateEnv: Boolean = true,
     pipefail: Boolean = true
-  ): SubProcess = {
+  ): ProcessPipeline = {
     val brokenPipeQueue = new LinkedBlockingQueue[Int]()
     val (_, procs) = commands.zipWithIndex.foldLeft((Option.empty[ProcessInput], Seq.empty[SubProcess])) {
       case ((None, _), (proc, _)) =>
-        val proc = proc.spawn(cwd, env, stdin, Pipe, stderr, mergeErrIntoOut, propagateEnv)
+        val spawned = proc.spawn(cwd, env, stdin, Pipe, stderr, mergeErrIntoOut, propagateEnv)
+        (Some(spawned.stdout), Seq(spawned))
       case ((Some(input), acc), (proc, index)) if index == commands.length - 1 =>
-        val proc = proc.spawn(cwd, env, wrapWithBrokenPipeHandler(input, index, brokenPipeQueue), stdout, stderr, mergeErrIntoOut, propagateEnv)
-        (None, acc :+ proc)
+        val spawned = proc.spawn(cwd, env, wrapWithBrokenPipeHandler(input, index, brokenPipeQueue), stdout, stderr, mergeErrIntoOut, propagateEnv)
+        (None, acc :+ spawned)
       case ((Some(input), acc), (proc, index)) =>
-        val proc = proc.spawn(cwd, env, wrapWithBrokenPipeHandler(input, index, brokenPipeQueue), Pipe, stderr, mergeErrIntoOut, propagateEnv)
-        (Some(proc.stdout), acc :+ proc)
+        val spawned = proc.spawn(cwd, env, wrapWithBrokenPipeHandler(input, index, brokenPipeQueue), Pipe, stderr, mergeErrIntoOut, propagateEnv)
+        (Some(spawned.stdout), acc :+ spawned)
     }
-    val pipeline = ProcessesPipeline(procs, Some(brokenPipeQueue), pipefail)
+    val pipeline = new ProcessPipeline(procs, pipefail, Some(brokenPipeQueue))
     pipeline.brokenPipeHandler.foreach(_.start())
     pipeline
   }
@@ -295,7 +305,7 @@ case class ProcGroup(commands: Seq[proc]) {
 }
 
 private[os] object ProcessOps {
-  private def buildProcess(
+  def buildProcess(
       command: Seq[String],
       cwd: Path = null,
       env: Map[String, String] = null,
@@ -318,7 +328,7 @@ private[os] object ProcessOps {
     builder.directory(Option(cwd).getOrElse(os.pwd).toIO)
 
     builder
-      .command(cmdChunks: _*)
+      .command(command: _*)
       .redirectInput(stdin.redirectFrom)
       .redirectOutput(stdout.redirectTo)
       .redirectError(stderr.redirectTo)

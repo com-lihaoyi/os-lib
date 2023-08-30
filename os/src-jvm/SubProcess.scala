@@ -6,6 +6,8 @@ import java.util.concurrent.TimeUnit
 import scala.language.implicitConversions
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.LinkedTransferQueue
+import java.util.concurrent.LinkedBlockingQueue
+import scala.annotation.tailrec
 
 trait ProcessLike {
 
@@ -189,27 +191,40 @@ object SubProcess {
   }
 }
 
-class ProcessesPipeline(
+class ProcessPipeline(
   processes: Seq[SubProcess],
   pipefail: Boolean,
-  brokenPipeQueue: Option[LinkedBlockingQueue[Int]], // to emulate pipeline behavior in jvm < 9
+  brokenPipeQueue: Option[LinkedBlockingQueue[Int]] // to emulate pipeline behavior in jvm < 9
 ) extends AutoCloseable with ProcessLike {
+  pipeline =>
+
+  def commandString = processes.map(_.wrapped.toString).mkString(" | ")
 
   val brokenPipeHandler: Option[Thread] = brokenPipeQueue.map { queue =>
-    new Thread(() => {
-      var pipelineRunning = true
-      var highestBrokenPipeIndex = -1
-      while(highestBrokenPipeIndex < processes.size - 1) {  
-        val brokenPipeIndex = brokenPipeQueue.take()
-        if(brokenPipeIndex > highestBrokenPipeIndex) {
-          highestBrokenPipeIndex = brokenPipeIndex
-          processes.take(brokenPipeIndex)
-            .filter(_.isAlive())
-            .foreach(_.destroyForcibly())
+    new Thread( new Runnable {
+      override def run(): Unit = {
+        var pipelineRunning = true
+        var processesStopped = 0
+        while(pipelineRunning) {  
+          val brokenPipeIndex = queue.take()
+          if(brokenPipeIndex == processes.length) { // Special case signaling finished pipeline
+            pipelineRunning = false
+          } else {
+            processes(brokenPipeIndex).destroyForcibly()
+            processesStopped += 1
+            if (processesStopped == processes.length) {
+              pipelineRunning = false
+            }
+          }
         }
+        new Thread(new Runnable {
+          override def run(): Unit = {
+            while(!pipeline.waitFor()) {} // handle spurious wakes
+            queue.put(processes.length) // Signal finished pipeline
+          }
+        }, commandString + " pipeline termination handler").start()
       }
-      processes.filter(_.isAlive()).foreach(_.destroyForcibly())
-    })
+    }, commandString + " broken pipe handler")
   }
 
   override def exitCode(): Int = {
@@ -239,15 +254,42 @@ class ProcessesPipeline(
   }
 
   override def waitFor(timeout: Long = -1): Boolean = {
-    processes.last.waitFor(timeout)
+    @tailrec
+    def waitForRec(startedAt: Long, processesLeft: Seq[SubProcess]): Boolean = processesLeft match {
+      case Nil => true
+      case head :: tail =>
+        val elapsed = System.currentTimeMillis() - startedAt
+        val timeoutLeft = timeout - elapsed
+        if(timeoutLeft < 0) false
+        else if(head.waitFor(timeoutLeft)) waitForRec(startedAt, tail)
+        else false
+    }
+
+    if(timeout == -1) {
+      processes.forall(_.waitFor())
+    } else {
+      val timeNow = System.currentTimeMillis()
+      waitForRec(timeNow, processes)
+    }
   }
 
   override def join(timeout: Long = -1): Boolean = {
-    processes.last.join(timeout)
-  }
+    @tailrec
+    def joinRec(startedAt: Long, processesLeft: Seq[SubProcess], result: Boolean): Boolean = processesLeft match {
+      case Nil => result
+      case head :: tail =>
+        val elapsed = System.currentTimeMillis() - startedAt
+        val timeoutLeft = Math.max(0, timeout - elapsed)
+        val exitedCleanly = head.join(timeoutLeft)
+        joinRec(startedAt, tail, result && exitedCleanly)
+    }
 
-  override def close(): Boolean = {
-    processes.foreach(_.close())
+    if(timeout == -1) {
+      processes.forall(_.join())
+    } else {
+      val timeNow = System.currentTimeMillis()
+      joinRec(timeNow, processes, true)
+    }
   }
 }
 
