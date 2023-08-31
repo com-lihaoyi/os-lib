@@ -441,6 +441,7 @@ object Path {
       }
     }
   }
+
   /**
    * @return true if Windows OS and path begins with slash or backslash.
    * Examples:
@@ -458,11 +459,12 @@ object Path {
       }
     }
   }
+
   /**
    * @return current working drive if Windows, empty string elsewhere.
    */
   val platformPrefix: String = Paths.get(".").toAbsolutePath.getRoot.toString match {
-    case "/" => ""   // implies a non-Windows platform
+    case "/" => "" // implies a non-Windows platform
     case s => s"$s/" // Windows current working drive
   }
 }
