@@ -151,7 +151,8 @@ case class ProcGroup(commands: Seq[proc]) {
     timeout: Long = -1,
     check: Boolean = true,
     propagateEnv: Boolean = true,
-    pipefail: Boolean = true
+    pipefail: Boolean = true,
+    imitatePipeline: Boolean = isJvmOlderThan9
   ): CommandResult = {
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
 
@@ -169,7 +170,8 @@ case class ProcGroup(commands: Seq[proc]) {
       ),
       mergeErrIntoOut,
       propagateEnv,
-      pipefail
+      pipefail,
+      imitatePipeline
     )
 
     sub.join(timeout)
@@ -180,11 +182,13 @@ case class ProcGroup(commands: Seq[proc]) {
     else throw SubprocessException(res)
   }
 
-  private lazy val isAtLeastJvm9: Boolean = {
+  private lazy val isJvmOlderThan9: Boolean = {
     val version = Option(System.getProperty("java.version"))
     val major = version.map(_.split("\\.")(0)).flatMap(v => Try(v.toInt).toOption)
-    major.exists(_ >= 9)
+    major.exists(_ < 9)
   }
+
+  private lazy val isWindows: Boolean = System.getProperty("os.name").toLowerCase().contains("windows")
 
   def spawn(
     cwd: Path = null,
@@ -194,10 +198,14 @@ case class ProcGroup(commands: Seq[proc]) {
     stderr: ProcessOutput = os.Inherit,
     mergeErrIntoOut: Boolean = false,
     propagateEnv: Boolean = true,
-    pipefail: Boolean = true
+    pipefail: Boolean = true,
+    imitatePipeline: Boolean = isJvmOlderThan9
   ): ProcessPipeline = {
-    if(isAtLeastJvm9) spawnJvm9(cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv, pipefail)
-    else spawnJvmOld(cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv, pipefail)
+    println("Spawning imitate")
+    if(!imitatePipeline && isJvmOlderThan9)
+      throw new UnsupportedOperationException("Non-imitated process pipelines are only supported on Java 9+")
+    if(imitatePipeline) spawnImitatePipeline(cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv, pipefail) 
+    else spawnJvm9(cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv, pipefail)
   }
 
   private def spawnJvm9(
@@ -210,6 +218,7 @@ case class ProcGroup(commands: Seq[proc]) {
     propagateEnv: Boolean = true,
     pipefail: Boolean = true
   ): ProcessPipeline = {
+    println("Spawning jvm9")
     val builders = commands.zipWithIndex.map { 
       // First process in pipeline, we assert that there are at least two proceses in the pipepline,
       // so there is no need to cover the case when the first and the last processes are the same.
@@ -275,7 +284,7 @@ case class ProcGroup(commands: Seq[proc]) {
     }
   }
 
-  private def spawnJvmOld(
+  private def spawnImitatePipeline(
     cwd: Path = null,
     env: Map[String, String] = null,
     stdin: ProcessInput = Pipe,

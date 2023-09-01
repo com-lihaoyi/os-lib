@@ -6,6 +6,7 @@ object Main {
     val readSleep = args(1).toInt
     var i = 0
     while(i < readN) {
+      System.err.println("At: " + i)
       val read = readLine()
       println("Read: " + read)
       Thread.sleep(readSleep)

@@ -192,7 +192,7 @@ object SubProcess {
 }
 
 class ProcessPipeline(
-  processes: Seq[SubProcess],
+  val processes: Seq[SubProcess],
   pipefail: Boolean,
   brokenPipeQueue: Option[LinkedBlockingQueue[Int]] // to emulate pipeline behavior in jvm < 9
 ) extends AutoCloseable with ProcessLike {

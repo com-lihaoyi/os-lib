@@ -37,7 +37,7 @@ object TestUtil {
     str1Normalized == str2Normalized
   }
 
-  def prep[T](f: os.Path => T)(implicit tp: TestPath, fn: sourcecode.FullName) = {
+def prep[T](f: os.Path => T)(implicit tp: TestPath, fn: sourcecode.FullName) = {
     val segments = Seq("out", "scratch") ++ fn.value.split('.').drop(2) ++ tp.value
 
     val directory = Paths.get(segments.mkString("/"))
