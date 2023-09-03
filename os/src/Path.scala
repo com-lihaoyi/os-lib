@@ -407,8 +407,6 @@ object Path {
       } else {
         implicitly[PathConvertible[T]].apply(f0)
       }
-      // in Windows, getNameCount includes the drive letter
-      // but the segment iterator doesn't include it
       if (f.iterator.asScala.count(_.startsWith("..")) > f.getNameCount / 2) {
         throw PathError.AbsolutePathOutsideRoot
       }
