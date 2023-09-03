@@ -3,20 +3,20 @@ package test.os
 import java.nio.file.Paths
 
 import os._
+import os.Path.{platformPrefix}
 import utest.{assert => _, _}
 import java.net.URI
 object PathTests extends TestSuite {
-  val wintest = Option(System.getenv("WINPATHTEST")).nonEmpty
-  def enableTest = Unix() || wintest
+  def enableTest = true
   val tests = Tests {
     test("Basic") {
       val base = rel / "src" / "main" / "scala"
       val subBase = sub / "src" / "main" / "scala"
-      def norm(s: String) = s.replace('\\', '/')
       test("Transformers") {
         if (enableTest) {
-          // os.Path to java.nio.file.Path
-          assert((root / "omg").wrapped == Paths.get("/omg"))
+          // compare os.Path to java.nio.file.Path
+          assert((root / "omg").norm == Paths.get("/omg").norm)
+          assert(sameFile((root / "omg").wrapped, Paths.get("/omg")))
 
           // java.nio.file.Path to os.Path
           assert(root / "omg" == Path(Paths.get("/omg")))
@@ -37,7 +37,7 @@ object PathTests extends TestSuite {
           intercept[IllegalArgumentException](Path(ldapUri))
 
           // os.Path to String
-          assert((root / "omg").toString == "/omg")
+          assert((root / "omg").posix == s"$platformPrefix/omg")
           assert((rel / "omg").toString == "omg")
           assert((sub / "omg").toString == "omg")
           assert((up / "omg").toString == "../omg")
@@ -213,8 +213,8 @@ object PathTests extends TestSuite {
         val d = pwd
         val abs = d / base
         test("Constructor") {
-          if (enableTest) assert(
-            norm(abs.toString.drop(d.toString.length)) == "/src/main/scala",
+          assert(
+            abs.posix.drop(d.toString.length) == "/src/main/scala",
             abs.toString.length > d.toString.length
           )
         }
@@ -439,5 +439,34 @@ object PathTests extends TestSuite {
       assert(result1 == expected)
       assert(result2 == expected)
     }
+    test("issue201") {
+      Path("/omg") // rootRelative path does not throw exception.
+    }
+  }
+  // compare absolute paths
+  def sameFile(a: java.nio.file.Path, b: java.nio.file.Path): Boolean = {
+    a.toAbsolutePath == b.toAbsolutePath
+  }
+  def sameFile(a: os.Path, b: java.nio.file.Path): Boolean = {
+    sameFile(a.wrapped, b)
+  }
+  def sameFile(a: Path, b: Path): Boolean = {
+    sameFile(a.wrapped, b.wrapped)
+  }
+  implicit class ExtendString(s: String) {
+    def posix: String = s.replace('\\', '/')
+    def norm: String = if (s.startsWith(platformPrefix)) {
+      s.posix // already has platformPrefix
+    } else {
+      s"$platformPrefix${s.posix}"
+    }
+  }
+  implicit class ExtendOsPath(p: os.Path) {
+    def posix: String = p.toNIO.toString.posix
+    def norm: String = p.toString.norm
+  }
+  implicit class ExtendPath(p: java.nio.file.Path) {
+    def posix: String = p.toString.posix
+    def norm: String = p.toString.norm
   }
 }

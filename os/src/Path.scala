@@ -401,10 +401,14 @@ object Path {
   def apply[T: PathConvertible](f: T, base: Path): Path = apply(FilePath(f), base)
   def apply[T: PathConvertible](f0: T): Path = {
     // drive letter prefix is empty unless running in Windows.
-    def nioPath = java.nio.file.Paths.get(s"$platformPrefix$f0").normalize
-    val normalized = if (rootRelative(f0)) nioPath
-    else {
-      val f = implicitly[PathConvertible[T]].apply(f0)
+    val normalized = {
+      val f = if (rootRelative(f0)) {
+        Paths.get(s"$platformPrefix$f0")
+      } else {
+        implicitly[PathConvertible[T]].apply(f0)
+      }
+      // in Windows, getNameCount includes the drive letter
+      // but the segment iterator doesn't include it
       if (f.iterator.asScala.count(_.startsWith("..")) > f.getNameCount / 2) {
         throw PathError.AbsolutePathOutsideRoot
       }
@@ -449,11 +453,13 @@ object Path {
    *    rootRelative("\\Users")  // true in `Windows`, false elsewhere.
    *    rootRelative("C:/Users") // false always
    */
-  def rootRelative[T: PathConvertible](f0: T): Boolean = {
+  def rootRelative[T: PathConvertible](f0: T): Boolean = rootRelative(f0.toString)
+
+  def rootRelative(s: String): Boolean = {
     if (platformPrefix.isEmpty) {
       false // non-Windows os
     } else {
-      f0.toString.take(1) match {
+      s.toString.take(1) match {
         case "\\" | "/" => true
         case _ => false
       }
@@ -463,9 +469,9 @@ object Path {
   /**
    * @return current working drive if Windows, empty string elsewhere.
    */
-  val platformPrefix: String = Paths.get(".").toAbsolutePath.getRoot.toString match {
+  lazy val platformPrefix: String = Paths.get(".").toAbsolutePath.getRoot.toString match {
     case "/" => "" // implies a non-Windows platform
-    case s => s"$s/" // Windows current working drive
+    case s => s.take(2) // Windows current working drive (e.g., "C:")
   }
 }
 
@@ -483,7 +489,7 @@ class Path private[os] (val wrapped: java.nio.file.Path)
   def toSource: SeekableSource =
     new SeekableSource.ChannelSource(java.nio.file.Files.newByteChannel(wrapped))
 
-  require(wrapped.isAbsolute, s"$wrapped is not an absolute path")
+  require(wrapped.isAbsolute || Path.rootRelative(wrapped), s"$wrapped is not an absolute path")
   def segments: Iterator[String] = wrapped.iterator().asScala.map(_.toString)
   def getSegment(i: Int): String = wrapped.getName(i).toString
   def segmentCount = wrapped.getNameCount
