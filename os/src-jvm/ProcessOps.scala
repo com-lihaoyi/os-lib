@@ -151,8 +151,7 @@ case class ProcGroup(commands: Seq[proc]) {
     timeout: Long = -1,
     check: Boolean = true,
     propagateEnv: Boolean = true,
-    pipefail: Boolean = true,
-    imitatePipeline: Boolean = isJvmOlderThan9
+    pipefail: Boolean = true
   ): CommandResult = {
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
 
@@ -170,8 +169,7 @@ case class ProcGroup(commands: Seq[proc]) {
       ),
       mergeErrIntoOut,
       propagateEnv,
-      pipefail,
-      imitatePipeline
+      pipefail
     )
 
     sub.join(timeout)
@@ -182,14 +180,6 @@ case class ProcGroup(commands: Seq[proc]) {
     else throw SubprocessException(res)
   }
 
-  private lazy val isJvmOlderThan9: Boolean = {
-    val version = Option(System.getProperty("java.version"))
-    val major = version.map(_.split("\\.")(0)).flatMap(v => Try(v.toInt).toOption)
-    major.exists(_ < 9)
-  }
-
-  private lazy val isWindows: Boolean = System.getProperty("os.name").toLowerCase().contains("windows")
-
   def spawn(
     cwd: Path = null,
     env: Map[String, String] = null,
@@ -199,74 +189,23 @@ case class ProcGroup(commands: Seq[proc]) {
     mergeErrIntoOut: Boolean = false,
     propagateEnv: Boolean = true,
     pipefail: Boolean = true,
-    imitatePipeline: Boolean = isJvmOlderThan9
+    handleBrokenPipe: Boolean = true
   ): ProcessPipeline = {
-    println("Spawning imitate")
-    if(!imitatePipeline && isJvmOlderThan9)
-      throw new UnsupportedOperationException("Non-imitated process pipelines are only supported on Java 9+")
-    if(imitatePipeline) spawnImitatePipeline(cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv, pipefail) 
-    else spawnJvm9(cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv, pipefail)
-  }
-
-  private def spawnJvm9(
-    cwd: Path = null,
-    env: Map[String, String] = null,
-    stdin: ProcessInput = Pipe,
-    stdout: ProcessOutput = Pipe,
-    stderr: ProcessOutput = os.Inherit,
-    mergeErrIntoOut: Boolean = false,
-    propagateEnv: Boolean = true,
-    pipefail: Boolean = true
-  ): ProcessPipeline = {
-    println("Spawning jvm9")
-    val builders = commands.zipWithIndex.map { 
-      // First process in pipeline, we assert that there are at least two proceses in the pipepline,
-      // so there is no need to cover the case when the first and the last processes are the same.
-      case (p, 0) => 
-        (buildProcess(p.commandChunks, cwd, env, stdin, Pipe, stderr, mergeErrIntoOut, propagateEnv),
-        (proc: Process) => {
-          val commandStr = p.commandChunks.mkString(" ")
-          lazy val subproc: SubProcess = new SubProcess(
-            proc,
-            stdin.processInput(subproc.stdin).map(new Thread(_, commandStr + " stdin thread")),
-            None, 
-            stderr.processOutput(subproc.stderr).map(new Thread(_, commandStr + " stderr thread"))
-          )
-          subproc
-        })
-      // Last process in the pipeline
-      case (p, index) if index == commands.length - 1 => 
-        (buildProcess(p.commandChunks, cwd, env, Pipe, stdout, stderr, mergeErrIntoOut, propagateEnv),
-        (proc: Process) => {
-          val commandStr = p.commandChunks.mkString(" ")
-          lazy val subproc: SubProcess = new SubProcess(
-            proc,
-            None,
-            stdout.processOutput(subproc.stdout).map(new Thread(_, commandStr + " stdout thread")),
-            stderr.processOutput(subproc.stderr).map(new Thread(_, commandStr + " stderr thread"))
-          )
-          subproc
-        })
-      case (p, index) => 
-        (buildProcess(p.commandChunks, cwd, env, Pipe, Pipe, stderr, mergeErrIntoOut, propagateEnv),
-        (proc: Process) => {
-          val commandStr = p.commandChunks.mkString(" ")
-          lazy val subproc: SubProcess = new SubProcess(
-            proc,
-            None,
-            None,
-            stderr.processOutput(subproc.stderr).map(new Thread(_, commandStr + " stderr thread"))
-          )
-          subproc
-        })
+    val brokenPipeQueue = new LinkedBlockingQueue[Int]()
+    val (_, procs) = commands.zipWithIndex.foldLeft((Option.empty[ProcessInput], Seq.empty[SubProcess])) {
+      case ((None, _), (proc, _)) =>
+        val spawned = proc.spawn(cwd, env, stdin, Pipe, stderr, mergeErrIntoOut, propagateEnv)
+        (Some(spawned.stdout), Seq(spawned))
+      case ((Some(input), acc), (proc, index)) if index == commands.length - 1 =>
+        val spawned = proc.spawn(cwd, env, wrapWithBrokenPipeHandler(input, index - 1, brokenPipeQueue), stdout, stderr, mergeErrIntoOut, propagateEnv)
+        (None, acc :+ spawned)
+      case ((Some(input), acc), (proc, index)) =>
+        val spawned = proc.spawn(cwd, env, wrapWithBrokenPipeHandler(input, index - 1, brokenPipeQueue), Pipe, stderr, mergeErrIntoOut, propagateEnv)
+        (Some(spawned.stdout), acc :+ spawned)
     }
-
-    val processes: Seq[Process] = ProcessBuilder.startPipeline(builders.map(_._1).asJava).asScala.toSeq
-    val subprocesses = builders.zip(processes).map { case ((_, f), proc) => f(proc) }
-    subprocesses.flatMap(p => Seq(p.inputPumperThread, p.outputPumperThread, p.errorPumperThread).flatten)
-      .foreach(_.start())
-    
-    new ProcessPipeline(subprocesses, pipefail, None)
+    val pipeline = new ProcessPipeline(procs, pipefail, Option.when(handleBrokenPipe)(brokenPipeQueue))
+    pipeline.brokenPipeHandler.foreach(_.start())
+    pipeline
   }
 
   private def wrapWithBrokenPipeHandler(wrapped: ProcessInput, index: Int, queue: LinkedBlockingQueue[Int]) = 
@@ -277,40 +216,14 @@ case class ProcGroup(commands: Seq[proc]) {
           try {
             runnable.run()
           } catch {
-            case _: IOException => queue.put(index)
+            case e: IOException => 
+              println("Error!" + e)
+              queue.put(index)
           }
         }
       }
     }
   }
-
-  private def spawnImitatePipeline(
-    cwd: Path = null,
-    env: Map[String, String] = null,
-    stdin: ProcessInput = Pipe,
-    stdout: ProcessOutput = Pipe,
-    stderr: ProcessOutput = os.Inherit,
-    mergeErrIntoOut: Boolean = false,
-    propagateEnv: Boolean = true,
-    pipefail: Boolean = true
-  ): ProcessPipeline = {
-    val brokenPipeQueue = new LinkedBlockingQueue[Int]()
-    val (_, procs) = commands.zipWithIndex.foldLeft((Option.empty[ProcessInput], Seq.empty[SubProcess])) {
-      case ((None, _), (proc, _)) =>
-        val spawned = proc.spawn(cwd, env, stdin, Pipe, stderr, mergeErrIntoOut, propagateEnv)
-        (Some(spawned.stdout), Seq(spawned))
-      case ((Some(input), acc), (proc, index)) if index == commands.length - 1 =>
-        val spawned = proc.spawn(cwd, env, wrapWithBrokenPipeHandler(input, index, brokenPipeQueue), stdout, stderr, mergeErrIntoOut, propagateEnv)
-        (None, acc :+ spawned)
-      case ((Some(input), acc), (proc, index)) =>
-        val spawned = proc.spawn(cwd, env, wrapWithBrokenPipeHandler(input, index, brokenPipeQueue), Pipe, stderr, mergeErrIntoOut, propagateEnv)
-        (Some(spawned.stdout), acc :+ spawned)
-    }
-    val pipeline = new ProcessPipeline(procs, pipefail, Some(brokenPipeQueue))
-    pipeline.brokenPipeHandler.foreach(_.start())
-    pipeline
-  }
-
 }
 
 private[os] object ProcessOps {

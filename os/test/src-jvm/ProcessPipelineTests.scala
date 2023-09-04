@@ -10,17 +10,16 @@ import scala.util.Try
 
 object ProcessPipelineTests extends TestSuite {
   val scriptFolder = pwd / "os" / "test" / "resources" / "scripts"
-
+  
   def isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
-  def isUnix = Try(os.proc("uname").call().exitCode).toOption.exists(_ == 0)
 
   def scriptProc(name: String, args: String*): Seq[String] = Seq("scala", (scriptFolder / name).toString()) ++ args.toSeq
 
-  def writerProc(n: Int, wait: Int): Seq[String] = scriptProc("writer.scala", n.toString, wait.toString)
-  def readerProc(n: Int, wait: Int): Seq[String] = scriptProc("reader.scala", n.toString, wait.toString)
+  def writerProc(n: Int, wait: Int, debugOutput: Boolean = true): Seq[String] = scriptProc("writer.scala", n.toString, wait.toString, debugOutput.toString)
+  def readerProc(n: Int, wait: Int, debugOutput: Boolean = true): Seq[String] = scriptProc("reader.scala", n.toString, wait.toString, debugOutput.toString)
   def exitProc(code: Int, wait: Int): Seq[String] = scriptProc("exit.scala", code.toString, wait.toString)
 
-  val tests = Tests {
+  val commonTests = Tests {
     test("pipelineCall") {
       val resultLines = os.proc(writerProc(10, 10))
         .pipeTo(os.proc(readerProc(10, 10)))
@@ -89,7 +88,6 @@ object ProcessPipelineTests extends TestSuite {
         .spawn(pipefail = false)
       
       p.waitFor()
-      println (p.exitCode())
       assert(p.exitCode == 0)
     }
 
@@ -100,69 +98,35 @@ object ProcessPipelineTests extends TestSuite {
         .spawn(pipefail = true)
       
       p.waitFor()
-      println (p.exitCode())
       assert(p.exitCode == 213)
     }
+  }
 
-    test("imitatePipeline") {
-      test("pipelineCall") {
-        val resultLines = os.proc(writerProc(10, 10))
-          .pipeTo(os.proc(readerProc(10, 10)))
-          .call(imitatePipeline = true).out.lines().toSeq
+  val nonWindowsTests = Tests {
+    test("brokenPipe") {
+      val p = os.proc(writerProc(-1, 0, false))
+        .pipeTo(os.proc(readerProc(3, 0, false)))
+        .spawn()
 
-        val expectedLog = (0 until 10).map(i => s"Read: Hello $i")
-        assert(expectedLog.forall(resultLines.contains))
-      }
+      p.waitFor(10000)
+      val finished = !p.isAlive()
+      p.destroy()
 
-      test("pipelineSpawn") {
-        val buffer = new collection.mutable.ArrayBuffer[String]()
-        val p = os.proc(writerProc(10, 10))
-          .pipeTo(os.proc(readerProc(10, 10)))
-          .spawn(stdout = os.ProcessOutput.Readlines(s => buffer.append(s)), imitatePipeline = true)
-
-        p.waitFor()
-
-        val expectedLog = (0 until 10).map(i => s"Read: Hello $i")
-        assert(expectedLog.forall(buffer.contains))
-      }
-
-      test("longPipepelineSpawn") {
-        val buffer = new collection.mutable.ArrayBuffer[String]()
-        val p = os.proc(writerProc(10, 10))
-          .pipeTo(os.proc(readerProc(10, 10)))
-          .pipeTo(os.proc(readerProc(10, 10)))
-          .pipeTo(os.proc(readerProc(10, 10)))
-          .spawn(stdout = os.ProcessOutput.Readlines(s => buffer.append(s)), imitatePipeline = true)
-
-        p.waitFor()
-
-        val expectedLog = (0 until 10).map(i => s"Read: Read: Read: Hello $i") // each reader appends "Read:"
-        assert(expectedLog.forall(buffer.contains))
-      }
-
-      test("brokenPipe") {
-        val stderr = new collection.mutable.ArrayBuffer[String]()
-        val p = os.proc(writerProc(10, 10))
-          .pipeTo(os.proc(readerProc(5, 10)))
-          .spawn(stderr = os.ProcessOutput.Readlines(s => stderr.append(s)), imitatePipeline = true)
-
-        p.waitFor()
-
-        assert(true) // what?
-      }
+      assert(finished)
     }
-    
-    test("jvm9Pipeline") {
-      test("brokenPipe") {
-        val stderr = new collection.mutable.ArrayBuffer[String]()
-        val p = os.proc(writerProc(10, 10))
-          .pipeTo(os.proc(readerProc(5, 10)))
-          .spawn(stderr = os.ProcessOutput.Readlines(s => stderr.append(s)), imitatePipeline = false)
 
-        p.waitFor()
+    test("brokenPipeNotHandled") {
+      val p = os.proc(writerProc(-1, 0, false))
+        .pipeTo(os.proc(readerProc(3, 0, false)))
+        .spawn(handleBrokenPipe = false)
 
-        assert(stderr.contains("Got PIPE - exiting"))
-      }
+      p.waitFor(1000)
+      val alive = p.isAlive()
+      p.destroy()
+      
+      assert(alive)
     }
   }
+
+  override def tests: Tests = if(!isWindows) commonTests ++ nonWindowsTests else commonTests
 }

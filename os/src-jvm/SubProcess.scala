@@ -204,18 +204,15 @@ class ProcessPipeline(
     new Thread( new Runnable {
       override def run(): Unit = {
         var pipelineRunning = true
-        var processesStopped = 0
         while(pipelineRunning) {  
           val brokenPipeIndex = queue.take()
+          println("Killing " + brokenPipeIndex)
           if(brokenPipeIndex == processes.length) { // Special case signaling finished pipeline
             pipelineRunning = false
           } else {
             processes(brokenPipeIndex).destroyForcibly()
-            processesStopped += 1
-            if (processesStopped == processes.length) {
-              pipelineRunning = false
-            }
           }
+          println("Processes status: " + processes.map(_.isAlive()))
         }
         new Thread(new Runnable {
           override def run(): Unit = {
