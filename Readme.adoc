@@ -1657,6 +1657,48 @@ val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
 sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
 ----
 
+== Spawning Pipelines of Subprocesses
+
+After constructing a subprocess with `os.proc`, you can use the `pipeTo` method
+to pipe its output to another subprocess:
+
+[source,scala]
+----
+val wc = os.proc("ls", "-l")
+  .pipeTo(os.proc("wc", "-l"))
+  .call()
+  .out.text()
+----
+
+This is equivalent to the shell command `ls -l | wc -l`. You can chain together
+as many subprocesses as you like. Note that by using this API you can utilize
+the broken pipe behaviour of Unix systems. For example, you can take 10 first elements
+of output from the `yes` command, and after the `head` command terminates, the `yes`
+command will be terminated as well:
+
+[source,scala]
+----
+val yes10 = os.proc("yes")
+  .pipeTo(os.proc("head", "-n", "10"))
+  .call()
+  .out.text()
+----
+
+This feature is implemented inside the library and will terminate any process reading the
+stdin of other process in pipeline on every IO error. This behavior can be disabled via the 
+`handleBrokenPipe` flag on `call` and `spawn` methods. Note that Windows does not support 
+broken pipe behaviour, so a command like`yes` would run forever. `handleBrokenPipe` is set 
+to false by default on Windows.
+
+Both `call` and `spawn` correspond in their behavior to their counterparts in the `os.proc`,
+but `spawn` returns the `os.ProcessPipeline` instance instead. It offers the same 
+`API` as `SubProcess`, but will operate on the set of processes instead of a single one.
+
+`Pipefail`` is enabled by default, so if any of the processes in the pipeline fails, the whole
+pipeline will have a non-zero exit code. This behavior can be disabled via the `pipefail` flag
+on `call` and `spawn` methods. Note that the pipefail does not kill the processes in the pipeline,
+it just sets the exit code of the pipeline to the exit code of the failed process.
+
 === Watching for Changes
 
 ==== `os.watch.watch`

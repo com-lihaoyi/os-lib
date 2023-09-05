@@ -126,6 +126,20 @@ object ProcessPipelineTests extends TestSuite {
       
       assert(alive)
     }
+
+    test("longBrokenPipePropagate") {
+      val p = os.proc(writerProc(-1, 0, false))
+        .pipeTo(os.proc(readerProc(-1, 0, false)))
+        .pipeTo(os.proc(readerProc(-1, 0, false)))
+        .pipeTo(os.proc(readerProc(3, 0, false)))
+        .spawn()
+
+      p.waitFor(30000) // long to avoid flaky tests
+      val finished = !p.isAlive()
+      p.destroy()
+
+      assert(finished)
+    }
   }
 
   override def tests: Tests = if(!isWindows) commonTests ++ nonWindowsTests else commonTests

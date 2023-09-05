@@ -30,8 +30,6 @@ import scala.util.Try
 case class proc(command: Shellable*) {
   def commandChunks: Seq[String] = command.flatMap(_.value)
 
-  def pipeTo(next: proc): ProcGroup = ProcGroup(Seq(this, next))
-
   /**
    * Invokes the given subprocess like a function, passing in input and returning a
    * [[CommandResult]]. You can then call `result.exitCode` to see how it exited, or
@@ -101,9 +99,6 @@ case class proc(command: Shellable*) {
    * and starts a subprocess, and returns it as a `java.lang.Process` for you to
    * interact with however you like.
    *
-   * To implement pipes, you can spawn a process, take it's stdout, and pass it
-   * as the stdin of a second spawned process.
-   *
    * Note that if you provide `ProcessOutput` callbacks to `stdout`/`stderr`,
    * the calls to those callbacks take place on newly spawned threads that
    * execute in parallel with the main thread. Thus make sure any data
@@ -134,13 +129,60 @@ case class proc(command: Shellable*) {
     proc.errorPumperThread.foreach(_.start())
     proc
   }
+
+  /**
+   * Pipes the output of this process into the input of the [[next]] process. Returns a
+   * [[ProcGroup]] containing both processes, which you can then either execute or 
+   * pipe further. 
+   */
+  def pipeTo(next: proc): ProcGroup = ProcGroup(Seq(this, next))
 }
 
-case class ProcGroup(commands: Seq[proc]) {
+/**
+  * A group of processes that are piped together, corresponding to e.g. `ls -l | grep .scala`.
+  * You can create a `ProcGroup` by calling `.pipeTo` on a [[proc]] multiple times.
+  * Contains methods corresponding to the methods on [[proc]], but defined for pipelines 
+  * of processes.
+  */
+case class ProcGroup private (commands: Seq[proc]) {
   assert(commands.size >= 2)
 
-  def pipeTo(next: proc) = ProcGroup(commands :+ next)
+  private lazy val isWindows = sys.props("os.name").toLowerCase().contains("windows")
 
+  /**
+   * Invokes the given pipeline like a function, passing in input and returning a
+   * [[CommandResult]]. You can then call `result.exitCode` to see how it exited, or
+   * `result.out.bytes` or `result.err.string` to access the aggregated stdout and
+   * stderr of the subprocess in a number of convenient ways. If a non-zero exit code
+   * is returned, this throws a [[os.SubprocessException]] containing the
+   * [[CommandResult]], unless you pass in `check = false`.
+   * 
+   * For each process in pipeline, the output will be forwarded to the input of the next
+   * process. Input of the first process is set to provided [[stdin]] The output of the last 
+   * process will be returned as the output of the pipeline. [[stderr]] is set for all processes.
+   *
+   * `call` provides a number of parameters that let you configure how the pipeline
+   * is run:
+   *
+   * @param cwd              the working directory of the pipeline
+   * @param env              any additional environment variables you wish to set in the pipeline
+   * @param stdin            any data you wish to pass to the pipelines's standard input (to the first process)
+   * @param stdout           How the pipelines's output stream is configured (the last process stdout)
+   * @param stderr           How the process's error stream is configured (set for all processes)
+   * @param mergeErrIntoOut  merges the pipeline's stderr stream into it's stdout. Note that then the
+   *                         stderr will be forwarded with stdout to subsequent processes in the pipeline.
+   * @param timeout          how long to wait in milliseconds for the pipeline to complete
+   * @param check            disable this to avoid throwing an exception if the pipeline
+   *                         fails with a non-zero exit code
+   * @param propagateEnv     disable this to avoid passing in this parent process's
+   *                         environment variables to the pipeline
+   * @param pipefail         if true, the pipeline's exitCode will be the exit code of the first 
+   *                         failing process. If no process fails, the exit code will be 0.
+   * @param handleBrokenPipe if true, every [[java.io.IOException]] when redirecting output of a process
+   *                         will be caught and handled by killing the writing process. This behaviour
+   *                         is consistent with handlers of SIGPIPE signals in most programs
+   *                         supporting interruptable piping. Disabled by default on Windows.
+   */
   def call(
     cwd: Path = null,
     env: Map[String, String] = null,
@@ -151,7 +193,8 @@ case class ProcGroup(commands: Seq[proc]) {
     timeout: Long = -1,
     check: Boolean = true,
     propagateEnv: Boolean = true,
-    pipefail: Boolean = true
+    pipefail: Boolean = true,
+    handleBrokenPipe: Boolean = !isWindows
   ): CommandResult = {
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
 
@@ -180,6 +223,31 @@ case class ProcGroup(commands: Seq[proc]) {
     else throw SubprocessException(res)
   }
 
+
+  /**
+   * The most flexible of the [[os.ProcGroup]] calls. It sets-up a pipeline of processes,
+   * and returns a [[ProcessPipeline]] for you to interact with however you like.
+   *
+   * Note that if you provide `ProcessOutput` callbacks to `stdout`/`stderr`,
+   * the calls to those callbacks take place on newly spawned threads that
+   * execute in parallel with the main thread. Thus make sure any data
+   * processing you do in those callbacks is thread safe!
+   * @param cwd              the working directory of the pipeline
+   * @param env              any additional environment variables you wish to set in the pipeline
+   * @param stdin            any data you wish to pass to the pipelines's standard input (to the first process)
+   * @param stdout           How the pipelines's output stream is configured (the last process stdout)
+   * @param stderr           How the process's error stream is configured (set for all processes)
+   * @param mergeErrIntoOut  merges the pipeline's stderr stream into it's stdout. Note that then the
+   *                         stderr will be forwarded with stdout to subsequent processes in the pipeline.
+   * @param propagateEnv     disable this to avoid passing in this parent process's
+   *                         environment variables to the pipeline
+   * @param pipefail         if true, the pipeline's exitCode will be the exit code of the first 
+   *                         failing process. If no process fails, the exit code will be 0.
+   * @param handleBrokenPipe if true, every [[java.io.IOException]] when redirecting output of a process
+   *                         will be caught and handled by killing the writing process. This behaviour
+   *                         is consistent with handlers of SIGPIPE signals in most programs
+   *                         supporting interruptable piping. Disabled by default on Windows.
+   */
   def spawn(
     cwd: Path = null,
     env: Map[String, String] = null,
@@ -189,7 +257,7 @@ case class ProcGroup(commands: Seq[proc]) {
     mergeErrIntoOut: Boolean = false,
     propagateEnv: Boolean = true,
     pipefail: Boolean = true,
-    handleBrokenPipe: Boolean = true
+    handleBrokenPipe: Boolean = !isWindows
   ): ProcessPipeline = {
     val brokenPipeQueue = new LinkedBlockingQueue[Int]()
     val (_, procs) = commands.zipWithIndex.foldLeft((Option.empty[ProcessInput], Seq.empty[SubProcess])) {
@@ -217,13 +285,18 @@ case class ProcGroup(commands: Seq[proc]) {
             runnable.run()
           } catch {
             case e: IOException => 
-              println("Error!" + e)
+              println(s"Broken pipe in process $index")
               queue.put(index)
           }
         }
       }
     }
   }
+
+  /**
+   * Pipes the output of this pipeline into the input of the [[next]] process.
+   */
+  def pipeTo(next: proc) = ProcGroup(commands :+ next)
 }
 
 private[os] object ProcessOps {
