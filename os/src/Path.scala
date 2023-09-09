@@ -241,7 +241,7 @@ sealed trait FilePath extends BasePath {
 object FilePath {
   def apply[T: PathConvertible](f0: T) = {
     def f = implicitly[PathConvertible[T]].apply(f0)
-    // if Windows semi-absolute path, convert it to an absolute path
+    // if Windows root-relative path, convert it to an absolute path
     if (Path.rootRelative(f0) || f.isAbsolute) Path(f0)
     else {
       val r = RelPath(f0)
@@ -401,18 +401,15 @@ object Path {
   def apply[T: PathConvertible](f: T, base: Path): Path = apply(FilePath(f), base)
   def apply[T: PathConvertible](f0: T): Path = {
     // drive letter prefix is empty unless running in Windows.
-    val normalized = {
-      val f = if (rootRelative(f0)) {
-        Paths.get(s"$platformPrefix$f0")
-      } else {
-        implicitly[PathConvertible[T]].apply(f0)
-      }
-      if (f.iterator.asScala.count(_.startsWith("..")) > f.getNameCount / 2) {
-        throw PathError.AbsolutePathOutsideRoot
-      }
-      f.normalize()
+    val f = if (rootRelative(f0)) {
+      Paths.get(s"$platformPrefix$f0")
+    } else {
+      implicitly[PathConvertible[T]].apply(f0)
     }
-    new Path(normalized)
+    if (f.iterator.asScala.count(_.startsWith("..")) > f.getNameCount / 2) {
+      throw PathError.AbsolutePathOutsideRoot
+    }
+    new Path(f.normalize())
   }
 
   implicit val pathOrdering: Ordering[Path] = new Ordering[Path] {
@@ -451,13 +448,11 @@ object Path {
    *    rootRelative("\\Users")  // true in `Windows`, false elsewhere.
    *    rootRelative("C:/Users") // false always
    */
-  def rootRelative[T: PathConvertible](f0: T): Boolean = rootRelative(f0.toString)
-
-  def rootRelative(s: String): Boolean = {
+  def rootRelative[T: PathConvertible](f0: T): Boolean = {
     if (platformPrefix.isEmpty) {
       false // non-Windows os
     } else {
-      s.toString.take(1) match {
+      f0.toString.take(1) match {
         case "\\" | "/" => true
         case _ => false
       }
@@ -466,6 +461,7 @@ object Path {
 
   /**
    * @return current working drive if Windows, empty string elsewhere.
+   * Paths.get(platformPrefix) == current working directory on all platforms.
    */
   lazy val platformPrefix: String = Paths.get(".").toAbsolutePath.getRoot.toString match {
     case "/" => "" // implies a non-Windows platform
