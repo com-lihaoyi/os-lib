@@ -242,7 +242,7 @@ object FilePath {
   def apply[T: PathConvertible](f0: T) = {
     def f = implicitly[PathConvertible[T]].apply(f0)
     // if Windows root-relative path, convert it to an absolute path
-    if (Path.rootRelative(f0) || f.isAbsolute) Path(f0)
+    if (Path.driveRelative(f0) || f.isAbsolute) Path(f0)
     else {
       val r = RelPath(f0)
       if (r.ups == 0) r.asSubPath
@@ -299,7 +299,7 @@ object RelPath {
   def apply[T: PathConvertible](f0: T): RelPath = {
     val f = implicitly[PathConvertible[T]].apply(f0)
 
-    require(!f.isAbsolute && !Path.rootRelative(f0), s"$f is not a relative path")
+    require(!f.isAbsolute && !Path.driveRelative(f0), s"$f is not a relative path")
 
     val segments = BasePath.chunkify(f.normalize())
     val (ups, rest) = segments.partition(_ == "..")
@@ -401,8 +401,8 @@ object Path {
   def apply[T: PathConvertible](f: T, base: Path): Path = apply(FilePath(f), base)
   def apply[T: PathConvertible](f0: T): Path = {
     // drive letter prefix is empty unless running in Windows.
-    val f = if (rootRelative(f0)) {
-      Paths.get(s"$platformPrefix$f0")
+    val f = if (driveRelative(f0)) {
+      Paths.get(s"$driveRoot$f0")
     } else {
       implicitly[PathConvertible[T]].apply(f0)
     }
@@ -444,12 +444,12 @@ object Path {
   /**
    * @return true if Windows OS and path begins with slash or backslash.
    * Examples:
-   *    rootRelative("/Users")   // true in `Windows`, false elsewhere.
-   *    rootRelative("\\Users")  // true in `Windows`, false elsewhere.
-   *    rootRelative("C:/Users") // false always
+   *    driveRelative("/Users")   // true in `Windows`, false elsewhere.
+   *    driveRelative("\\Users")  // true in `Windows`, false elsewhere.
+   *    driveRelative("C:/Users") // false always
    */
-  def rootRelative[T: PathConvertible](f0: T): Boolean = {
-    if (platformPrefix.isEmpty) {
+  def driveRelative[T: PathConvertible](f0: T): Boolean = {
+    if (driveRoot.isEmpty) {
       false // non-Windows os
     } else {
       f0.toString.take(1) match {
@@ -461,9 +461,9 @@ object Path {
 
   /**
    * @return current working drive if Windows, empty string elsewhere.
-   * Paths.get(platformPrefix) == current working directory on all platforms.
+   * Paths.get(driveRoot) == current working directory on all platforms.
    */
-  lazy val platformPrefix: String = Paths.get(".").toAbsolutePath.getRoot.toString match {
+  lazy val driveRoot: String = Paths.get(".").toAbsolutePath.getRoot.toString match {
     case "/" => "" // implies a non-Windows platform
     case s => s.take(2) // Windows current working drive (e.g., "C:")
   }
@@ -483,7 +483,7 @@ class Path private[os] (val wrapped: java.nio.file.Path)
   def toSource: SeekableSource =
     new SeekableSource.ChannelSource(java.nio.file.Files.newByteChannel(wrapped))
 
-  require(wrapped.isAbsolute || Path.rootRelative(wrapped), s"$wrapped is not an absolute path")
+  require(wrapped.isAbsolute || Path.driveRelative(wrapped), s"$wrapped is not an absolute path")
   def segments: Iterator[String] = wrapped.iterator().asScala.map(_.toString)
   def getSegment(i: Int): String = wrapped.getName(i).toString
   def segmentCount = wrapped.getNameCount

@@ -3,7 +3,7 @@ package test.os
 import java.nio.file.Paths
 
 import os._
-import os.Path.{platformPrefix}
+import os.Path.{driveRoot}
 import utest.{assert => _, _}
 import java.net.URI
 object PathTests extends TestSuite {
@@ -12,20 +12,20 @@ object PathTests extends TestSuite {
       val base = rel / "src" / "main" / "scala"
       val subBase = sub / "src" / "main" / "scala"
       test("Transform posix paths") {
-        // verify posix string format of rootRelative path
+        // verify posix string format of driveRelative path
         assert(posix(root / "omg") == posix(Paths.get("/omg").toAbsolutePath))
 
-        // verify rootRelative path
+        // verify driveRelative path
         assert(sameFile((root / "omg").wrapped, Paths.get("/omg")))
 
-        // rootRelative path is an absolute path
-        assert(posix(root / "omg") == s"$platformPrefix/omg")
+        // driveRelative path is an absolute path
+        assert(posix(root / "omg") == s"$driveRoot/omg")
 
-        // Paths.get(platformPrefix) same file as pwd
-        val p1 = Paths.get(platformPrefix)
-        val p2 = pwd.toNIO
+        // Paths.get(driveRoot) same file as pwd
+        val p1 = posix(Paths.get(driveRoot).toAbsolutePath)
+        val p2 = posix(pwd.toNIO.toAbsolutePath)
         System.err.printf("p1[%s]\np2[%s]\n", p1, p2)
-        assert(sameFile(p1, p2))
+        assert(p1 == p2)
       }
       test("Transformers") {
         // java.nio.file.Path to os.Path
@@ -416,7 +416,7 @@ object PathTests extends TestSuite {
       assert(result2 == expected)
     }
     test("issue201") {
-      val p = Path("/omg") // rootRelative path does not throw exception.
+      val p = Path("/omg") // driveRelative path does not throw exception.
       System.err.printf("p[%s]\n", posix(p))
       assert(posix(p) contains "/omg")
     }
@@ -431,7 +431,10 @@ object PathTests extends TestSuite {
   def sameFile(a: Path, b: Path): Boolean = {
     sameFile(a.wrapped, b.wrapped)
   }
-  def posix(s: String): String = s.replace('\\', '/')
+  def posix(s: String): String = s.replace('\\', '/') match {
+    case "/" => "/"
+    case s => s.stripSuffix("/") // no traling suffix
+  }
   def posix(p: java.nio.file.Path): String = posix(p.toString)
   def posix(p: os.Path): String = posix(p.toNIO)
 }
