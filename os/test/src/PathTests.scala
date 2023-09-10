@@ -22,7 +22,12 @@ object PathTests extends TestSuite {
         assert(posix(root / "omg") == s"$driveRoot/omg")
 
         // Paths.get(driveRoot) same file as pwd
-        val p1 = posix(Paths.get(driveRoot).toAbsolutePath)
+        val p1 = posix(Paths.get(driveRoot).toAbsolutePath) match {
+          case s if s.matches(".:.*/") =>
+            s.stripSuffix("/") // java 8, remove spurious trailing slash 
+          case s =>
+            s
+        }
         val p2 = posix(pwd.toNIO.toAbsolutePath)
         System.err.printf("p1[%s]\np2[%s]\n", p1, p2)
         assert(p1 == p2)
@@ -431,10 +436,7 @@ object PathTests extends TestSuite {
   def sameFile(a: Path, b: Path): Boolean = {
     sameFile(a.wrapped, b.wrapped)
   }
-  def posix(s: String): String = s.replace('\\', '/') match {
-    case "/" => "/"
-    case s => s.stripSuffix("/") // no traling suffix
-  }
+  def posix(s: String): String = s.replace('\\', '/')
   def posix(p: java.nio.file.Path): String = posix(p.toString)
   def posix(p: os.Path): String = posix(p.toNIO)
 }
