@@ -21,11 +21,11 @@ object PathTests extends TestSuite {
         // rootRelative path is an absolute path
         assert(posix(root / "omg") == s"$platformPrefix/omg")
 
-        // Paths.get(platformPrefix) same as pwd (not intuitively obvious)
-        val p1 = Paths.get(platformPrefix).toAbsolutePath
+        // Paths.get(platformPrefix) same file as pwd
+        val p1 = Paths.get(platformPrefix)
         val p2 = pwd.toNIO
         System.err.printf("p1[%s]\np2[%s]\n", p1, p2)
-        assert(Paths.get(platformPrefix).toAbsolutePath == pwd.toNIO)
+        assert(sameFile(p1, p2))
       }
       test("Transformers") {
         // java.nio.file.Path to os.Path
