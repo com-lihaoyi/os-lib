@@ -11,17 +11,20 @@ object PathTests extends TestSuite {
     test("Basic") {
       val base = rel / "src" / "main" / "scala"
       val subBase = sub / "src" / "main" / "scala"
-      test("Transform posix paths"){
+      test("Transform posix paths") {
         // verify posix string format of rootRelative path
         assert(posix(root / "omg") == posix(Paths.get("/omg").toAbsolutePath))
 
         // verify rootRelative path
         assert(sameFile((root / "omg").wrapped, Paths.get("/omg")))
-     
+
         // rootRelative path is an absolute path
         assert(posix(root / "omg") == s"$platformPrefix/omg")
-    
+
         // Paths.get(platformPrefix) same as pwd (not intuitively obvious)
+        val p1 = Paths.get(platformPrefix).toAbsolutePath
+        val p2 = pwd.toNIO
+        System.err.printf("p1[%s]\np2[%s]\n", p1, p2)
         assert(Paths.get(platformPrefix).toAbsolutePath == pwd.toNIO)
       }
       test("Transformers") {
