@@ -24,7 +24,7 @@ object PathTests extends TestSuite {
         // Paths.get(driveRoot) same file as pwd
         val p1 = posix(Paths.get(driveRoot).toAbsolutePath) match {
           case s if s.matches(".:.*/") =>
-            s.stripSuffix("/") // java 8, remove spurious trailing slash 
+            s.stripSuffix("/") // java 8, remove spurious trailing slash
           case s =>
             s
         }
