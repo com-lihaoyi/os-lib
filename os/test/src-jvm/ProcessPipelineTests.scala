@@ -11,6 +11,8 @@ import scala.util.Try
 object ProcessPipelineTests extends TestSuite {
   val scriptFolder = pwd / "os" / "test" / "resources" / "scripts"
   
+  lazy val scalaHome = sys.env("SCALA_HOME")
+
   def isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
 
   def scriptProc(name: String, args: String*): Seq[String] = Seq("scala", (scriptFolder / name).toString()) ++ args.toSeq
@@ -88,7 +90,7 @@ object ProcessPipelineTests extends TestSuite {
         .spawn(pipefail = false)
       
       p.waitFor()
-      assert(p.exitCode == 0)
+      assert(p.exitCode() == 0)
     }
 
     test("pipelineWithPipefail") {
@@ -98,7 +100,7 @@ object ProcessPipelineTests extends TestSuite {
         .spawn(pipefail = true)
       
       p.waitFor()
-      assert(p.exitCode == 213)
+      assert(p.exitCode() == 213)
     }
   }
 

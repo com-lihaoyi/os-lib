@@ -144,7 +144,7 @@ case class proc(command: Shellable*) {
   * Contains methods corresponding to the methods on [[proc]], but defined for pipelines 
   * of processes.
   */
-case class ProcGroup private (commands: Seq[proc]) {
+case class ProcGroup private[os] (commands: Seq[proc]) {
   assert(commands.size >= 2)
 
   private lazy val isWindows = sys.props("os.name").toLowerCase().contains("windows")
@@ -271,7 +271,7 @@ case class ProcGroup private (commands: Seq[proc]) {
         val spawned = proc.spawn(cwd, env, wrapWithBrokenPipeHandler(input, index - 1, brokenPipeQueue), Pipe, stderr, mergeErrIntoOut, propagateEnv)
         (Some(spawned.stdout), acc :+ spawned)
     }
-    val pipeline = new ProcessPipeline(procs, pipefail, Option.when(handleBrokenPipe)(brokenPipeQueue))
+    val pipeline = new ProcessPipeline(procs, pipefail, if(handleBrokenPipe) Some(brokenPipeQueue) else None)
     pipeline.brokenPipeHandler.foreach(_.start())
     pipeline
   }
