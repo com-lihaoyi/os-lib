@@ -33,7 +33,7 @@ case class proc(command: Shellable*) {
   /**
    * Invokes the given subprocess like a function, passing in input and returning a
    * [[CommandResult]]. You can then call `result.exitCode` to see how it exited, or
-   * `result.out.bytes` or `result.err.string` to access the aggregated stdout and
+   * `result.out.bytes` or `result.err.text()` to access the aggregated stdout and
    * stderr of the subprocess in a number of convenient ways. If a non-zero exit code
    * is returned, this throws a [[os.SubprocessException]] containing the
    * [[CommandResult]], unless you pass in `check = false`.
