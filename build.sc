@@ -89,6 +89,23 @@ trait OsModule extends OsLibModule { outer =>
   def ivyDeps = Agg(Deps.geny)
 
   def artifactName = "os-lib"
+
+  val scalaDocExternalMappings = Seq(
+    ".*scala.*::scaladoc3::https://scala-lang.org/api/3.x/",
+    ".*java.*::javadoc::https://docs.oracle.com/javase/8/docs/api/",
+    s".*geny.*::scaladoc3::https://javadoc.io/doc/com.lihaoyi/geny_3/${Deps.geny.dep.version}/",
+  ).mkString(",")
+
+  def conditionalScalaDocOptions: T[Seq[String]] = T {
+    if (ZincWorkerUtil.isDottyOrScala3(scalaVersion()))
+      Seq(
+        s"-external-mappings:${scalaDocExternalMappings}"
+      )
+    else Seq()
+  }
+
+  def scalaDocOptions = super.scalaDocOptions() ++ conditionalScalaDocOptions()
+
 }
 
 object os extends Module {
