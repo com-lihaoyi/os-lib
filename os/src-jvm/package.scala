@@ -8,10 +8,12 @@ package object os {
   /**
    * The root of the filesystem
    */
-  val root: RootPathSelector = new RootPathSelector(java.nio.file.Paths.get(".").toAbsolutePath.getRoot)
-
-  class RootPathSelector(wrapped: java.nio.file.Path) extends Path(wrapped) with (String => Path) {
-    override def apply(root: String): Path = Path(root)
+  val root: Path = Path(java.nio.file.Paths.get(".").toAbsolutePath.getRoot)
+  
+  def root(root: String): Path = {
+    val path = Path(root)
+    assert(path.root == root, s"$root is not a root path")
+    path
   }
 
   def resource(implicit resRoot: ResourceRoot = Thread.currentThread().getContextClassLoader) = {
