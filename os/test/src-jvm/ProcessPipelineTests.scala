@@ -10,16 +10,20 @@ import scala.util.Try
 
 object ProcessPipelineTests extends TestSuite {
   val scriptFolder = pwd / "os" / "test" / "resources" / "scripts"
-  
+
   lazy val scalaHome = sys.env("SCALA_HOME")
 
   def isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
 
-  def scriptProc(name: String, args: String*): Seq[String] = Seq("scala-cli", (scriptFolder / name).toString(), "--") ++ args.toSeq
+  def scriptProc(name: String, args: String*): Seq[String] =
+    Seq("scala-cli", (scriptFolder / name).toString(), "--") ++ args.toSeq
 
-  def writerProc(n: Int, wait: Int, debugOutput: Boolean = true): Seq[String] = scriptProc("writer.scala", n.toString, wait.toString, debugOutput.toString)
-  def readerProc(n: Int, wait: Int, debugOutput: Boolean = true): Seq[String] = scriptProc("reader.scala", n.toString, wait.toString, debugOutput.toString)
-  def exitProc(code: Int, wait: Int): Seq[String] = scriptProc("exit.scala", code.toString, wait.toString)
+  def writerProc(n: Int, wait: Int, debugOutput: Boolean = true): Seq[String] =
+    scriptProc("writer.scala", n.toString, wait.toString, debugOutput.toString)
+  def readerProc(n: Int, wait: Int, debugOutput: Boolean = true): Seq[String] =
+    scriptProc("reader.scala", n.toString, wait.toString, debugOutput.toString)
+  def exitProc(code: Int, wait: Int): Seq[String] =
+    scriptProc("exit.scala", code.toString, wait.toString)
 
   val commonTests = Tests {
     test("pipelineCall") {
@@ -53,7 +57,8 @@ object ProcessPipelineTests extends TestSuite {
 
       p.waitFor()
 
-      val expectedLog = (0 until 10).map(i => s"Read: Read: Read: Hello $i") // each reader appends "Read:"
+      val expectedLog =
+        (0 until 10).map(i => s"Read: Read: Read: Hello $i") // each reader appends "Read:"
       assert(expectedLog.forall(buffer.contains))
     }
 
@@ -62,8 +67,11 @@ object ProcessPipelineTests extends TestSuite {
         val buffer = new collection.mutable.ArrayBuffer[String]()
         val p = os.proc(readerProc(1, 10))
           .pipeTo(os.proc(readerProc(1, 10)))
-          .spawn(stdin = wd / "File.txt", stdout = os.ProcessOutput.Readlines(s => buffer.append(s)))
-        
+          .spawn(
+            stdin = wd / "File.txt",
+            stdout = os.ProcessOutput.Readlines(s => buffer.append(s))
+          )
+
         p.waitFor()
 
         assert(buffer.contains("Read: Read: I am cow"))
@@ -88,7 +96,7 @@ object ProcessPipelineTests extends TestSuite {
         .pipeTo(os.proc(exitProc(213, 100)))
         .pipeTo(os.proc(exitProc(0, 400)))
         .spawn(pipefail = false)
-      
+
       p.waitFor()
       assert(p.exitCode() == 0)
     }
@@ -98,7 +106,7 @@ object ProcessPipelineTests extends TestSuite {
         .pipeTo(os.proc(exitProc(213, 100)))
         .pipeTo(os.proc(exitProc(0, 400)))
         .spawn(pipefail = true)
-      
+
       p.waitFor()
       assert(p.exitCode() == 213)
     }
@@ -125,7 +133,7 @@ object ProcessPipelineTests extends TestSuite {
       p.waitFor(1000)
       val alive = p.isAlive()
       p.destroy()
-      
+
       assert(alive)
     }
 
@@ -144,5 +152,5 @@ object ProcessPipelineTests extends TestSuite {
     }
   }
 
-  override def tests: Tests = if(!isWindows) commonTests ++ nonWindowsTests else commonTests
+  override def tests: Tests = if (!isWindows) commonTests ++ nonWindowsTests else commonTests
 }

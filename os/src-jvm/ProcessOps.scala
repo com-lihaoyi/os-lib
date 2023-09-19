@@ -9,6 +9,7 @@ import java.io.IOException
 import java.util.concurrent.LinkedBlockingQueue
 import ProcessOps._
 import scala.util.Try
+
 /**
  * Convenience APIs around [[java.lang.Process]] and [[java.lang.ProcessBuilder]]:
  *
@@ -113,7 +114,8 @@ case class proc(command: Shellable*) {
       mergeErrIntoOut: Boolean = false,
       propagateEnv: Boolean = true
   ): SubProcess = {
-    val builder = buildProcess(commandChunks, cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv)
+    val builder =
+      buildProcess(commandChunks, cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv)
 
     val cmdChunks = commandChunks
     val commandStr = cmdChunks.mkString(" ")
@@ -132,18 +134,18 @@ case class proc(command: Shellable*) {
 
   /**
    * Pipes the output of this process into the input of the [[next]] process. Returns a
-   * [[ProcGroup]] containing both processes, which you can then either execute or 
-   * pipe further. 
+   * [[ProcGroup]] containing both processes, which you can then either execute or
+   * pipe further.
    */
   def pipeTo(next: proc): ProcGroup = ProcGroup(Seq(this, next))
 }
 
 /**
-  * A group of processes that are piped together, corresponding to e.g. `ls -l | grep .scala`.
-  * You can create a `ProcGroup` by calling `.pipeTo` on a [[proc]] multiple times.
-  * Contains methods corresponding to the methods on [[proc]], but defined for pipelines 
-  * of processes.
-  */
+ * A group of processes that are piped together, corresponding to e.g. `ls -l | grep .scala`.
+ * You can create a `ProcGroup` by calling `.pipeTo` on a [[proc]] multiple times.
+ * Contains methods corresponding to the methods on [[proc]], but defined for pipelines
+ * of processes.
+ */
 case class ProcGroup private[os] (commands: Seq[proc]) {
   assert(commands.size >= 2)
 
@@ -156,9 +158,9 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
    * stderr of the subprocess in a number of convenient ways. If a non-zero exit code
    * is returned, this throws a [[os.SubprocessException]] containing the
    * [[CommandResult]], unless you pass in `check = false`.
-   * 
+   *
    * For each process in pipeline, the output will be forwarded to the input of the next
-   * process. Input of the first process is set to provided [[stdin]] The output of the last 
+   * process. Input of the first process is set to provided [[stdin]] The output of the last
    * process will be returned as the output of the pipeline. [[stderr]] is set for all processes.
    *
    * `call` provides a number of parameters that let you configure how the pipeline
@@ -176,7 +178,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
    *                         fails with a non-zero exit code
    * @param propagateEnv     disable this to avoid passing in this parent process's
    *                         environment variables to the pipeline
-   * @param pipefail         if true, the pipeline's exitCode will be the exit code of the first 
+   * @param pipefail         if true, the pipeline's exitCode will be the exit code of the first
    *                         failing process. If no process fails, the exit code will be 0.
    * @param handleBrokenPipe if true, every [[java.io.IOException]] when redirecting output of a process
    *                         will be caught and handled by killing the writing process. This behaviour
@@ -184,17 +186,17 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
    *                         supporting interruptable piping. Disabled by default on Windows.
    */
   def call(
-    cwd: Path = null,
-    env: Map[String, String] = null,
-    stdin: ProcessInput = Pipe,
-    stdout: ProcessOutput = Pipe,
-    stderr: ProcessOutput = os.Inherit,
-    mergeErrIntoOut: Boolean = false,
-    timeout: Long = -1,
-    check: Boolean = true,
-    propagateEnv: Boolean = true,
-    pipefail: Boolean = true,
-    handleBrokenPipe: Boolean = !isWindows
+      cwd: Path = null,
+      env: Map[String, String] = null,
+      stdin: ProcessInput = Pipe,
+      stdout: ProcessOutput = Pipe,
+      stderr: ProcessOutput = os.Inherit,
+      mergeErrIntoOut: Boolean = false,
+      timeout: Long = -1,
+      check: Boolean = true,
+      propagateEnv: Boolean = true,
+      pipefail: Boolean = true,
+      handleBrokenPipe: Boolean = !isWindows
   ): CommandResult = {
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
 
@@ -218,11 +220,11 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
     sub.join(timeout)
 
     val chunksSeq = chunks.iterator.asScala.toIndexedSeq
-    val res = CommandResult(commands.flatMap(_.commandChunks :+ "|").init, sub.exitCode(), chunksSeq)
+    val res =
+      CommandResult(commands.flatMap(_.commandChunks :+ "|").init, sub.exitCode(), chunksSeq)
     if (res.exitCode == 0 || !check) res
     else throw SubprocessException(res)
   }
-
 
   /**
    * The most flexible of the [[os.ProcGroup]] calls. It sets-up a pipeline of processes,
@@ -241,7 +243,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
    *                         stderr will be forwarded with stdout to subsequent processes in the pipeline.
    * @param propagateEnv     disable this to avoid passing in this parent process's
    *                         environment variables to the pipeline
-   * @param pipefail         if true, the pipeline's exitCode will be the exit code of the first 
+   * @param pipefail         if true, the pipeline's exitCode will be the exit code of the first
    *                         failing process. If no process fails, the exit code will be 0.
    * @param handleBrokenPipe if true, every [[java.io.IOException]] when redirecting output of a process
    *                         will be caught and handled by killing the writing process. This behaviour
@@ -249,49 +251,73 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
    *                         supporting interruptable piping. Disabled by default on Windows.
    */
   def spawn(
-    cwd: Path = null,
-    env: Map[String, String] = null,
-    stdin: ProcessInput = Pipe,
-    stdout: ProcessOutput = Pipe,
-    stderr: ProcessOutput = os.Inherit,
-    mergeErrIntoOut: Boolean = false,
-    propagateEnv: Boolean = true,
-    pipefail: Boolean = true,
-    handleBrokenPipe: Boolean = !isWindows
+      cwd: Path = null,
+      env: Map[String, String] = null,
+      stdin: ProcessInput = Pipe,
+      stdout: ProcessOutput = Pipe,
+      stderr: ProcessOutput = os.Inherit,
+      mergeErrIntoOut: Boolean = false,
+      propagateEnv: Boolean = true,
+      pipefail: Boolean = true,
+      handleBrokenPipe: Boolean = !isWindows
   ): ProcessPipeline = {
     val brokenPipeQueue = new LinkedBlockingQueue[Int]()
-    val (_, procs) = commands.zipWithIndex.foldLeft((Option.empty[ProcessInput], Seq.empty[SubProcess])) {
-      case ((None, _), (proc, _)) =>
-        val spawned = proc.spawn(cwd, env, stdin, Pipe, stderr, mergeErrIntoOut, propagateEnv)
-        (Some(spawned.stdout), Seq(spawned))
-      case ((Some(input), acc), (proc, index)) if index == commands.length - 1 =>
-        val spawned = proc.spawn(cwd, env, wrapWithBrokenPipeHandler(input, index - 1, brokenPipeQueue), stdout, stderr, mergeErrIntoOut, propagateEnv)
-        (None, acc :+ spawned)
-      case ((Some(input), acc), (proc, index)) =>
-        val spawned = proc.spawn(cwd, env, wrapWithBrokenPipeHandler(input, index - 1, brokenPipeQueue), Pipe, stderr, mergeErrIntoOut, propagateEnv)
-        (Some(spawned.stdout), acc :+ spawned)
-    }
-    val pipeline = new ProcessPipeline(procs, pipefail, if(handleBrokenPipe) Some(brokenPipeQueue) else None)
+    val (_, procs) =
+      commands.zipWithIndex.foldLeft((Option.empty[ProcessInput], Seq.empty[SubProcess])) {
+        case ((None, _), (proc, _)) =>
+          val spawned = proc.spawn(cwd, env, stdin, Pipe, stderr, mergeErrIntoOut, propagateEnv)
+          (Some(spawned.stdout), Seq(spawned))
+        case ((Some(input), acc), (proc, index)) if index == commands.length - 1 =>
+          val spawned = proc.spawn(
+            cwd,
+            env,
+            wrapWithBrokenPipeHandler(input, index - 1, brokenPipeQueue),
+            stdout,
+            stderr,
+            mergeErrIntoOut,
+            propagateEnv
+          )
+          (None, acc :+ spawned)
+        case ((Some(input), acc), (proc, index)) =>
+          val spawned = proc.spawn(
+            cwd,
+            env,
+            wrapWithBrokenPipeHandler(input, index - 1, brokenPipeQueue),
+            Pipe,
+            stderr,
+            mergeErrIntoOut,
+            propagateEnv
+          )
+          (Some(spawned.stdout), acc :+ spawned)
+      }
+    val pipeline =
+      new ProcessPipeline(procs, pipefail, if (handleBrokenPipe) Some(brokenPipeQueue) else None)
     pipeline.brokenPipeHandler.foreach(_.start())
     pipeline
   }
 
-  private def wrapWithBrokenPipeHandler(wrapped: ProcessInput, index: Int, queue: LinkedBlockingQueue[Int]) = 
+  private def wrapWithBrokenPipeHandler(
+      wrapped: ProcessInput,
+      index: Int,
+      queue: LinkedBlockingQueue[Int]
+  ) =
     new ProcessInput {
       override def redirectFrom: Redirect = wrapped.redirectFrom
-      override def processInput(stdin: => InputStream): Option[Runnable] = wrapped.processInput(stdin).map { runnable => new Runnable {
-        def run() = {
-          try {
-            runnable.run()
-          } catch {
-            case e: IOException => 
-              println(s"Broken pipe in process $index")
-              queue.put(index)
+      override def processInput(stdin: => InputStream): Option[Runnable] =
+        wrapped.processInput(stdin).map { runnable =>
+          new Runnable {
+            def run() = {
+              try {
+                runnable.run()
+              } catch {
+                case e: IOException =>
+                  println(s"Broken pipe in process $index")
+                  queue.put(index)
+              }
+            }
           }
         }
-      }
     }
-  }
 
   /**
    * Pipes the output of this pipeline into the input of the [[next]] process.
