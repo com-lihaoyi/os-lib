@@ -7,7 +7,7 @@ package object os {
    * The root of the filesystem
    */
   val root: Path = Path(java.nio.file.Paths.get(".").toAbsolutePath.getRoot)
-  
+
   def root(root: String): Path = {
     val path = Path(root)
     assert(path.root == root, s"$root is not a root path")
