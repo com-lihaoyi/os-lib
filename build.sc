@@ -14,7 +14,7 @@ val scala213Version = "2.13.10"
 
 val scalaVersions = Seq(
   "3.1.3",
-  "2.12.17",
+  "2.12.18",
   scala213Version,
   "2.11.12"
 ) ++ communityBuildDottyVersion
