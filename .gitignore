@@ -6,6 +6,8 @@ target/
 .project
 .cache
 .sbtserver
+.scala-build/
+.bsp/
 project/.sbtserver
 tags
 nohup.out
