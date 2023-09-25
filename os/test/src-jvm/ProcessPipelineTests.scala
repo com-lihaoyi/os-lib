@@ -7,14 +7,16 @@ import os._
 import utest._
 import TestUtil.prep
 import scala.util.Try
-import scala.util.Properties
 
 object ProcessPipelineTests extends TestSuite {
   val scriptFolder = pwd / "os" / "test" / "resources" / "scripts"
+
   lazy val scalaHome = sys.env("SCALA_HOME")
 
+  def isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
+
   def scriptProc(name: String, args: String*): Seq[String] =
-    Seq("scala-cli" + (if(Properties.isWin) ".exe" else ""), (scriptFolder / name).toString(), "--") ++ args.toSeq
+    Seq("scala-cli" + (if(isWindows) ".exe" else ""), (scriptFolder / name).toString(), "--") ++ args.toSeq
 
   def writerProc(n: Int, wait: Int, debugOutput: Boolean = true): Seq[String] =
     scriptProc("writer.scala", n.toString, wait.toString, debugOutput.toString)
@@ -150,5 +152,5 @@ object ProcessPipelineTests extends TestSuite {
     }
   }
 
-  override def tests: Tests = if (!Properties.isWin) commonTests ++ nonWindowsTests else commonTests
+  override def tests: Tests = if (!isWindows) commonTests ++ nonWindowsTests else commonTests
 }
