@@ -1,4 +1,3 @@
-import sun.misc.Signal
 
 object Writer {
   def isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
