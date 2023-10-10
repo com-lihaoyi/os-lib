@@ -16,7 +16,11 @@ object ProcessPipelineTests extends TestSuite {
   def isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
 
   def scriptProc(name: String, args: String*): Seq[String] =
-    Seq("scala-cli" + (if(isWindows) ".exe" else ""), (scriptFolder / name).toString(), "--") ++ args.toSeq
+    Seq(
+      "scala-cli" + (if (isWindows) ".bat" else ""),
+      (scriptFolder / name).toString(),
+      "--"
+    ) ++ args.toSeq
 
   def writerProc(n: Int, wait: Int, debugOutput: Boolean = true): Seq[String] =
     scriptProc("writer.scala", n.toString, wait.toString, debugOutput.toString)
@@ -27,6 +31,9 @@ object ProcessPipelineTests extends TestSuite {
 
   val commonTests = Tests {
     test("pipelineCall") {
+      // Warm up
+      Try(os.proc(writerProc(10, 10)).call(timeout = 20000))
+      Try(os.proc(readerProc(10, 10)).call(timeout = 20000))
       val resultLines = os.proc(writerProc(10, 10))
         .pipeTo(os.proc(readerProc(10, 10)))
         .call().out.lines().toSeq
