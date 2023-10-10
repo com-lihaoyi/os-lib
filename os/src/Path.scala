@@ -485,6 +485,8 @@ class Path private[os] (val wrapped: java.nio.file.Path)
 
   require(wrapped.isAbsolute || Path.driveRelative(wrapped), s"$wrapped is not an absolute path")
   def root = Option(wrapped.getRoot).map(_.toString).getOrElse("")
+  def fileSystem = wrapped.getFileSystem()
+
   def segments: Iterator[String] = wrapped.iterator().asScala.map(_.toString)
   def getSegment(i: Int): String = wrapped.getName(i).toString
   def segmentCount = wrapped.getNameCount

@@ -1,4 +1,7 @@
 import scala.language.implicitConversions
+import java.nio.file.FileSystem
+import java.nio.file.FileSystems
+import java.nio.file.Paths
 
 package object os {
   type Generator[+T] = geny.Generator[T]
@@ -10,8 +13,8 @@ package object os {
    */
   val root: Path = Path(java.nio.file.Paths.get(".").toAbsolutePath.getRoot)
 
-  def root(root: String): Path = {
-    val path = Path(root)
+  def root(root: String, fileSystem: FileSystem = FileSystems.getDefault()): Path = {
+    val path = Path(fileSystem.getPath(root))
     assert(path.root == root, s"$root is not a root path")
     path
   }
