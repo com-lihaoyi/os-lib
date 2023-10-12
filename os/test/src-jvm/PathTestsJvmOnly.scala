@@ -44,18 +44,6 @@ object PathTestsJvmOnly extends TestSuite {
             names.foreach(p => assert(!exists(twd / p)))
           }
         }
-        test("custom filesystem") { // native doesnt support custom fs yet
-          val path: java.nio.file.Path = java.nio.file.Paths.get("foo.jar");
-          val uri = new URI("jar", path.toUri().toString(), null);
-
-          val env = new HashMap[String, String]();
-          env.put("create", "true");
-
-          val fileSystem = FileSystems.newFileSystem(uri, env);
-          val p = os.root("/", fileSystem) / "test" / "dir"
-          assert(p.root == "/")
-          assert(p.fileSystem == fileSystem)
-        }
       }
     }
   }
