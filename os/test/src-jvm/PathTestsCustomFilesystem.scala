@@ -99,33 +99,42 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("differentFsCompare") {
         withCustomFs { fs1 =>
-          withCustomFs({ fs2 =>
-            val p1 = os.root("/", fs1) / "test" / "dir"
-            val p2 = os.root("/", fs2) / "test" / "dir"
-            assert(p1 != p2)
-          }, fsUri = customFsUri("bar.jar"))
+          withCustomFs(
+            { fs2 =>
+              val p1 = os.root("/", fs1) / "test" / "dir"
+              val p2 = os.root("/", fs2) / "test" / "dir"
+              assert(p1 != p2)
+            },
+            fsUri = customFsUri("bar.jar")
+          )
         }
       }
       test("failRelativeToDifferentFs") {
         withCustomFs { fs1 =>
-          withCustomFs({ fs2 =>
-            val p1 = os.root("/", fs1) / "test" / "dir"
-            val p2 = os.root("/", fs2) / "test" / "dir"
-            intercept[IllegalArgumentException] {
-              p1.relativeTo(p2)
-            }
-          }, fsUri = customFsUri("bar.jar"))
+          withCustomFs(
+            { fs2 =>
+              val p1 = os.root("/", fs1) / "test" / "dir"
+              val p2 = os.root("/", fs2) / "test" / "dir"
+              intercept[IllegalArgumentException] {
+                p1.relativeTo(p2)
+              }
+            },
+            fsUri = customFsUri("bar.jar")
+          )
         }
       }
       test("failSubRelativeToDifferentFs") {
         withCustomFs { fs1 =>
-          withCustomFs({ fs2 =>
-            val p1 = os.root("/", fs1) / "test" / "dir"
-            val p2 = os.root("/", fs2) / "test" / "dir"
-            intercept[IllegalArgumentException] {
-              p1.subRelativeTo(p2)
-            }
-          }, fsUri = customFsUri("bar.jar"))
+          withCustomFs(
+            { fs2 =>
+              val p1 = os.root("/", fs1) / "test" / "dir"
+              val p2 = os.root("/", fs2) / "test" / "dir"
+              intercept[IllegalArgumentException] {
+                p1.subRelativeTo(p2)
+              }
+            },
+            fsUri = customFsUri("bar.jar")
+          )
         }
       }
     }
@@ -135,14 +144,14 @@ object PathTestsCustomFilesystem extends TestSuite {
     test("customFilesystem") {
       test("writeAndRead") {
         withCustomFs { fileSystem =>
-          val p = root("/", fileSystem) / "test" / "dir"     
+          val p = root("/", fileSystem) / "test" / "dir"
           os.write(p / "file.txt", "Hello")
           assert(os.read(p / "file.txt") == "Hello")
         }
       }
       test("writeOver") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"     
+          val p = os.root("/", fileSystem) / "test" / "dir"
           os.write(p / "file.txt", "Hello World")
           os.write.over(p / "file.txt", "Hello World2")
           assert(os.read(p / "file.txt") == "Hello World2")
@@ -150,7 +159,7 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("move") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"     
+          val p = os.root("/", fileSystem) / "test" / "dir"
           os.write(p / "file.txt", "Hello World")
           os.move(p / "file.txt", p / "file2.txt")
           assert(os.read(p / "file2.txt") == "Hello World")
@@ -159,7 +168,7 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("copy") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"     
+          val p = os.root("/", fileSystem) / "test" / "dir"
           os.write(p / "file.txt", "Hello World")
           os.copy(p / "file.txt", p / "file2.txt")
           assert(os.read(p / "file2.txt") == "Hello World")
@@ -168,7 +177,7 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("remove") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"     
+          val p = os.root("/", fileSystem) / "test" / "dir"
           os.write(p / "file.txt", "Hello World")
           assert(os.exists(p / "file.txt"))
           os.remove(p / "file.txt")
@@ -177,7 +186,7 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("removeAll") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"     
+          val p = os.root("/", fileSystem) / "test" / "dir"
           os.write(p / "file.txt", "Hello World")
           os.write(p / "file2.txt", "Hello World")
           os.remove.all(p)
@@ -203,7 +212,13 @@ object PathTestsCustomFilesystem extends TestSuite {
           os.makeDir(p / "dir2")
           os.write(p / "dir2" / "file.txt", "Hello World")
           assert(os.walk(p).map(_.relativeTo(p)).toSet ==
-            Set(RelPath("file.txt"), RelPath("file2.txt"), RelPath("file3.txt"), RelPath("dir2"), RelPath("dir2/file.txt")))
+            Set(
+              RelPath("file.txt"),
+              RelPath("file2.txt"),
+              RelPath("file3.txt"),
+              RelPath("dir2"),
+              RelPath("dir2/file.txt")
+            ))
         }
       }
     }
@@ -216,7 +231,6 @@ object PathTestsCustomFilesystem extends TestSuite {
     }
   }
 
-
   private lazy val isWindows: Boolean = {
     sys.props("os.name").toLowerCase().contains("windows")
   }
@@ -227,5 +241,7 @@ object PathTestsCustomFilesystem extends TestSuite {
     major >= 11
   }
 
-  override val tests: Tests = testsCommon ++ (if(isJava11OrAbove) testsJava11 else Tests{}) ++ (if(isWindows) testWindows else Tests{})
+  override val tests: Tests =
+    testsCommon ++ (if (isJava11OrAbove) testsJava11 else Tests {}) ++ (if (isWindows) testWindows
+                                                                        else Tests {})
 }
