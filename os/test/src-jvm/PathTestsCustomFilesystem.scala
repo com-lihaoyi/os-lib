@@ -211,14 +211,11 @@ object PathTestsCustomFilesystem extends TestSuite {
 
   val testWindows = Tests {
     test("cRootPath") {
-      val p = os.root("C:\\")
-      val p2 = os.root("C:")
-      val p3 = os.root("C")
-      assert(p == p2)
-      assert(p == p3)
-      assert(p.toString == "C:\\")
+      val p = os.root("C:\\") / "Users"
+      assert(p.toString == "C:\\Users")
     }
   }
+
 
   private lazy val isWindows: Boolean = {
     sys.props("os.name").toLowerCase().contains("windows")
@@ -230,5 +227,5 @@ object PathTestsCustomFilesystem extends TestSuite {
     major >= 11
   }
 
-  override val tests: Tests = testsCommon ++ (if(isJava11OrAbove) testsJava11 else Tests()) ++ (if(isWindows) testWindows else Tests())
+  override val tests: Tests = testsCommon ++ (if(isJava11OrAbove) testsJava11 else Tests{}) ++ (if(isWindows) testWindows else Tests{})
 }

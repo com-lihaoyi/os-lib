@@ -514,18 +514,24 @@ class Path private[os] (val wrapped: java.nio.file.Path)
   def endsWith(target: RelPath) = wrapped.endsWith(target.toString)
 
   def relativeTo(base: Path): RelPath = {
+    try {
+      val nioRel = base.wrapped.relativize(wrapped)
+      val segments = nioRel.iterator().asScala.map(_.toString).toArray match {
+        case Array("") => Internals.emptyStringArray
+        case arr => arr
+      }
+      val nonUpIndex = segments.indexWhere(_ != "..") match {
+        case -1 => segments.length
+        case n => n
+      }
 
-    val nioRel = base.wrapped.relativize(wrapped)
-    val segments = nioRel.iterator().asScala.map(_.toString).toArray match {
-      case Array("") => Internals.emptyStringArray
-      case arr => arr
+      new RelPath(segments.drop(nonUpIndex), nonUpIndex)
+    } catch {
+      case _: NegativeArraySizeException => // Workaround for bug in Windows zipfs implementation
+        throw new IllegalArgumentException(
+          s"Cannot relativize $wrapped against $base - different file system"
+        )
     }
-    val nonUpIndex = segments.indexWhere(_ != "..") match {
-      case -1 => segments.length
-      case n => n
-    }
-
-    new RelPath(segments.drop(nonUpIndex), nonUpIndex)
   }
 
   def toIO: java.io.File = wrapped.toFile
