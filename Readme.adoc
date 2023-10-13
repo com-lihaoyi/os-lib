@@ -2025,6 +2025,38 @@ Python, ...) do. Even in cases where it's uncertain, e.g. you're taking user
 input as a String, you have to either handle both possibilities with BasePath or
 explicitly choose to convert relative paths to absolute using some base.
 
+==== Roots and filesystems
+
+If you are using a system that supports different roots of paths, e.g. Windows, 
+you can use the argument of `os.root` to specify which root you want to use. 
+If not specified, the default root will be used (usually, C on Windows, / on Unix).
+
+[source,scala]
+----
+val root = os.root('C:\') / "Users" / "me"
+assert(root == os.Path("C:\Users\me"))
+----
+
+Additionally, custom filesystems can be specified by passing a `FileSystem` to
+`os.root`. This allows you to use OS-Lib with non-standard filesystems, such as
+jar filesystems or in-memory filesystems.
+
+[source,scala]
+----
+val uri = new URI("jar", Paths.get("foo.jar").toURI().toString, null);
+val env = new HashMap[String, String]();
+env.put("create", "true");
+val fs = FileSystems.newFileSystem(uri, env);
+val path = os.root("/", fs) / "dir"
+----
+
+Note that the jar file system operations suchs as writing to a file are supported 
+only on JVM 11+. Depending on the filesystem, some operations may not be supported - 
+for example, running an `os.proc` with pwd in a jar file won't work. You may also 
+meet limitations imposed by the implementations - in jar file system, the files are 
+created only after the file system is closed. Until that, the ones created in your 
+program are kept in memory.
+
 ==== `os.ResourcePath`
 
 In addition to manipulating paths on the filesystem, you can also manipulate

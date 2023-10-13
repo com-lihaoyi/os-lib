@@ -550,7 +550,8 @@ object PathConvertible {
   }
   implicit object NioPathConvertible extends PathConvertible[java.nio.file.Path] {
     def apply(t: java.nio.file.Path) = t
-    override def isCustomFs(t: java.nio.file.Path): Boolean = t.getFileSystem() != java.nio.file.FileSystems.getDefault()
+    override def isCustomFs(t: java.nio.file.Path): Boolean =
+      t.getFileSystem() != java.nio.file.FileSystems.getDefault()
   }
   implicit object UriPathConvertible extends PathConvertible[URI] {
     def apply(uri: URI) = uri.getScheme() match {
