@@ -33,7 +33,7 @@ object ProcessPipelineTests extends TestSuite {
     test("pipelineCall") {
       // Warm up
       Try(os.proc(writerProc(10, 10)).call(timeout = 20000))
-      Try(os.proc(readerProc(10, 10)).call(timeout = 20000))
+      Try(os.proc(readerProc(0, 0)).call(timeout = 20000))
       val resultLines = os.proc(writerProc(10, 10))
         .pipeTo(os.proc(readerProc(10, 10)))
         .call().out.lines().toSeq
@@ -110,12 +110,12 @@ object ProcessPipelineTests extends TestSuite {
 
     test("pipelineWithPipefail") {
       val p = os.proc(exitProc(0, 300))
-        .pipeTo(os.proc(exitProc(213, 100)))
+        .pipeTo(os.proc(exitProc(1, 100)))
         .pipeTo(os.proc(exitProc(0, 400)))
         .spawn(pipefail = true)
 
       p.waitFor()
-      assert(p.exitCode() == 213)
+      assert(p.exitCode() == 1)
     }
   }
 
