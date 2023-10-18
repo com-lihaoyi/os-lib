@@ -1,3 +1,5 @@
+import java.nio.file.FileSystem
+import java.nio.file.FileSystems
 package object os {
   type Generator[+T] = geny.Generator[T]
   val Generator = geny.Generator
@@ -7,6 +9,12 @@ package object os {
    * The root of the filesystem
    */
   val root: Path = Path(java.nio.file.Paths.get(".").toAbsolutePath.getRoot)
+
+  def root(root: String, fileSystem: FileSystem = FileSystems.getDefault()): Path = {
+    val path = Path(fileSystem.getPath(root))
+    assert(path.root == root, s"$root is not a root path")
+    path
+  }
 
   /**
    * The user's home directory

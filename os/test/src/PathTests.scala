@@ -1,6 +1,7 @@
 package test.os
 
 import java.nio.file.Paths
+import java.io.File
 
 import os._
 import os.Path.{driveRoot}
@@ -419,6 +420,14 @@ object PathTests extends TestSuite {
       val expected = os.up / "hello" / "world"
       assert(result1 == expected)
       assert(result2 == expected)
+    }
+    test("custom root") {
+      assert(os.root == os.root(os.root.root))
+      File.listRoots().foreach { root =>
+        val path = os.root(root.toPath().toString) / "test" / "dir"
+        assert(path.root == root.toString)
+        assert(path.relativeTo(os.root(root.toPath().toString)) == rel / "test" / "dir")
+      }
     }
     test("issue201") {
       val p = Path("/omg") // driveRelative path does not throw exception.

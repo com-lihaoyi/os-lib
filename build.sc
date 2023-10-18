@@ -5,7 +5,7 @@ import $ivy.`com.github.lolgab::mill-mima::0.0.24`
 // imports
 import mill._, scalalib._, scalanativelib._, publish._
 import mill.scalalib.api.ZincWorkerUtil
-import com.github.lolgab.mill.mima.Mima
+import com.github.lolgab.mill.mima._
 import de.tobiasroeser.mill.vcs.version.VcsVersion
 
 val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
@@ -53,6 +53,9 @@ trait SafeDeps extends ScalaModule {
 
 trait MiMaChecks extends Mima {
   def mimaPreviousVersions = Seq("0.9.0", "0.9.1")
+  override def mimaBinaryIssueFilters: T[Seq[ProblemFilter]] = Seq(
+    ProblemFilter.exclude[ReversedMissingMethodProblem]("os.PathConvertible.isCustomFs")
+  )
 }
 
 trait OsLibModule
