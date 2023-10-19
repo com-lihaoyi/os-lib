@@ -17,23 +17,20 @@ object ProcessPipelineTests extends TestSuite {
 
   def scriptProc(name: String, args: String*): Seq[String] =
     Seq(
-      "scala-cli" + (if (isWindows) ".bat" else ""),
-      (scriptFolder / name).toString(),
-      "--"
+      "java",
+      "-jar",
+      name
     ) ++ args.toSeq
 
   def writerProc(n: Int, wait: Int, debugOutput: Boolean = true): Seq[String] =
-    scriptProc("writer.scala", n.toString, wait.toString, debugOutput.toString)
+    scriptProc(sys.env("TEST_JAR_WRITER_ASSEMBLY"), n.toString, wait.toString, debugOutput.toString)
   def readerProc(n: Int, wait: Int, debugOutput: Boolean = true): Seq[String] =
-    scriptProc("reader.scala", n.toString, wait.toString, debugOutput.toString)
+    scriptProc(sys.env("TEST_JAR_READER_ASSEMBLY"), n.toString, wait.toString, debugOutput.toString)
   def exitProc(code: Int, wait: Int): Seq[String] =
-    scriptProc("exit.scala", code.toString, wait.toString)
+    scriptProc(sys.env("TEST_JAR_EXIT_ASSEMBLY"), code.toString, wait.toString)
 
   val commonTests = Tests {
     test("pipelineCall") {
-      // Warm up
-      Try(os.proc(writerProc(10, 10)).call(timeout = 20000))
-      Try(os.proc(readerProc(0, 0)).call(timeout = 20000))
       val resultLines = os.proc(writerProc(10, 10))
         .pipeTo(os.proc(readerProc(10, 10)))
         .call().out.lines().toSeq

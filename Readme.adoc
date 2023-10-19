@@ -1694,7 +1694,7 @@ Both `call` and `spawn` correspond in their behavior to their counterparts in th
 but `spawn` returns the `os.ProcessPipeline` instance instead. It offers the same 
 `API` as `SubProcess`, but will operate on the set of processes instead of a single one.
 
-`Pipefail`` is enabled by default, so if any of the processes in the pipeline fails, the whole
+`Pipefail` is enabled by default, so if any of the processes in the pipeline fails, the whole
 pipeline will have a non-zero exit code. This behavior can be disabled via the `pipefail` flag
 on `call` and `spawn` methods. Note that the pipefail does not kill the processes in the pipeline,
 it just sets the exit code of the pipeline to the exit code of the failed process.
