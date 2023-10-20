@@ -1,8 +1,5 @@
 = OS-Lib
 :version: 0.9.1
-:toc-placement: preamble
-:toclevels: 3
-:toc:
 :link-geny: https://github.com/com-lihaoyi/geny
 :link-oslib: https://github.com/com-lihaoyi/os-lib
 :link-oslib-gitter: https://gitter.im/lihaoyi/os-lib
