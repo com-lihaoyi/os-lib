@@ -58,6 +58,10 @@ trait MiMaChecks extends Mima {
   )
 }
 
+object testJarWriter extends JavaModule
+object testJarReader extends JavaModule
+object testJarExit extends JavaModule
+
 trait OsLibModule
     extends CrossScalaModule
     with PublishModule
@@ -84,7 +88,12 @@ trait OsLibModule
     def ivyDeps = Agg(Deps.utest, Deps.sourcecode)
 
     // we check the textual output of system commands and expect it in english
-    def forkEnv = super.forkEnv() ++ Map("LC_ALL" -> "C")
+    def forkEnv = super.forkEnv() ++ Map(
+      "LC_ALL" -> "C",
+      "TEST_JAR_WRITER_ASSEMBLY" -> testJarWriter.assembly().path.toString,
+      "TEST_JAR_READER_ASSEMBLY" -> testJarReader.assembly().path.toString,
+      "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString
+      )
   }
 }
 

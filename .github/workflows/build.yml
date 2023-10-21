@@ -25,7 +25,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: ${{ matrix.java-version }}
-
       - name: Fetch millw launcher (Windows)
         run: curl -Lo mill.bat "https://raw.githubusercontent.com/lefou/millw/main/millw.bat"
         if: matrix.os == 'windows-latest'
