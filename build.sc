@@ -93,7 +93,7 @@ trait OsLibModule
       "TEST_JAR_WRITER_ASSEMBLY" -> testJarWriter.assembly().path.toString,
       "TEST_JAR_READER_ASSEMBLY" -> testJarReader.assembly().path.toString,
       "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString
-      )
+    )
   }
 }
 
@@ -105,7 +105,7 @@ trait OsModule extends OsLibModule { outer =>
   val scalaDocExternalMappings = Seq(
     ".*scala.*::scaladoc3::https://scala-lang.org/api/3.x/",
     ".*java.*::javadoc::https://docs.oracle.com/javase/8/docs/api/",
-    s".*geny.*::scaladoc3::https://javadoc.io/doc/com.lihaoyi/geny_3/${Deps.geny.dep.version}/",
+    s".*geny.*::scaladoc3::https://javadoc.io/doc/com.lihaoyi/geny_3/${Deps.geny.dep.version}/"
   ).mkString(",")
 
   def conditionalScalaDocOptions: T[Seq[String]] = T {
