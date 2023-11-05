@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.9.1
+:version: 0.9.9
 :link-geny: https://github.com/com-lihaoyi/geny
 :link-oslib: https://github.com/com-lihaoyi/os-lib
 :link-oslib-gitter: https://gitter.im/lihaoyi/os-lib
@@ -2222,6 +2222,16 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+=== 0.9.2 - 2023-11-05
+
+* Added new convenience API create pipes between processes with `.pipeTo`
+* Fixed issue with leading `..` / `os.up` in path segment created from a `Seq`
+* Fixed Windows-specific issues with relative paths with leading (back)slash
+* Removed some internal use of deprecated API
+* ScalaDoc now maps external references to their online sites
+* Dependency updates: sourcecode 0.3.1
+* Tooling updates: acyclic 0.3.9, Mill 0.11.5, mill-mima 0.0.24, mill-vcs-version 0.4.0, scalafmt 3.7.15
 
 === 0.9.1 - 2023-03-07
 
