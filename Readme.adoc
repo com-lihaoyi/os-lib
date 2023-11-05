@@ -2223,13 +2223,14 @@ string, int or set representations of the `os.PermSet` via:
 
 == Changelog
 
+[#0-9-2]
 === 0.9.2 - 2023-11-05
 
-* Added new convenience API create pipes between processes with `.pipeTo`
-* Fixed issue with leading `..` / `os.up` in path segment created from a `Seq`
-* Fixed Windows-specific issues with relative paths with leading (back)slash
+* Added new convenience API to create pipes between processes with `.pipeTo`
+* Fixed issue with leading `..` / `os.up` in path segments created from a `Seq`
+* Fixed Windows-specific issues with relative paths with leading (back)slashes
 * Removed some internal use of deprecated API
-* ScalaDoc now maps external references to their online sites
+* ScalaDoc now maps some external references to their online sites
 * Dependency updates: sourcecode 0.3.1
 * Tooling updates: acyclic 0.3.9, Mill 0.11.5, mill-mima 0.0.24, mill-vcs-version 0.4.0, scalafmt 3.7.15
 
