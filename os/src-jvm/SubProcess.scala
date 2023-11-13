@@ -241,13 +241,11 @@ class ProcessPipeline(
           var pipelineRunning = true
           while (pipelineRunning) {
             val brokenPipeIndex = queue.take()
-            println("Killing " + brokenPipeIndex)
             if (brokenPipeIndex == processes.length) { // Special case signaling finished pipeline
               pipelineRunning = false
             } else {
               processes(brokenPipeIndex).destroyForcibly()
             }
-            println("Processes status: " + processes.map(_.isAlive()))
           }
           new Thread(
             new Runnable {
