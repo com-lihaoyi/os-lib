@@ -311,7 +311,6 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
                 runnable.run()
               } catch {
                 case e: IOException =>
-                  println(s"Broken pipe in process $index")
                   queue.put(index)
               }
             }
