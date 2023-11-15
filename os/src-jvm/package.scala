@@ -15,7 +15,7 @@ package object os {
 
   def root(root: String, fileSystem: FileSystem = FileSystems.getDefault()): Path = {
     val path = Path(fileSystem.getPath(root))
-    assert(path.root == root, s"$root is not a root path")
+    assert(path.root == root || path.root == root.replace('/', '\\'), s"$root is not a root path")
     path
   }
 
