@@ -2,7 +2,6 @@ import java.util.Scanner;
 import java.lang.InterruptedException;
 
 public class TestJarWriter {
-    private static boolean isWindows = System.getProperty("os.name").toLowerCase().contains("windows");
     public static void main(String[] args) throws InterruptedException {
         Scanner scanner = new Scanner(System.in);
         int writeN = Integer.parseInt(args[0]);
