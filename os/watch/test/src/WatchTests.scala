@@ -15,7 +15,6 @@ object WatchTests extends TestSuite with TestSuite.Retries {
 
   val tests = Tests {
     test("singleFolder") - _root_.test.os.TestUtil.prep { wd =>
-      
       val changedPaths = collection.mutable.Set.empty[os.Path]
       _root_.os.watch.watch(
         Seq(wd),
@@ -77,12 +76,13 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       )
 
       checkFileManglingChanges(wd / "my-new-folder" / "test")
-      
+
       locally {
         val expectedChanges = if (isWin) Set(
           os.sub / "folder2",
           os.sub / "folder3"
-        ) else Set(
+        )
+        else Set(
           os.sub / "folder2",
           os.sub / "folder3",
           os.sub / "folder3" / "nestedA",
@@ -118,31 +118,31 @@ object WatchTests extends TestSuite with TestSuite.Retries {
         )
       )
 
-    checkFileManglingChanges(wd / "folder3" / "nestedA" / "double-nested-file")
-    checkFileManglingChanges(wd / "folder3" / "nestedB" / "double-nested-file")
-      
-     checkChanges(
-       os.symlink(wd / "newlink", wd / "doesntexist"),
-       Set(os.sub / "newlink")
-     )
+      checkFileManglingChanges(wd / "folder3" / "nestedA" / "double-nested-file")
+      checkFileManglingChanges(wd / "folder3" / "nestedB" / "double-nested-file")
 
-     checkChanges(
-       os.symlink(wd / "newlink2", wd / "folder3"),
-       Set(os.sub / "newlink2")
-     )
- 
-     checkChanges(
-       os.hardlink(wd / "newlink3", wd / "folder3" / "nestedA" / "a.txt"),
-       System.getProperty("os.name") match {
-         case "Mac OS X" =>
-           Set(
-             os.sub / "newlink3",
-             os.sub / "folder3" / "nestedA",
-             os.sub / "folder3" / "nestedA" / "a.txt"
-           )
-         case _ => Set(os.sub / "newlink3")
-       }
-     )
+      checkChanges(
+        os.symlink(wd / "newlink", wd / "doesntexist"),
+        Set(os.sub / "newlink")
+      )
+
+      checkChanges(
+        os.symlink(wd / "newlink2", wd / "folder3"),
+        Set(os.sub / "newlink2")
+      )
+
+      checkChanges(
+        os.hardlink(wd / "newlink3", wd / "folder3" / "nestedA" / "a.txt"),
+        System.getProperty("os.name") match {
+          case "Mac OS X" =>
+            Set(
+              os.sub / "newlink3",
+              os.sub / "folder3" / "nestedA",
+              os.sub / "folder3" / "nestedA" / "a.txt"
+            )
+          case _ => Set(os.sub / "newlink3")
+        }
+      )
 
     }
   }

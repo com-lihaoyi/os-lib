@@ -35,8 +35,9 @@ class WatchServiceWatcher(
     if (isDir) {
       // https://stackoverflow.com/a/6265860/4496364
       // on Windows we watch only the root directory
-      val modifiers: Array[WatchEvent.Modifier] = if (isWin) Array(SensitivityWatchEventModifier.HIGH, ExtendedWatchEventModifier.FILE_TREE)
-        else Array(SensitivityWatchEventModifier.HIGH)
+      val modifiers: Array[WatchEvent.Modifier] = if (isWin)
+        Array(SensitivityWatchEventModifier.HIGH, ExtendedWatchEventModifier.FILE_TREE)
+      else Array(SensitivityWatchEventModifier.HIGH)
       currentlyWatchedPaths.put(
         p,
         p.toNIO.register(

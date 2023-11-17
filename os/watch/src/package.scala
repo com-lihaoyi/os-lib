@@ -24,7 +24,6 @@ package object watch {
    * changes happening within the watched roots folder, apart from the path
    * at which the change happened. It is up to the `onEvent` handler to query
    * the filesystem and figure out what happened, and what it wants to do.
-   *
    */
   def watch(
       roots: Seq[os.Path],
