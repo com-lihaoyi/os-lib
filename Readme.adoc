@@ -1757,8 +1757,6 @@ paths changed: /Users/lihaoyi/Github/Ammonite/out/i am,/Users/lihaoyi/Github/Amm
 paths changed: /Users/lihaoyi/Github/Ammonite/out/version/log,/Users/lihaoyi/Github/Ammonite/out/version/meta.json,/Users/lihaoyi/Github/Ammonite/out/version
 ----
 
-`watch` currently only supports Linux and Mac-OSX, and not Windows.
-
 == Data Types
 
 === `os.Path`

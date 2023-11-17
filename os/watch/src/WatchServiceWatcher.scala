@@ -5,11 +5,11 @@ import java.io.IOException
 import java.nio.file.ClosedWatchServiceException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.nio.file.StandardWatchEventKinds.{ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY, OVERFLOW}
-
-import com.sun.nio.file.SensitivityWatchEventModifier
+import com.sun.nio.file.{ExtendedWatchEventModifier, SensitivityWatchEventModifier}
 
 import scala.collection.mutable
 import collection.JavaConverters._
+import scala.util.Properties.isWin
 
 class WatchServiceWatcher(
     roots: Seq[os.Path],
@@ -33,12 +33,17 @@ class WatchServiceWatcher(
     val isDir = os.isDir(p, followLinks = false)
     logger("WATCH", (p, isDir))
     if (isDir) {
+      // https://stackoverflow.com/a/6265860/4496364
+      // on Windows we watch only the root directory
+      val modifiers: Array[WatchEvent.Modifier] = if (isWin)
+        Array(SensitivityWatchEventModifier.HIGH, ExtendedWatchEventModifier.FILE_TREE)
+      else Array(SensitivityWatchEventModifier.HIGH)
       currentlyWatchedPaths.put(
         p,
         p.toNIO.register(
           nioWatchService,
           Array[WatchEvent.Kind[_]](ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY, OVERFLOW),
-          SensitivityWatchEventModifier.HIGH
+          modifiers: _*
         )
       )
       newlyWatchedPaths.append(p)
@@ -68,13 +73,21 @@ class WatchServiceWatcher(
   }
 
   def recursiveWatches() = {
-    while (newlyWatchedPaths.nonEmpty) {
-      val top = newlyWatchedPaths.remove(newlyWatchedPaths.length - 1)
-      val listing =
-        try os.list(top)
-        catch { case e: java.nio.file.NotDirectoryException => Nil }
-      for (p <- listing) watchSinglePath(p)
-      bufferedEvents.add(top)
+    // no need to recursively watch each folder on windows
+    // https://stackoverflow.com/a/64030685/4496364
+    if (isWin) {
+      // noop
+    } else {
+      while (newlyWatchedPaths.nonEmpty) {
+        val top = newlyWatchedPaths.remove(newlyWatchedPaths.length - 1)
+        val listing =
+          try os.list(top)
+          catch {
+            case e: java.nio.file.NotDirectoryException => Nil
+          }
+        for (p <- listing) watchSinglePath(p)
+        bufferedEvents.add(top)
+      }
     }
   }
 
