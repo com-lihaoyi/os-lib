@@ -125,6 +125,8 @@ object SubprocessTests extends TestSuite {
         }
 
         locally {
+          // TEST_SUBPROCESS_ENV env should be set in forkEnv in build.sc
+          assert(sys.env.get("TEST_SUBPROCESS_ENV") == Some("value"))
           val res4 = proc("bash", "-c", "echo \"$TEST_SUBPROCESS_ENV\"").call(
             env = Map.empty,
             propagateEnv = false
@@ -133,6 +135,9 @@ object SubprocessTests extends TestSuite {
         }
 
         locally {
+          // TEST_SUBPROCESS_ENV env should be set in forkEnv in build.sc
+          assert(sys.env.get("TEST_SUBPROCESS_ENV") == Some("value"))
+
           val res5 = proc("bash", "-c", "echo \"$TEST_SUBPROCESS_ENV\"").call(
             env = Map.empty,
             propagateEnv = true
