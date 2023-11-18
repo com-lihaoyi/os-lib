@@ -92,7 +92,8 @@ trait OsLibModule
       "LC_ALL" -> "C",
       "TEST_JAR_WRITER_ASSEMBLY" -> testJarWriter.assembly().path.toString,
       "TEST_JAR_READER_ASSEMBLY" -> testJarReader.assembly().path.toString,
-      "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString
+      "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString,
+      "TEST_SUBPROCESS_ENV" -> "value"
     )
   }
 }

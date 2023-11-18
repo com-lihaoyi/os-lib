@@ -104,17 +104,41 @@ object SubprocessTests extends TestSuite {
 
     test("envArgs") {
       if (Unix()) {
-        val res0 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
-        assert(res0.out.lines() == Seq("Hello12"))
+        locally {
+          val res0 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
+          assert(res0.out.lines() == Seq("Hello12"))
+        }
 
-        val res1 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
-        assert(res1.out.lines() == Seq("Hello12"))
+        locally {
+          val res1 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
+          assert(res1.out.lines() == Seq("Hello12"))
+        }
 
-        val res2 = proc("bash", "-c", "echo 'Hello$ENV_ARG'").call(env = Map("ENV_ARG" -> "12"))
-        assert(res2.out.lines() == Seq("Hello$ENV_ARG"))
+        locally {
+          val res2 = proc("bash", "-c", "echo 'Hello$ENV_ARG'").call(env = Map("ENV_ARG" -> "12"))
+          assert(res2.out.lines() == Seq("Hello$ENV_ARG"))
+        }
 
-        val res3 = proc("bash", "-c", "echo 'Hello'$ENV_ARG").call(env = Map("ENV_ARG" -> "123"))
-        assert(res3.out.lines() == Seq("Hello123"))
+        locally {
+          val res3 = proc("bash", "-c", "echo 'Hello'$ENV_ARG").call(env = Map("ENV_ARG" -> "123"))
+          assert(res3.out.lines() == Seq("Hello123"))
+        }
+
+        locally {
+          val res4 = proc("bash", "-c", "echo \"$TEST_SUBPROCESS_ENV\"").call(
+            env = Map.empty,
+            propagateEnv = false
+          ).out.lines()
+          assert(res4 == Seq(""))
+        }
+
+        locally {
+          val res5 = proc("bash", "-c", "echo \"$TEST_SUBPROCESS_ENV\"").call(
+            env = Map.empty,
+            propagateEnv = true
+          ).out.lines()
+          assert(res5 == Seq("value"))
+        }
       }
     }
     test("multiChunk") {
