@@ -337,12 +337,17 @@ private[os] object ProcessOps {
   ): ProcessBuilder = {
     val builder = new java.lang.ProcessBuilder()
 
-    val baseEnv =
-      if (propagateEnv) sys.env
-      else Map()
-    for ((k, v) <- baseEnv ++ Option(env).getOrElse(Map())) {
-      if (v != null) builder.environment().put(k, v)
-      else builder.environment().remove(k)
+    val environment = builder.environment()
+
+    if (!propagateEnv) {
+      environment.clear()
+    }
+
+    if (env != null) {
+      for ((k, v) <- env) {
+        if (v != null) builder.environment().put(k, v)
+        else builder.environment().remove(k)
+      }
     }
 
     builder.directory(Option(cwd).getOrElse(os.pwd).toIO)
