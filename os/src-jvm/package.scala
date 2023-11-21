@@ -23,10 +23,12 @@ package object os {
     os.ResourcePath.resource(resRoot)
   }
 
+  private lazy val _home = Path(System.getProperty("user.home"))
+
   /**
    * The user's home directory
    */
-  val home: Path = Path(System.getProperty("user.home"))
+  def home: Path = _home
 
   /**
    * The current working directory for this process.
