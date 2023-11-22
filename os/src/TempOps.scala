@@ -105,7 +105,7 @@ object temp {
       dir = dir,
       prefix = prefix,
       suffix = suffix,
-      deleteOnExit = false, // TempFile.close() deletes it, no need to register with JVM
+      deleteOnExit = false, // TempPath.close() deletes it, no need to register with JVM
       perms = perms
     ))(fun)
   }
