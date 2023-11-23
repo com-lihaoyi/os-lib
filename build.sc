@@ -126,6 +126,7 @@ object os extends Module {
   object jvm extends Cross[OsJvmModule](scalaVersions)
   trait OsJvmModule extends OsModule with MiMaChecks {
     object test extends ScalaTests with OsLibTestModule
+    object nohometest extends ScalaTests with OsLibTestModule
   }
 
   object native extends Cross[OsNativeModule](scalaVersions)
