@@ -135,6 +135,7 @@ object os extends Module {
     object test extends ScalaNativeTests with OsLibTestModule {
       def nativeLinkStubs = true
     }
+    object nohometest extends ScalaNativeTests with OsLibTestModule
   }
 
   object watch extends Module {
