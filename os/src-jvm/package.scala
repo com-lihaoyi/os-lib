@@ -24,7 +24,7 @@ package object os {
   }
 
   private object _home {
-    val value = Path(System.getProperty("user.home"))
+    lazy val value = Path(System.getProperty("user.home"))
   }
 
   /**
