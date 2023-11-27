@@ -126,6 +126,7 @@ object os extends Module {
   object jvm extends Cross[OsJvmModule](scalaVersions)
   trait OsJvmModule extends OsModule with MiMaChecks {
     object test extends ScalaTests with OsLibTestModule
+    object nohometest extends ScalaTests with OsLibTestModule
   }
 
   object native extends Cross[OsNativeModule](scalaVersions)
@@ -134,6 +135,7 @@ object os extends Module {
     object test extends ScalaNativeTests with OsLibTestModule {
       def nativeLinkStubs = true
     }
+    object nohometest extends ScalaNativeTests with OsLibTestModule
   }
 
   object watch extends Module {
