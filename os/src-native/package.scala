@@ -16,6 +16,9 @@ package object os {
     path
   }
 
+  // See https://github.com/com-lihaoyi/os-lib/pull/239
+  // and https://github.com/lightbend/mima/issues/794
+  // why the need the inner object to preserve binary compatibility
   private object _home {
     lazy val value = Path(System.getProperty("user.home"))
   }
