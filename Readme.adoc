@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.9.2
+:version: 0.9.3
 :link-geny: https://github.com/com-lihaoyi/geny
 :link-oslib: https://github.com/com-lihaoyi/os-lib
 :link-oslib-gitter: https://gitter.im/lihaoyi/os-lib
@@ -2221,7 +2221,13 @@ string, int or set representations of the `os.PermSet` via:
 
 == Changelog
 
-[#0-9-2]
+[#0-9-3]
+=== 0.9.3 - 2024-01-01
+
+* Fix `os.watch` on Windows (#236)
+* Fix propagateEnv = false to not propagate env (#238)
+* Make os.home a def (#239)
+
 === 0.9.2 - 2023-11-05
 
 * Added new convenience API to create pipes between processes with `.pipeTo`
