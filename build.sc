@@ -141,6 +141,7 @@ object os extends Module {
   object watch extends Module {
     object jvm extends Cross[WatchJvmModule](scalaVersions)
     trait WatchJvmModule extends OsLibModule {
+      def artifactName = "os-lib-watch"
       def moduleDeps = super.moduleDeps ++ Seq(os.jvm())
       def ivyDeps = Agg(Deps.jna)
       object test extends ScalaTests with OsLibTestModule {
