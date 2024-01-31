@@ -1446,7 +1446,7 @@ the subprocess via `os.SubProcess#stdin`, and if used on its stdout it lets the
 parent process read from the subprocess via `os.SubProcess#stdout`
 and `os.SubProcess#stderr`.
 * `os.Inherit`: inherits the stream from the parent process. This lets the
-subprocess read directly from the paren process's standard input or write
+subprocess read directly from the parent process's standard input or write
 directly to the parent process's standard output or error
 * `os.Path`: connects the subprocess's stream to the given filesystem
 path, reading its standard input from a file or writing its standard
