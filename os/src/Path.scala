@@ -234,9 +234,13 @@ object PathError {
  * relative [[RelPath]], and can be constructed from a
  * java.nio.file.Path or java.io.File
  */
-sealed trait FilePath extends BasePath {
+sealed trait FilePath extends BasePath with CharSequence {
   def toNIO: java.nio.file.Path
   def resolveFrom(base: os.Path): os.Path
+
+  override def charAt(index: Int): Char = toString().charAt(index)
+  override def subSequence(start: Int, end: Int): CharSequence = toString().subSequence(start, end)
+  override def length(): Int = toString.length()
 }
 
 object FilePath {
