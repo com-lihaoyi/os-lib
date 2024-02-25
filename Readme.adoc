@@ -112,7 +112,7 @@ os.write(
   os.list(wd).filter(_.ext == "txt").map(os.read)
 )
 
-os.read(wd / "all.txt") ==>
+os.read(wd / "all.txt") // ==>
   """I am cowI am cow
     |Hear me moo
     |I weigh twice as much as you
@@ -126,7 +126,7 @@ os.read(wd / "all.txt") ==>
 // Find and concatenate all .txt files directly in the working directory using `cat`
 os.proc("cat", os.list(wd).filter(_.ext == "txt")).call(stdout = wd / "all.txt")
 
-os.read(wd / "all.txt") ==>
+os.read(wd / "all.txt") // ==>
   """I am cowI am cow
     |Hear me moo
     |I weigh twice as much as you
@@ -141,14 +141,14 @@ os.read(wd / "all.txt") ==>
 val temp = os.temp()
 os.proc("curl", "-L" , "https://git.io/fpfTs").call(stdout = temp)
 
-os.size(temp) ==> 53814
+os.size(temp) // ==> 53814
 
 // Curl to temporary file
 val temp2 = os.temp()
 val proc = os.proc("curl", "-L" , "https://git.io/fpfTJ").spawn()
 
 os.write.over(temp2, proc.stdout)
-os.size(temp2) ==> 53814
+os.size(temp2) // ==> 53814
 ----
 
 === Recursive line count
@@ -162,7 +162,7 @@ val lineCount = os.walk(wd)
   .map(_.size)
   .sum
 
-lineCount ==> 9
+lineCount // ==> 9
 ----
 
 === Largest Three Files
@@ -175,7 +175,7 @@ val largestThree = os.walk(wd)
   .map(x => os.size(x) -> x).sortBy(-_._1)
   .take(3)
 
-largestThree ==> Seq(
+largestThree // ==> Seq(
   (711, wd / "misc" / "binary.png"),
   (81, wd / "Multi Line.txt"),
   (22, wd / "folder1" / "one.txt")
@@ -225,9 +225,9 @@ read from if the source supports seeking.
 
 [source,scala]
 ----
-os.read(wd / "File.txt") ==> "I am cow"
-os.read(wd / "folder1" / "one.txt") ==> "Contents of folder one"
-os.read(wd / "Multi Line.txt") ==>
+os.read(wd / "File.txt") // ==> "I am cow"
+os.read(wd / "folder1" / "one.txt") // ==> "Contents of folder one"
+os.read(wd / "Multi Line.txt") // ==>
   """I am cow
     |Hear me moo
     |I weigh twice as much as you
@@ -248,8 +248,8 @@ supports seeking.
 
 [source,scala]
 ----
-os.read.bytes(wd / "File.txt") ==> "I am cow".getBytes
-os.read.bytes(wd / "misc" / "binary.png").length ==> 711
+os.read.bytes(wd / "File.txt") // ==> "I am cow".getBytes
+os.read.bytes(wd / "misc" / "binary.png").length // ==> 711
 ----
 
 ==== `os.read.chunks`
@@ -278,7 +278,7 @@ val chunks = os.read.chunks(wd / "File.txt", chunkSize = 2)
   .map{case (buf, n) => buf.take(n).toSeq } // copy the buffer to save the data
   .toSeq
 
-chunks ==> Seq(
+chunks // ==> Seq(
   Seq[Byte]('I', ' '),
   Seq[Byte]('a', 'm'),
   Seq[Byte](' ', 'c'),
@@ -300,8 +300,8 @@ by specifying a `charSet`.
 
 [source,scala]
 ----
-os.read.lines(wd / "File.txt") ==> Seq("I am cow")
-os.read.lines(wd / "Multi Line.txt") ==> Seq(
+os.read.lines(wd / "File.txt") // ==> Seq("I am cow")
+os.read.lines(wd / "Multi Line.txt") // ==> Seq(
   "I am cow",
   "Hear me moo",
   "I weigh twice as much as you",
@@ -323,8 +323,8 @@ Useful if the file is large.
 
 [source,scala]
 ----
-os.read.lines.stream(wd / "File.txt").count() ==> 1
-os.read.lines.stream(wd / "Multi Line.txt").count() ==> 4
+os.read.lines.stream(wd / "File.txt").count() // ==> 1
+os.read.lines.stream(wd / "Multi Line.txt").count() // ==> 4
 
 // Streaming the lines to the console
 for(line <- os.read.lines.stream(wd / "Multi Line.txt")){
@@ -344,15 +344,15 @@ Opens a `java.io.InputStream` to read from the given file.
 [source,scala]
 ----
 val is = os.read.inputStream(wd / "File.txt") // ==> "I am cow"
-is.read() ==> 'I'
-is.read() ==> ' '
-is.read() ==> 'a'
-is.read() ==> 'm'
-is.read() ==> ' '
-is.read() ==> 'c'
-is.read() ==> 'o'
-is.read() ==> 'w'
-is.read() ==> -1
+is.read() // ==> 'I'
+is.read() // ==> ' '
+is.read() // ==> 'a'
+is.read() // ==> 'm'
+is.read() // ==> ' '
+is.read() // ==> 'c'
+is.read() // ==> 'o'
+is.read() // ==> 'w'
+is.read() // ==> -1
 is.close()
 ----
 
@@ -403,10 +403,10 @@ behavior by setting `createFolders = true`
 [source,scala]
 ----
 os.write(wd / "New File.txt", "New File Contents")
-os.read(wd / "New File.txt") ==> "New File Contents"
+os.read(wd / "New File.txt") // ==> "New File Contents"
 
 os.write(wd / "NewBinary.bin", Array[Byte](0, 1, 2, 3))
-os.read.bytes(wd / "NewBinary.bin") ==> Array[Byte](0, 1, 2, 3)
+os.read.bytes(wd / "NewBinary.bin") // ==> Array[Byte](0, 1, 2, 3)
 ----
 
 ==== `os.write.append`
@@ -424,18 +424,18 @@ the written data to the existing file contents.
 
 [source,scala]
 ----
-os.read(wd / "File.txt") ==> "I am cow"
+os.read(wd / "File.txt") // ==> "I am cow"
 
 os.write.append(wd / "File.txt", ", hear me moo")
-os.read(wd / "File.txt") ==> "I am cow, hear me moo"
+os.read(wd / "File.txt") // ==> "I am cow, hear me moo"
 
 os.write.append(wd / "File.txt", ",\nI weigh twice as much as you")
-os.read(wd / "File.txt") ==>
+os.read(wd / "File.txt") // ==>
   "I am cow, hear me moo,\nI weigh twice as much as you"
 
-os.read.bytes(wd / "misc" / "binary.png").length ==> 711
+os.read.bytes(wd / "misc" / "binary.png").length // ==> 711
 os.write.append(wd / "misc" / "binary.png", Array[Byte](1, 2, 3))
-os.read.bytes(wd / "misc" / "binary.png").length ==> 714
+os.read.bytes(wd / "misc" / "binary.png").length // ==> 714
 ----
 
 ==== `os.write.over`
@@ -457,16 +457,16 @@ contents, and an `offset` to the file you want to write to.
 
 [source,scala]
 ----
-os.read(wd / "File.txt") ==> "I am cow"
+os.read(wd / "File.txt") // ==> "I am cow"
 os.write.over(wd / "File.txt", "You are cow")
 
-os.read(wd / "File.txt") ==> "You are cow"
+os.read(wd / "File.txt") // ==> "You are cow"
 
 os.write.over(wd / "File.txt", "We ", truncate = false)
-os.read(wd / "File.txt") ==> "We  are cow"
+os.read(wd / "File.txt") // ==> "We  are cow"
 
 os.write.over(wd / "File.txt", "s", offset = 8, truncate = false)
-os.read(wd / "File.txt") ==> "We  are sow"
+os.read(wd / "File.txt") // ==> "We  are sow"
 ----
 
 ==== `os.write.outputStream`
@@ -491,7 +491,7 @@ out.write('l')
 out.write('o')
 out.close()
 
-os.read(wd / "New File.txt") ==> "Hello"
+os.read(wd / "New File.txt") // ==> "Hello"
 ----
 
 ==== `os.truncate`
@@ -506,10 +506,10 @@ given size, does nothing.
 
 [source,scala]
 ----
-os.read(wd / "File.txt") ==> "I am cow"
+os.read(wd / "File.txt") // ==> "I am cow"
 
 os.truncate(wd / "File.txt", 4)
-os.read(wd / "File.txt") ==> "I am"
+os.read(wd / "File.txt") // ==> "I am"
 ----
 
 === Listing & Walking
@@ -532,8 +532,8 @@ them. You can disable sorted by passing in the flag `sort = false`.
 
 [source,scala]
 ----
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
-os.list(wd / "folder2") ==> Seq(
+os.list(wd / "folder1") // ==> Seq(wd / "folder1" / "one.txt")
+os.list(wd / "folder2") // ==> Seq(
   wd / "folder2" / "nestedA",
   wd / "folder2" / "nestedB"
 )
@@ -552,7 +552,7 @@ is large.
 
 [source,scala]
 ----
-os.list.stream(wd / "folder2").count() ==> 2
+os.list.stream(wd / "folder2").count() // ==> 2
 
 // Streaming the listed files to the console
 for(line <- os.list.stream(wd / "folder2")){
@@ -595,33 +595,33 @@ if `preOrder = false`.
 
 [source,scala]
 ----
-os.walk(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.walk(wd / "folder1") // ==> Seq(wd / "folder1" / "one.txt")
 
-os.walk(wd / "folder1", includeTarget = true) ==> Seq(
+os.walk(wd / "folder1", includeTarget = true) // ==> Seq(
   wd / "folder1",
   wd / "folder1" / "one.txt"
 )
 
-os.walk(wd / "folder2") ==> Seq(
+os.walk(wd / "folder2") // ==> Seq(
   wd / "folder2" / "nestedA",
   wd / "folder2" / "nestedA" / "a.txt",
   wd / "folder2" / "nestedB",
   wd / "folder2" / "nestedB" / "b.txt"
 )
 
-os.walk(wd / "folder2", preOrder = false) ==> Seq(
+os.walk(wd / "folder2", preOrder = false) // ==> Seq(
   wd / "folder2" / "nestedA" / "a.txt",
   wd / "folder2" / "nestedA",
   wd / "folder2" / "nestedB" / "b.txt",
   wd / "folder2" / "nestedB"
 )
 
-os.walk(wd / "folder2", maxDepth = 1) ==> Seq(
+os.walk(wd / "folder2", maxDepth = 1) // ==> Seq(
   wd / "folder2" / "nestedA",
   wd / "folder2" / "nestedB"
 )
 
-os.walk(wd / "folder2", skip = _.last == "nestedA") ==> Seq(
+os.walk(wd / "folder2", skip = _.last == "nestedA") // ==> Seq(
   wd / "folder2" / "nestedB",
   wd / "folder2" / "nestedB" / "b.txt"
 )
@@ -651,7 +651,7 @@ val filesSortedBySize = os.walk.attrs(wd / "misc", followLinks = true)
   .sortBy{case (p, attrs) => attrs.size}
   .collect{case (p, attrs) if attrsisFile => p}
 
-filesSortedBySize ==> Seq(
+filesSortedBySize // ==> Seq(
   wd / "misc" / "echo",
   wd / "misc" / "file-symlink",
   wd / "misc" / "echo_with_wd",
@@ -679,11 +679,11 @@ even before the walk has completed.
 
 [source,scala]
 ----
-os.walk.stream(wd / "folder1").count() ==> 1
+os.walk.stream(wd / "folder1").count() // ==> 1
 
-os.walk.stream(wd / "folder2").count() ==> 4
+os.walk.stream(wd / "folder2").count() // ==> 4
 
-os.walk.stream(wd / "folder2", skip = _.last == "nestedA").count() ==> 2
+os.walk.stream(wd / "folder2", skip = _.last == "nestedA").count() // ==> 2
 ----
 
 ==== `os.walk.stream.attrs`
@@ -708,8 +708,8 @@ def totalFileSizes(p: os.Path) = os.walk.stream.attrs(p)
   .collect{case (p, attrs) if attrs.isFile => attrs.size}
   .sum
 
-totalFileSizes(wd / "folder1") ==> 22
-totalFileSizes(wd / "folder2") ==> 40
+totalFileSizes(wd / "folder1") // ==> 22
+totalFileSizes(wd / "folder2") // ==> 40
 ----
 
 === Manipulating Files & Folders
@@ -725,14 +725,14 @@ Checks if a file or folder exists at the specified path
 
 [source,scala]
 ----
-os.exists(wd / "File.txt") ==> true
-os.exists(wd / "folder1") ==> true
-os.exists(wd / "doesnt-exist") ==> false
+os.exists(wd / "File.txt") // ==> true
+os.exists(wd / "folder1") // ==> true
+os.exists(wd / "doesnt-exist") // ==> false
 
-os.exists(wd / "misc" / "file-symlink") ==> true
-os.exists(wd / "misc" / "folder-symlink") ==> true
-os.exists(wd / "misc" / "broken-symlink") ==> false
-os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> true
+os.exists(wd / "misc" / "file-symlink") // ==> true
+os.exists(wd / "misc" / "folder-symlink") // ==> true
+os.exists(wd / "misc" / "broken-symlink") // ==> false
+os.exists(wd / "misc" / "broken-symlink", followLinks = false) // ==> true
 ----
 
 ==== `os.move`
@@ -748,17 +748,17 @@ path already exists, or is within the source path.
 
 [source,scala]
 ----
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.list(wd / "folder1") // ==> Seq(wd / "folder1" / "one.txt")
 os.move(wd / "folder1" / "one.txt", wd / "folder1" / "first.txt")
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "first.txt")
+os.list(wd / "folder1") // ==> Seq(wd / "folder1" / "first.txt")
 
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.list(wd / "folder2") // ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
 os.move(wd / "folder2" / "nestedA", wd / "folder2" / "nestedC")
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedB", wd / "folder2" / "nestedC")
+os.list(wd / "folder2") // ==> Seq(wd / "folder2" / "nestedB", wd / "folder2" / "nestedC")
 
-os.read(wd / "File.txt") ==> "I am cow"
+os.read(wd / "File.txt") // ==> "I am cow"
 os.move(wd / "Multi Line.txt", wd / "File.txt", replaceExisting = true)
-os.read(wd / "File.txt") ==>
+os.read(wd / "File.txt") // ==>
   """I am cow
     |Hear me moo
     |I weigh twice as much as you
@@ -779,7 +779,7 @@ e.g. to rename all `.txt` files within a folder tree to `.data`:
 [source,scala]
 ----
 import os.{GlobSyntax, /}
-os.walk(wd / "folder2") ==> Seq(
+os.walk(wd / "folder2") // ==> Seq(
   wd / "folder2" / "nestedA",
   wd / "folder2" / "nestedA" / "a.txt",
   wd / "folder2" / "nestedB",
@@ -788,7 +788,7 @@ os.walk(wd / "folder2") ==> Seq(
 
 os.walk(wd/'folder2).collect(os.move.matching{case p/g"$x.txt" => p/g"$x.data"})
 
-os.walk(wd / "folder2") ==> Seq(
+os.walk(wd / "folder2") // ==> Seq(
   wd / "folder2" / "nestedA",
   wd / "folder2" / "nestedA" / "a.data",
   wd / "folder2" / "nestedB",
@@ -807,9 +807,9 @@ Move the given file or folder _into_ the destination folder
 
 [source,scala]
 ----
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.list(wd / "folder1") // ==> Seq(wd / "folder1" / "one.txt")
 os.move.into(wd / "File.txt", wd / "folder1")
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "File.txt", wd / "folder1" / "one.txt")
+os.list(wd / "folder1") // ==> Seq(wd / "folder1" / "File.txt", wd / "folder1" / "one.txt")
 ----
 
 ==== `os.move.over`
@@ -824,9 +824,9 @@ folder than may already be present at that path
 
 [source,scala]
 ----
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.list(wd / "folder2") // ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
 os.move.over(wd / "folder1", wd / "folder2")
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
+os.list(wd / "folder2") // ==> Seq(wd / "folder2" / "one.txt")
 ----
 
 ==== `os.copy`
@@ -843,21 +843,21 @@ within the source path.
 
 [source,scala]
 ----
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.list(wd / "folder1") // ==> Seq(wd / "folder1" / "one.txt")
 os.copy(wd / "folder1" / "one.txt", wd / "folder1" / "first.txt")
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "first.txt", wd / "folder1" / "one.txt")
+os.list(wd / "folder1") // ==> Seq(wd / "folder1" / "first.txt", wd / "folder1" / "one.txt")
 
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.list(wd / "folder2") // ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
 os.copy(wd / "folder2" / "nestedA", wd / "folder2" / "nestedC")
-os.list(wd / "folder2") ==> Seq(
+os.list(wd / "folder2") // ==> Seq(
   wd / "folder2" / "nestedA",
   wd / "folder2" / "nestedB",
   wd / "folder2" / "nestedC"
 )
 
-os.read(wd / "File.txt") ==> "I am cow"
+os.read(wd / "File.txt") // ==> "I am cow"
 os.copy(wd / "Multi Line.txt", wd / "File.txt", replaceExisting = true)
-os.read(wd / "File.txt") ==>
+os.read(wd / "File.txt") // ==>
   """I am cow
     |Hear me moo
     |I weigh twice as much as you
@@ -889,9 +889,9 @@ Copy the given file or folder _into_ the destination folder
 
 [source,scala]
 ----
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.list(wd / "folder1") // ==> Seq(wd / "folder1" / "one.txt")
 os.copy.into(wd / "File.txt", wd / "folder1")
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "File.txt", wd / "folder1" / "one.txt")
+os.list(wd / "folder1") // ==> Seq(wd / "folder1" / "File.txt", wd / "folder1" / "one.txt")
 ----
 
 ==== `os.copy.over`
@@ -906,9 +906,9 @@ overwrite it instead of erroring out.
 
 [source,scala]
 ----
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.list(wd / "folder2") // ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
 os.copy.over(wd / "folder1", wd / "folder2")
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
+os.list(wd / "folder2") // ==> Seq(wd / "folder2" / "one.txt")
 ----
 
 ==== `os.copy` with `mergeFolders`
@@ -920,10 +920,10 @@ you can use the `mergeFolders` option of <<os-copy>>.
 
 [source,scala]
 ----
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.list(wd / "folder1") // ==> Seq(wd / "folder1" / "one.txt")
+os.list(wd / "folder2") // ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
 os.copy(wd / "folder1", wd / "folder2", mergeFolders = true)
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt", wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.list(wd / "folder2") // ==> Seq(wd / "folder2" / "one.txt", wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
 ----
 
 ==== `os.makeDir`
@@ -945,9 +945,9 @@ ignore the destination if it already exists, using
 
 [source,scala]
 ----
-os.exists(wd / "new_folder") ==> false
+os.exists(wd / "new_folder") // ==> false
 os.makeDir(wd / "new_folder")
-os.exists(wd / "new_folder") ==> true
+os.exists(wd / "new_folder") // ==> true
 ----
 
 ==== `os.makeDir.all`
@@ -968,9 +968,9 @@ to error out in that case by passing in `acceptLinkedDirectory = false`
 
 [source,scala]
 ----
-os.exists(wd / "new_folder") ==> false
+os.exists(wd / "new_folder") // ==> false
 os.makeDir.all(wd / "new_folder" / "inner" / "deep")
-os.exists(wd / "new_folder" / "inner" / "deep") ==> true
+os.exists(wd / "new_folder" / "inner" / "deep") // ==> true
 ----
 
 ==== `os.remove`
@@ -989,15 +989,15 @@ or when the directory to remove is not empty.
 
 [source,scala]
 ----
-os.exists(wd / "File.txt") ==> true
+os.exists(wd / "File.txt") // ==> true
 os.remove(wd / "File.txt")
-os.exists(wd / "File.txt") ==> false
+os.exists(wd / "File.txt") // ==> false
 
-os.exists(wd / "folder1" / "one.txt") ==> true
+os.exists(wd / "folder1" / "one.txt") // ==> true
 os.remove(wd / "folder1" / "one.txt")
 os.remove(wd / "folder1")
-os.exists(wd / "folder1" / "one.txt") ==> false
-os.exists(wd / "folder1") ==> false
+os.exists(wd / "folder1" / "one.txt") // ==> false
+os.exists(wd / "folder1") // ==> false
 ----
 
 When removing symbolic links, it is the link that gets removed, and not its
@@ -1006,16 +1006,16 @@ destination:
 [source,scala]
 ----
 os.remove(wd / "misc" / "file-symlink")
-os.exists(wd / "misc" / "file-symlink", followLinks = false) ==> false
-os.exists(wd / "File.txt", followLinks = false) ==> true
+os.exists(wd / "misc" / "file-symlink", followLinks = false) // ==> false
+os.exists(wd / "File.txt", followLinks = false) // ==> true
 
 os.remove(wd / "misc" / "folder-symlink")
-os.exists(wd / "misc" / "folder-symlink", followLinks = false) ==> false
-os.exists(wd / "folder1", followLinks = false) ==> true
-os.exists(wd / "folder1" / "one.txt", followLinks = false) ==> true
+os.exists(wd / "misc" / "folder-symlink", followLinks = false) // ==> false
+os.exists(wd / "folder1", followLinks = false) // ==> true
+os.exists(wd / "folder1" / "one.txt", followLinks = false) // ==> true
 
 os.remove(wd / "misc" / "broken-symlink")
-os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
+os.exists(wd / "misc" / "broken-symlink", followLinks = false) // ==> false
 ----
 
 If you wish to remove the destination of a symlink, use
@@ -1033,10 +1033,10 @@ removing all it's contents before deleting it.
 
 [source,scala]
 ----
-os.exists(wd / "folder1" / "one.txt") ==> true
+os.exists(wd / "folder1" / "one.txt") // ==> true
 os.remove.all(wd / "folder1")
-os.exists(wd / "folder1" / "one.txt") ==> false
-os.exists(wd / "folder1") ==> false
+os.exists(wd / "folder1" / "one.txt") // ==> false
+os.exists(wd / "folder1") // ==> false
 ----
 
 When removing symbolic links, it is the links that gets removed, and not it's
@@ -1045,16 +1045,16 @@ destination:
 [source,scala]
 ----
 os.remove.all(wd / "misc" / "file-symlink")
-os.exists(wd / "misc" / "file-symlink", followLinks = false) ==> false
-os.exists(wd / "File.txt", followLinks = false) ==> true
+os.exists(wd / "misc" / "file-symlink", followLinks = false) // ==> false
+os.exists(wd / "File.txt", followLinks = false) // ==> true
 
 os.remove.all(wd / "misc" / "folder-symlink")
-os.exists(wd / "misc" / "folder-symlink", followLinks = false) ==> false
-os.exists(wd / "folder1", followLinks = false) ==> true
-os.exists(wd / "folder1" / "one.txt", followLinks = false) ==> true
+os.exists(wd / "misc" / "folder-symlink", followLinks = false) // ==> false
+os.exists(wd / "folder1", followLinks = false) // ==> true
+os.exists(wd / "folder1" / "one.txt", followLinks = false) // ==> true
 
 os.remove.all(wd / "misc" / "broken-symlink")
-os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
+os.exists(wd / "misc" / "broken-symlink", followLinks = false) // ==> false
 ----
 
 If you wish to remove the destination of a symlink, use
@@ -1073,8 +1073,8 @@ Create a hardlink to the source path from the destination path
 ----
 os.hardlink(wd / "File.txt", wd / "Linked.txt")
 os.exists(wd / "Linked.txt")
-os.read(wd / "Linked.txt") ==> "I am cow"
-os.isLink(wd / "Linked.txt") ==> false
+os.read(wd / "Linked.txt") // ==> "I am cow"
+os.isLink(wd / "Linked.txt") // ==> false
 ----
 
 ==== `os.symlink`
@@ -1092,8 +1092,8 @@ link.
 ----
 os.symlink(wd / "File.txt", wd / "Linked.txt")
 os.exists(wd / "Linked.txt")
-os.read(wd / "Linked.txt") ==> "I am cow"
-os.isLink(wd / "Linked.txt") ==> true
+os.read(wd / "Linked.txt") // ==> "I am cow"
+os.isLink(wd / "Linked.txt") // ==> true
 ----
 
 You can create symlinks with either absolute ``os.Path``s or relative ``os.RelPath``s:
@@ -1102,8 +1102,8 @@ You can create symlinks with either absolute ``os.Path``s or relative ``os.RelPa
 ----
 os.symlink(wd / "File.txt", os.rel/ "Linked2.txt")
 os.exists(wd / "Linked2.txt")
-os.read(wd / "Linked2.txt") ==> "I am cow"
-os.isLink(wd / "Linked2.txt") ==> true
+os.read(wd / "Linked2.txt") // ==> "I am cow"
+os.isLink(wd / "Linked2.txt") // ==> true
 ----
 
 Creating absolute and relative symlinks respectively. Relative symlinks are
@@ -1121,10 +1121,10 @@ Returns the immediate destination of the given symbolic link.
 
 [source,scala]
 ----
-os.readLink(wd / "misc" / "file-symlink") ==> os.up / "File.txt"
-os.readLink(wd / "misc" / "folder-symlink") ==> os.up / "folder1"
-os.readLink(wd / "misc" / "broken-symlink") ==> os.rel / "broken"
-os.readLink(wd / "misc" / "broken-abs-symlink") ==> os.root / "doesnt" / "exist"
+os.readLink(wd / "misc" / "file-symlink") // ==> os.up / "File.txt"
+os.readLink(wd / "misc" / "folder-symlink") // ==> os.up / "folder1"
+os.readLink(wd / "misc" / "broken-symlink") // ==> os.rel / "broken"
+os.readLink(wd / "misc" / "broken-abs-symlink") // ==> os.root / "doesnt" / "exist"
 ----
 
 Note that symbolic links can be either absolute ``os.Path``s or relative
@@ -1133,10 +1133,10 @@ to automatically resolve relative symbolic links to their absolute destination:
 
 [source,scala]
 ----
-os.readLink.absolute(wd / "misc" / "file-symlink") ==> wd / "File.txt"
-os.readLink.absolute(wd / "misc" / "folder-symlink") ==> wd / "folder1"
-os.readLink.absolute(wd / "misc" / "broken-symlink") ==> wd / "misc" / "broken"
-os.readLink.absolute(wd / "misc" / "broken-abs-symlink") ==> os.root / "doesnt" / "exist"
+os.readLink.absolute(wd / "misc" / "file-symlink") // ==> wd / "File.txt"
+os.readLink.absolute(wd / "misc" / "folder-symlink") // ==> wd / "folder1"
+os.readLink.absolute(wd / "misc" / "broken-symlink") // ==> wd / "misc" / "broken"
+os.readLink.absolute(wd / "misc" / "broken-abs-symlink") // ==> os.root / "doesnt" / "exist"
 ----
 
 ==== `os.followLink`
@@ -1152,9 +1152,9 @@ symbolic link in the given path is broken)
 
 [source,scala]
 ----
-os.followLink(wd / "misc" / "file-symlink") ==> Some(wd / "File.txt")
-os.followLink(wd / "misc" / "folder-symlink") ==> Some(wd / "folder1")
-os.followLink(wd / "misc" / "broken-symlink") ==> None
+os.followLink(wd / "misc" / "file-symlink") // ==> Some(wd / "File.txt")
+os.followLink(wd / "misc" / "folder-symlink") // ==> Some(wd / "folder1")
+os.followLink(wd / "misc" / "broken-symlink") // ==> None
 ----
 
 ==== `os.temp`
@@ -1182,9 +1182,9 @@ behavior by setting `deleteOnExit = false`
 [source,scala]
 ----
 val tempOne = os.temp("default content")
-os.read(tempOne) ==> "default content"
+os.read(tempOne) // ==> "default content"
 os.write.over(tempOne, "Hello")
-os.read(tempOne) ==> "Hello"
+os.read(tempOne) // ==> "Hello"
 ----
 
 ==== `os.temp.dir`
@@ -1207,9 +1207,9 @@ behavior by setting `deleteOnExit = false`
 [source,scala]
 ----
 val tempDir = os.temp.dir()
-os.list(tempDir) ==> Nil
+os.list(tempDir) // ==> Nil
 os.write(tempDir / "file", "Hello")
-os.list(tempDir) ==> Seq(tempDir / "file")
+os.list(tempDir) // ==> Seq(tempDir / "file")
 ----
 
 === Filesystem Metadata
@@ -1228,9 +1228,9 @@ symbolic link itself.
 
 [source,scala]
 ----
-os.stat(wd / "File.txt").size ==> 8
-os.stat(wd / "Multi Line.txt").size ==> 81
-os.stat(wd / "folder1").fileType ==> os.FileType.Dir
+os.stat(wd / "File.txt").size // ==> 8
+os.stat(wd / "Multi Line.txt").size // ==> 81
+os.stat(wd / "folder1").fileType // ==> os.FileType.Dir
 ----
 
 ==== `os.stat.posix`
@@ -1258,12 +1258,12 @@ pass in `followLinks = false` to not do so.
 
 [source,scala]
 ----
-os.isFile(wd / "File.txt") ==> true
-os.isFile(wd / "folder1") ==> false
+os.isFile(wd / "File.txt") // ==> true
+os.isFile(wd / "folder1") // ==> false
 
-os.isFile(wd / "misc" / "file-symlink") ==> true
-os.isFile(wd / "misc" / "folder-symlink") ==> false
-os.isFile(wd / "misc" / "file-symlink", followLinks = false) ==> false
+os.isFile(wd / "misc" / "file-symlink") // ==> true
+os.isFile(wd / "misc" / "folder-symlink") // ==> false
+os.isFile(wd / "misc" / "file-symlink", followLinks = false) // ==> false
 ----
 
 ==== `os.isDir`
@@ -1278,12 +1278,12 @@ pass in `followLinks = false` to not do so.
 
 [source,scala]
 ----
-os.isDir(wd / "File.txt") ==> false
-os.isDir(wd / "folder1") ==> true
+os.isDir(wd / "File.txt") // ==> false
+os.isDir(wd / "folder1") // ==> true
 
-os.isDir(wd / "misc" / "file-symlink") ==> false
-os.isDir(wd / "misc" / "folder-symlink") ==> true
-os.isDir(wd / "misc" / "folder-symlink", followLinks = false) ==> false
+os.isDir(wd / "misc" / "file-symlink") // ==> false
+os.isDir(wd / "misc" / "folder-symlink") // ==> true
+os.isDir(wd / "misc" / "folder-symlink", followLinks = false) // ==> false
 ----
 
 ==== `os.isLink`
@@ -1298,9 +1298,9 @@ default, pass in `followLinks = false` to not do so.
 
 [source,scala]
 ----
-os.isLink(wd / "misc" / "file-symlink") ==> true
-os.isLink(wd / "misc" / "folder-symlink") ==> true
-os.isLink(wd / "folder1") ==> false
+os.isLink(wd / "misc" / "file-symlink") // ==> true
+os.isLink(wd / "misc" / "folder-symlink") // ==> true
+os.isLink(wd / "folder1") // ==> false
 ----
 
 ==== `os.size`
@@ -1314,8 +1314,8 @@ Returns the size of the given file, in bytes
 
 [source,scala]
 ----
-os.size(wd / "File.txt") ==> 8
-os.size(wd / "Multi Line.txt") ==> 81
+os.size(wd / "File.txt") // ==> 8
+os.size(wd / "Multi Line.txt") // ==> 81
 ----
 
 ==== `os.mtime`
@@ -1331,15 +1331,15 @@ Gets or sets the last-modified timestamp of the given file, in milliseconds
 [source,scala]
 ----
 os.mtime.set(wd / "File.txt", 0)
-os.mtime(wd / "File.txt") ==> 0
+os.mtime(wd / "File.txt") // ==> 0
 
 os.mtime.set(wd / "File.txt", 90000)
-os.mtime(wd / "File.txt") ==> 90000
-os.mtime(wd / "misc" / "file-symlink") ==> 90000
+os.mtime(wd / "File.txt") // ==> 90000
+os.mtime(wd / "misc" / "file-symlink") // ==> 90000
 
 os.mtime.set(wd / "misc" / "file-symlink", 70000)
-os.mtime(wd / "File.txt") ==> 70000
-os.mtime(wd / "misc" / "file-symlink") ==> 70000
+os.mtime(wd / "File.txt") // ==> 70000
+os.mtime(wd / "misc" / "file-symlink") // ==> 70000
 assert(os.mtime(wd / "misc" / "file-symlink", followLinks = false) != 40000)
 ----
 
@@ -1365,11 +1365,11 @@ default set of permissions and having `os.perms.set` over-write them later
 [source,scala]
 ----
 os.perms.set(wd / "File.txt", "rwxrwxrwx")
-os.perms(wd / "File.txt").toString() ==> "rwxrwxrwx"
-os.perms(wd / "File.txt").toInt() ==> Integer.parseInt("777", 8)
+os.perms(wd / "File.txt").toString() // ==> "rwxrwxrwx"
+os.perms(wd / "File.txt").toInt() // ==> Integer.parseInt("777", 8)
 
 os.perms.set(wd / "File.txt", Integer.parseInt("755", 8))
-os.perms(wd / "File.txt").toString() ==> "rwxr-xr-x"
+os.perms(wd / "File.txt").toString() // ==> "rwxr-xr-x"
 
 os.perms.set(wd / "File.txt", "r-xr-xr-x")
 os.perms.set(wd / "File.txt", Integer.parseInt("555", 8))
@@ -1392,7 +1392,7 @@ to be running as the `root` user in order to do this.
 val originalOwner = os.owner(wd / "File.txt")
 
 os.owner.set(wd / "File.txt", "nobody")
-os.owner(wd / "File.txt").getName ==> "nobody"
+os.owner(wd / "File.txt").getName // ==> "nobody"
 
 os.owner.set(wd / "File.txt", originalOwner)
 ----
@@ -1414,7 +1414,7 @@ process needs to be running as the `root` user in order to do this.
 val originalOwner = os.owner(wd / "File.txt")
 
 os.owner.set(wd / "File.txt", "nobody")
-os.owner(wd / "File.txt").getName ==> "nobody"
+os.owner(wd / "File.txt").getName // ==> "nobody"
 
 os.owner.set(wd / "File.txt", originalOwner)
 ----
@@ -1504,18 +1504,18 @@ Note that redirecting `stdout`/`stderr` elsewhere means that the respective
 ----
 val res = os.proc('ls, wd/"folder2").call()
 
-res.exitCode ==> 0
+res.exitCode // ==> 0
 
-res.out.text() ==>
+res.out.text() // ==>
   """nestedA
     |nestedB
     |""".stripMargin
 
-res.out.trim() ==>
+res.out.trim() // ==>
   """nestedA
     |nestedB""".stripMargin
 
-res.out.lines() ==> Seq(
+res.out.lines() // ==> Seq(
   "nestedA",
   "nestedB"
 )
@@ -1536,18 +1536,18 @@ val fail = os.proc('ls, "doesnt-exist").call(cwd = wd, check = false)
 assert(fail.exitCode != 0)
 
 
-fail.out.text() ==> ""
+fail.out.text() // ==> ""
 
 assert(fail.err.text().contains("No such file or directory"))
 
 // You can pass in data to a subprocess' stdin
 val hash = os.proc("shasum", "-a", "256").call(stdin = "Hello World")
-hash.out.trim() ==> "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e  -"
+hash.out.trim() // ==> "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e  -"
 
 // Taking input from a file and directing output to another file
 os.proc("base64").call(stdin = wd / "File.txt", stdout = wd / "File.txt.b64")
 
-os.read(wd / "File.txt.b64") ==> "SSBhbSBjb3c="
+os.read(wd / "File.txt.b64") // ==> "SSBhbSBjb3c="
 ----
 
 If you want to spawn an interactive subprocess, such as `vim`, `less`, or a
@@ -1576,7 +1576,7 @@ Or on lines of output:
 
 [source,scala]
 ----
-lineCount ==> 22
+lineCount // ==> 22
 var lineCount = 1
 os.proc('find, ".").call(
   cwd = wd,
@@ -1584,7 +1584,7 @@ os.proc('find, ".").call(
     line => lineCount += 1
   ),
 )
-lineCount ==> 22
+lineCount // ==> 22
 ----
 
 ==== `os.proc.spawn`
@@ -1632,18 +1632,18 @@ val sub = os.proc("python", "-u", "-c", "while True: print(eval(raw_input()))")
 sub.stdin.write("1 + 2")
 sub.stdin.writeLine("+ 4")
 sub.stdin.flush()
-sub.stdout.readLine() ==> "7"
+sub.stdout.readLine() // ==> "7"
 
 sub.stdin.write("'1' + '2'")
 sub.stdin.writeLine("+ '4'")
 sub.stdin.flush()
-sub.stdout.readLine() ==> "124"
+sub.stdout.readLine() // ==> "124"
 
 // Sending some bytes to the subprocess
 sub.stdin.write("1 * 2".getBytes)
 sub.stdin.write("* 4\n".getBytes)
 sub.stdin.flush()
-sub.stdout.read() ==> '8'.toByte
+sub.stdout.read() // ==> '8'.toByte
 
 sub.destroy()
 
@@ -1651,7 +1651,7 @@ sub.destroy()
 val curl = os.proc("curl", "-L" , "https://git.io/fpfTs").spawn(stderr = os.Inherit)
 val gzip = os.proc("gzip", "-n").spawn(stdin = curl.stdout)
 val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
-sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
+sha.stdout.trim // ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
 ----
 
 == Spawning Pipelines of Subprocesses
