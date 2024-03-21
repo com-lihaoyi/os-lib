@@ -13,10 +13,9 @@ val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 val scala213Version = "2.13.10"
 
 val scalaVersions = Seq(
-  "3.1.3",
+  "3.3.1",
   "2.12.17",
   scala213Version,
-  "2.11.12"
 ) ++ communityBuildDottyVersion
 
 object Deps {
@@ -69,6 +68,8 @@ trait OsLibModule
     with SafeDeps
     with PlatformScalaModule { outer =>
 
+  def scalacPluginIvyDeps = super.scalacPluginIvyDeps() ++ Agg(ivy"com.lihaoyi::unroll-plugin:0.1.12")
+  def ivyDeps = super.ivyDeps() ++ Agg(ivy"com.lihaoyi::unroll-annotation:0.1.12")
   def publishVersion = VcsVersion.vcsState().format()
   def pomSettings = PomSettings(
     description = artifactName(),
@@ -99,7 +100,7 @@ trait OsLibModule
 }
 
 trait OsModule extends OsLibModule { outer =>
-  def ivyDeps = Agg(Deps.geny)
+  def ivyDeps = super.ivyDeps() ++ Agg(Deps.geny)
 
   def artifactName = "os-lib"
 
@@ -131,7 +132,7 @@ object os extends Module {
 
   object native extends Cross[OsNativeModule](scalaVersions)
   trait OsNativeModule extends OsModule with ScalaNativeModule {
-    def scalaNativeVersion = "0.4.5"
+    def scalaNativeVersion = "0.4.14"
     object test extends ScalaNativeTests with OsLibTestModule {
       def nativeLinkStubs = true
     }

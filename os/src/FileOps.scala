@@ -11,6 +11,7 @@ import java.nio.file.{Path => _, _}
 import java.nio.file.attribute.{FileAttribute, PosixFilePermission, PosixFilePermissions}
 
 import scala.util.Try
+import scala.annotation.unroll
 
 /**
  * Create a single directory at the specified path. Optionally takes in a
@@ -174,7 +175,7 @@ object copy {
       replaceExisting: Boolean = false,
       copyAttributes: Boolean = false,
       createFolders: Boolean = false,
-      mergeFolders: Boolean = false
+      @unroll mergeFolders: Boolean = false
   ): Unit = {
     if (createFolders) makeDir.all(to / up)
     val opts1 =
@@ -205,29 +206,6 @@ object copy {
     if (stat(from, followLinks = followLinks).isDir) walk(from).map(copyOne)
   }
 
-  /** This overload is only to keep binary compatibility with older os-lib versions. */
-  @deprecated(
-    "Use os.copy(from, to, followLinks, replaceExisting, copyAttributes, " +
-      "createFolders, mergeFolders) instead",
-    "os-lib 0.7.5"
-  )
-  def apply(
-      from: Path,
-      to: Path,
-      followLinks: Boolean,
-      replaceExisting: Boolean,
-      copyAttributes: Boolean,
-      createFolders: Boolean
-  ): Unit = apply(
-    from = from,
-    to = to,
-    followLinks = followLinks,
-    replaceExisting = replaceExisting,
-    copyAttributes = copyAttributes,
-    createFolders = createFolders,
-    mergeFolders = false
-  )
-
   /**
    * Copy a file into a particular folder, rather
    * than into a particular path
@@ -240,7 +218,7 @@ object copy {
         replaceExisting: Boolean = false,
         copyAttributes: Boolean = false,
         createFolders: Boolean = false,
-        mergeFolders: Boolean = false
+        @unroll mergeFolders: Boolean = false
     ): Unit = {
       os.copy(
         from,
@@ -252,29 +230,6 @@ object copy {
         mergeFolders
       )
     }
-
-    /** This overload is only to keep binary compatibility with older os-lib versions. */
-    @deprecated(
-      "Use os.copy.into(from, to, followLinks, replaceExisting, copyAttributes, " +
-        "createFolders, mergeFolders) instead",
-      "os-lib 0.7.5"
-    )
-    def apply(
-        from: Path,
-        to: Path,
-        followLinks: Boolean,
-        replaceExisting: Boolean,
-        copyAttributes: Boolean,
-        createFolders: Boolean
-    ): Unit = apply(
-      from = from,
-      to = to,
-      followLinks = followLinks,
-      replaceExisting = replaceExisting,
-      copyAttributes = copyAttributes,
-      createFolders = createFolders,
-      mergeFolders = false
-    )
   }
 
   /**
