@@ -13,10 +13,9 @@ val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 val scala213Version = "2.13.10"
 
 val scalaVersions = Seq(
-  "3.1.3",
+  "3.3.1",
   "2.12.17",
   scala213Version,
-  "2.11.12"
 ) ++ communityBuildDottyVersion
 
 object Deps {
