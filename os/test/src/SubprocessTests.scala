@@ -1,12 +1,9 @@
 package test.os
-
-import java.io._
-import java.nio.charset.StandardCharsets
-
+import test.os.{TestUtil, Unix}
 import os._
 import utest._
-
-import scala.collection.mutable
+import java.io._
+import java.nio.charset.StandardCharsets
 
 object SubprocessTests extends TestSuite {
   val scriptFolder = pwd / "os" / "test" / "resources" / "test"
