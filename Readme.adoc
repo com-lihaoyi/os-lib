@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.9.3
+:version: 0.10.0
 :link-geny: https://github.com/com-lihaoyi/geny
 :link-oslib: https://github.com/com-lihaoyi/os-lib
 :link-oslib-gitter: https://gitter.im/lihaoyi/os-lib
@@ -2221,7 +2221,8 @@ string, int or set representations of the `os.PermSet` via:
 
 == Changelog
 
-=== master
+[#0-10-0]
+=== 0.10.0
 
 * Support for Scala-Native 0.5.0
 * Dropped support for Scala 2.11.x
