@@ -19,7 +19,7 @@ val scalaVersions = Seq(
 ) ++ communityBuildDottyVersion
 
 object Deps {
-  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.11"
+  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.12"
   val jna = ivy"net.java.dev.jna:jna:5.14.0"
   val geny = ivy"com.lihaoyi::geny::1.1.0"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.0"
