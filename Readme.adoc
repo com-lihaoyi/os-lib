@@ -1128,7 +1128,7 @@ os.readLink(wd / "misc" / "broken-abs-symlink") ==> os.root / "doesnt" / "exist"
 ----
 
 Note that symbolic links can be either absolute ``os.Path``s or relative
-``os.RelPath``s, represented by `os.FilePath`. You can also use `os.readLink.all`
+``os.RelPath``s, represented by `os.FilePath`. You can also use `os.readLink.absolute`
 to automatically resolve relative symbolic links to their absolute destination:
 
 [source,scala]
