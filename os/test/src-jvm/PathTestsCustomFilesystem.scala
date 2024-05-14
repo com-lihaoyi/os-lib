@@ -7,6 +7,7 @@ import java.nio.file.FileSystems
 import java.net.URI
 import java.nio.file.FileSystem
 import java.nio.file.Paths
+import scala.util.control.NonFatal
 
 object PathTestsCustomFilesystem extends TestSuite {
 
@@ -173,6 +174,28 @@ object PathTestsCustomFilesystem extends TestSuite {
           os.copy(p / "file.txt", p / "file2.txt")
           assert(os.read(p / "file2.txt") == "Hello World")
           assert(os.exists(p / "file.txt"))
+        }
+      }
+      test("copyAndMergeToRootDirectoryWithCreateFolders") {
+        withCustomFs { fileSystem =>
+          val root = os.root("/", fileSystem)
+          val file = root / "test" / "dir" / "file.txt"
+          os.write(file, "Hello World")
+          os.copy(root / "test" / "dir", root, createFolders = true, mergeFolders = true)
+          assert(os.read(root / "file.txt") == "Hello World")
+          assert(os.exists(root / "file.txt"))
+        }
+      }
+      test("moveToRootDirectoryWithCreateFolders") {
+        withCustomFs { fileSystem =>
+          // This should fail. Just test that it doesn't throw PathError.AbsolutePathOutsideRoot.
+          val root = os.root("/", fileSystem)
+          try {
+            os.move(root / "test" / "dir", root, createFolders = true)
+          } catch {
+            case e: PathError.AbsolutePathOutsideRoot.type => throw e
+            case NonFatal(_) => ()
+          }
         }
       }
       test("remove") {
