@@ -68,7 +68,7 @@ object move {
       def isDefinedAt(x: Path) = partialFunction.isDefinedAt(x)
       def apply(from: Path) = {
         val dest = partialFunction(from)
-        makeDir.all(dest / up)
+        if (dest.segmentCount != 0) makeDir.all(dest / up)
         os.move(from, dest, replaceExisting, atomicMove, createFolders)
       }
     }
@@ -149,7 +149,7 @@ object copy {
       def isDefinedAt(x: Path) = partialFunction.isDefinedAt(x)
       def apply(from: Path) = {
         val dest = partialFunction(from)
-        makeDir.all(dest / up)
+        if (dest.segmentCount != 0) makeDir.all(dest / up)
         os.copy(
           from,
           dest,
