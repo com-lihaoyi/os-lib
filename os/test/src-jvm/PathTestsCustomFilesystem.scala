@@ -198,6 +198,28 @@ object PathTestsCustomFilesystem extends TestSuite {
           }
         }
       }
+      test("copyMatchingAndMergeToRootDirectory") {
+        withCustomFs { fileSystem =>
+          val root = os.root("/", fileSystem)
+          val file = root / "test" / "dir" / "file.txt"
+          os.write(file, "Hello World")
+          os.list(root / "test").collect(os.copy.matching(mergeFolders = true) {
+            case p / "test" / _ => p
+          })
+          assert(os.read(root / "file.txt") == "Hello World")
+          assert(os.exists(root / "file.txt"))
+        }
+      }
+      test("moveMatchingToRootDirectory") {
+        withCustomFs { fileSystem =>
+          try {
+            os.list(os.root("/", fileSystem)).collect(os.move.matching { case p / "test" => p })
+          } catch {
+            case e: PathError.AbsolutePathOutsideRoot.type => throw e
+            case NonFatal(_) => ()
+          }
+        }
+      }
       test("remove") {
         withCustomFs { fileSystem =>
           val p = os.root("/", fileSystem) / "test" / "dir"
