@@ -19,7 +19,6 @@ jobs:
           - os: macos-latest
             java-version: 11
 
-
     runs-on: ${{ matrix.os }}
 
     steps:

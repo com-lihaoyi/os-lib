@@ -51,7 +51,7 @@ trait SafeDeps extends ScalaModule {
 }
 
 trait MiMaChecks extends Mima {
-  def mimaPreviousVersions = Seq("0.9.0", "0.9.1", "0.9.2")
+  def mimaPreviousVersions = Seq("0.9.0", "0.9.1", "0.9.2", "0.9.3", "0.10.0")
   override def mimaBinaryIssueFilters: T[Seq[ProblemFilter]] = Seq(
     ProblemFilter.exclude[ReversedMissingMethodProblem]("os.PathConvertible.isCustomFs")
   )
