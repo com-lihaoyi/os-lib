@@ -1,11 +1,23 @@
 package os
 
-import java.nio.file.attribute.{FileAttribute, PosixFilePermission, PosixFilePermissions}
+import java.nio.file.attribute.{FileAttribute, PosixFilePermissions}
+import scala.util.Using
 
 /**
- * Alias for `java.nio.file.Files.createTempFile` and
- * `java.io.File.deleteOnExit`. Pass in `deleteOnExit = false` if you want
- * the temp file to stick around.
+ * Create temporary files and directories. [[withFile]] and [[withDir]] 
+ * are convenience methods that handle the most common case. They delete the temp
+ * file/dir immediately after the given function completed - even if the given
+ * function threw an exception. 
+ * 
+ * {{{
+ * os.temp.withFile { file =>
+ *   os.write(file, "some content")
+ * }
+ * }}} 
+ * 
+ * [[os.temp()]] and [[os.temp.dir()]] are aliases for
+ * `java.nio.file.Files.createTemp[File|Directory]` and `java.io.File.deleteOnExit`.
+ * Pass in `deleteOnExit = false` if you want the temp file to stick around.
  */
 object temp {
 
@@ -27,7 +39,7 @@ object temp {
       suffix: String = null,
       deleteOnExit: Boolean = true,
       perms: PermSet = null
-  ): Path = {
+  ): TempPath = {
     import collection.JavaConverters._
     val permArray: Array[FileAttribute[_]] =
       if (perms == null) Array.empty
@@ -40,7 +52,7 @@ object temp {
 
     if (contents != null) write.over(Path(nioPath), contents)
     if (deleteOnExit) nioPath.toFile.deleteOnExit()
-    Path(nioPath)
+    new TempPath(nioPath)
   }
 
   /**
@@ -56,7 +68,7 @@ object temp {
       prefix: String = null,
       deleteOnExit: Boolean = true,
       perms: PermSet = null
-  ): Path = {
+  ): TempPath = {
     val permArray: Array[FileAttribute[_]] =
       if (perms == null) Array.empty
       else Array(PosixFilePermissions.asFileAttribute(perms.toSet()))
@@ -67,7 +79,59 @@ object temp {
     }
 
     if (deleteOnExit) nioPath.toFile.deleteOnExit()
-    Path(nioPath)
+    new TempPath(nioPath)
   }
+
+  /**
+    * Convenience method that creates a temporary file and automatically deletes it
+    * after the given function completed - even if the function throws an exception. 
+    * 
+    * {{{
+    * os.temp.withFile { file =>
+    *   os.write(file, "some content")
+    * }
+    * }}} 
+    */
+  def withFile[A](
+    fun: Path => A,
+    contents: Source = null,
+    dir: Path = null,
+    prefix: String = null,
+    suffix: String = null,
+    perms: PermSet = null
+  ): A = {
+    Using.resource(os.temp(
+      contents = contents,
+      dir = dir,
+      prefix = prefix,
+      suffix = suffix,
+      deleteOnExit = false, // TempPath.close() deletes it, no need to register with JVM
+      perms = perms
+    ))(fun)
+  }
+
+  /**
+    * Convenience method that creates a temporary directory and automatically deletes it
+    * after the given function completed - even if the function throws an exception. 
+    * 
+    * {{{
+    * os.temp.withDir { file =>
+    *   val file = dir / "somefile"
+    *   os.write(file, "some content")
+    * }
+    * }}} 
+    */
+  def withDir[A](
+    fun: Path => A,
+    dir: Path = null,
+    prefix: String = null,
+    perms: PermSet = null
+  ): A =
+    Using.resource(os.temp.dir(
+      dir = dir,
+      prefix = prefix,
+      deleteOnExit = false, // TempPath.close() deletes it, no need to register with JVM
+      perms = perms
+    ))(fun)
 
 }

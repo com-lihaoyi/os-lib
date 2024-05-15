@@ -1,7 +1,8 @@
 package os
 
 import java.net.URI
-import java.nio.file.Paths
+import java.nio.file.{LinkOption, Paths}
+import java.nio.file.Files
 
 import collection.JavaConverters._
 import scala.language.implicitConversions
@@ -483,7 +484,7 @@ trait ReadablePath {
 class Path private[os] (val wrapped: java.nio.file.Path)
     extends FilePath with ReadablePath with BasePathImpl {
   def toSource: SeekableSource =
-    new SeekableSource.ChannelSource(java.nio.file.Files.newByteChannel(wrapped))
+    new SeekableSource.ChannelSource(Files.newByteChannel(wrapped))
 
   require(wrapped.isAbsolute || Path.driveRelative(wrapped), s"$wrapped is not an absolute path")
   def root = Option(wrapped.getRoot).map(_.toString).getOrElse("")
@@ -537,7 +538,32 @@ class Path private[os] (val wrapped: java.nio.file.Path)
 
   def resolveFrom(base: os.Path) = this
 
-  def getInputStream = java.nio.file.Files.newInputStream(wrapped)
+  def getInputStream = Files.newInputStream(wrapped)
+}
+
+class TempPath private[os] (wrapped: java.nio.file.Path)
+  extends Path(wrapped) with AutoCloseable {
+
+  override def close(): Unit = deleteRecursively(wrapped)
+
+  /** Wouldn't it be nice if we could just call `os.remove.all(this)`?
+    * For some reason, Scala 2 throws a rather obscure `[error] Unwanted cyclic dependency`
+    */
+  private def deleteRecursively(ioPath: java.nio.file.Path): Unit = {
+    if (Files.isDirectory(ioPath)) {
+      // while we support Scala 2.11 we need (something like) this:
+      Files.list(ioPath).forEach(
+        new java.util.function.Consumer[java.nio.file.Path] {
+          override def accept(path: java.nio.file.Path): Unit =
+            deleteRecursively(path)
+        }
+      )
+
+      // this works for Scala 2.12+
+      // Files.list(ioPath).forEach(deleteRecursively)
+    }
+    Files.deleteIfExists(ioPath)
+  }
 }
 
 sealed trait PathConvertible[T] {
