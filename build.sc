@@ -22,7 +22,7 @@ object Deps {
   val acyclic = ivy"com.lihaoyi:::acyclic:0.3.12"
   val jna = ivy"net.java.dev.jna:jna:5.14.0"
   val geny = ivy"com.lihaoyi::geny::1.1.0"
-  val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.0"
+  val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.1"
   val utest = ivy"com.lihaoyi::utest::0.8.3"
   def scalaLibrary(version: String) = ivy"org.scala-lang:scala-library:${version}"
 }
@@ -51,7 +51,7 @@ trait SafeDeps extends ScalaModule {
 }
 
 trait MiMaChecks extends Mima {
-  def mimaPreviousVersions = Seq("0.9.0", "0.9.1", "0.9.2")
+  def mimaPreviousVersions = Seq("0.9.0", "0.9.1", "0.9.2", "0.9.3", "0.10.0")
   override def mimaBinaryIssueFilters: T[Seq[ProblemFilter]] = Seq(
     ProblemFilter.exclude[ReversedMissingMethodProblem]("os.PathConvertible.isCustomFs")
   )

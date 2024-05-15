@@ -11,8 +11,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest]
         java-version: [8, 17]
+        include:
+          - os: macos-latest
+            java-version: 17
+          - os: macos-latest
+            java-version: 11
 
     runs-on: ${{ matrix.os }}
 
