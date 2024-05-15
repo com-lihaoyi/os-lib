@@ -1,18 +1,20 @@
 package test.os.watch
 
+import scala.util.Properties.isWin
+import scala.util.Random
 import utest._
 
 object WatchTests extends TestSuite with TestSuite.Retries {
   override val utestRetryCount =
-    if(sys.env.get("CI").contains("true")) {
-      if(sys.env.get("RUNNER_OS").contains("macOS")) 10
+    if (sys.env.get("CI").contains("true")) {
+      if (sys.env.get("RUNNER_OS").contains("macOS")) 10
       else 3
     } else {
       0
     }
 
   val tests = Tests {
-    test("singleFolder") - _root_.test.os.TestUtil.prep{wd => if (_root_.test.os.Unix()){
+    test("singleFolder") - _root_.test.os.TestUtil.prep { wd =>
       val changedPaths = collection.mutable.Set.empty[os.Path]
       _root_.os.watch.watch(
         Seq(wd),
@@ -27,7 +29,7 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       def checkFileManglingChanges(p: os.Path) = {
 
         checkChanges(
-          os.write(p, ""),
+          os.write(p, Random.nextString(100)),
           Set(p.subRelativeTo(wd))
         )
 
@@ -56,7 +58,9 @@ object WatchTests extends TestSuite with TestSuite.Retries {
         action
         Thread.sleep(200)
         val changedSubPaths = changedPaths.map(_.subRelativeTo(wd))
-        assert(expectedChangedPaths == changedSubPaths)
+        // on Windows sometimes we get more changes
+        if (isWin) assert(expectedChangedPaths.subsetOf(changedSubPaths))
+        else assert(expectedChangedPaths == changedSubPaths)
       }
 
       checkFileManglingChanges(wd / "test")
@@ -73,18 +77,24 @@ object WatchTests extends TestSuite with TestSuite.Retries {
 
       checkFileManglingChanges(wd / "my-new-folder" / "test")
 
-      checkChanges(
-        os.move(wd / "folder2", wd / "folder3"),
-        Set(
+      locally {
+        val expectedChanges = if (isWin) Set(
+          os.sub / "folder2",
+          os.sub / "folder3"
+        )
+        else Set(
           os.sub / "folder2",
           os.sub / "folder3",
-
           os.sub / "folder3" / "nestedA",
           os.sub / "folder3" / "nestedA" / "a.txt",
           os.sub / "folder3" / "nestedB",
           os.sub / "folder3" / "nestedB" / "b.txt"
         )
-      )
+        checkChanges(
+          os.move(wd / "folder2", wd / "folder3"),
+          expectedChanges
+        )
+      }
 
       checkChanges(
         os.copy(wd / "folder3", wd / "folder4"),
@@ -123,16 +133,17 @@ object WatchTests extends TestSuite with TestSuite.Retries {
 
       checkChanges(
         os.hardlink(wd / "newlink3", wd / "folder3" / "nestedA" / "a.txt"),
-        System.getProperty("os.name") match{
-          case "Linux" => Set(os.sub / "newlink3")
+        System.getProperty("os.name") match {
           case "Mac OS X" =>
             Set(
               os.sub / "newlink3",
               os.sub / "folder3" / "nestedA",
               os.sub / "folder3" / "nestedA" / "a.txt"
             )
+          case _ => Set(os.sub / "newlink3")
         }
       )
-    }}
+
+    }
   }
 }

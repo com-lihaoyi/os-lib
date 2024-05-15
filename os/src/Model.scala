@@ -224,6 +224,9 @@ object Shellable {
   implicit def RelPathShellable(s: RelPath): Shellable = Shellable(Seq(s.toString))
   implicit def NumericShellable[T: Numeric](s: T): Shellable = Shellable(Seq(s.toString))
 
+  implicit def OptionShellable[T](s: Option[T])(implicit f: T => Shellable): Shellable =
+    Shellable(s.toSeq.flatMap(f(_).value))
+
   implicit def IterableShellable[T](s: Iterable[T])(implicit f: T => Shellable): Shellable =
     Shellable(s.toSeq.flatMap(f(_).value))
 

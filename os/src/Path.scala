@@ -6,6 +6,7 @@ import java.nio.file.Files
 
 import collection.JavaConverters._
 import scala.language.implicitConversions
+import java.nio.file
 
 trait PathChunk {
   def segments: Seq[String]
@@ -238,10 +239,12 @@ sealed trait FilePath extends BasePath {
   def toNIO: java.nio.file.Path
   def resolveFrom(base: os.Path): os.Path
 }
+
 object FilePath {
   def apply[T: PathConvertible](f0: T) = {
-    val f = implicitly[PathConvertible[T]].apply(f0)
-    if (f.isAbsolute) Path(f0)
+    def f = implicitly[PathConvertible[T]].apply(f0)
+    // if Windows root-relative path, convert it to an absolute path
+    if (Path.driveRelative(f0) || f.isAbsolute) Path(f0)
     else {
       val r = RelPath(f0)
       if (r.ups == 0) r.asSubPath
@@ -298,7 +301,7 @@ object RelPath {
   def apply[T: PathConvertible](f0: T): RelPath = {
     val f = implicitly[PathConvertible[T]].apply(f0)
 
-    require(!f.isAbsolute, s"$f is not a relative path")
+    require(!f.isAbsolute && !Path.driveRelative(f0), s"$f is not a relative path")
 
     val segments = BasePath.chunkify(f.normalize())
     val (ups, rest) = segments.partition(_ == "..")
@@ -399,13 +402,17 @@ object Path {
 
   def apply[T: PathConvertible](f: T, base: Path): Path = apply(FilePath(f), base)
   def apply[T: PathConvertible](f0: T): Path = {
-    val f = implicitly[PathConvertible[T]].apply(f0)
+    val pathConvertible = implicitly[PathConvertible[T]]
+    // drive letter prefix is empty unless running in Windows.
+    val f = if (!pathConvertible.isCustomFs(f0) && driveRelative(f0)) {
+      Paths.get(s"$driveRoot$f0")
+    } else {
+      pathConvertible.apply(f0)
+    }
     if (f.iterator.asScala.count(_.startsWith("..")) > f.getNameCount / 2) {
       throw PathError.AbsolutePathOutsideRoot
     }
-
-    val normalized = f.normalize()
-    new Path(normalized)
+    new Path(f.normalize())
   }
 
   implicit val pathOrdering: Ordering[Path] = new Ordering[Path] {
@@ -437,6 +444,32 @@ object Path {
     }
   }
 
+  /**
+   * @return true if Windows OS and path begins with slash or backslash.
+   * Examples:
+   *    driveRelative("/Users")   // true in `Windows`, false elsewhere.
+   *    driveRelative("\\Users")  // true in `Windows`, false elsewhere.
+   *    driveRelative("C:/Users") // false always
+   */
+  def driveRelative[T: PathConvertible](f0: T): Boolean = {
+    if (driveRoot.isEmpty) {
+      false // non-Windows os
+    } else {
+      f0.toString.take(1) match {
+        case "\\" | "/" => true
+        case _ => false
+      }
+    }
+  }
+
+  /**
+   * @return current working drive if Windows, empty string elsewhere.
+   * Paths.get(driveRoot) == current working directory on all platforms.
+   */
+  lazy val driveRoot: String = Paths.get(".").toAbsolutePath.getRoot.toString match {
+    case "/" => "" // implies a non-Windows platform
+    case s => s.take(2) // Windows current working drive (e.g., "C:")
+  }
 }
 
 trait ReadablePath {
@@ -453,7 +486,10 @@ class Path private[os] (val wrapped: java.nio.file.Path)
   def toSource: SeekableSource =
     new SeekableSource.ChannelSource(Files.newByteChannel(wrapped))
 
-  require(wrapped.isAbsolute, s"$wrapped is not an absolute path")
+  require(wrapped.isAbsolute || Path.driveRelative(wrapped), s"$wrapped is not an absolute path")
+  def root = Option(wrapped.getRoot).map(_.toString).getOrElse("")
+  def fileSystem = wrapped.getFileSystem()
+
   def segments: Iterator[String] = wrapped.iterator().asScala.map(_.toString)
   def getSegment(i: Int): String = wrapped.getName(i).toString
   def segmentCount = wrapped.getNameCount
@@ -479,7 +515,11 @@ class Path private[os] (val wrapped: java.nio.file.Path)
   def endsWith(target: RelPath) = wrapped.endsWith(target.toString)
 
   def relativeTo(base: Path): RelPath = {
-
+    if (fileSystem != base.fileSystem) {
+      throw new IllegalArgumentException(
+        s"Paths $wrapped and $base are on different filesystems"
+      )
+    }
     val nioRel = base.wrapped.relativize(wrapped)
     val segments = nioRel.iterator().asScala.map(_.toString).toArray match {
       case Array("") => Internals.emptyStringArray
@@ -528,6 +568,7 @@ class TempPath private[os] (wrapped: java.nio.file.Path)
 
 sealed trait PathConvertible[T] {
   def apply(t: T): java.nio.file.Path
+  def isCustomFs(t: T): Boolean = false
 }
 
 object PathConvertible {
@@ -539,6 +580,8 @@ object PathConvertible {
   }
   implicit object NioPathConvertible extends PathConvertible[java.nio.file.Path] {
     def apply(t: java.nio.file.Path) = t
+    override def isCustomFs(t: java.nio.file.Path): Boolean =
+      t.getFileSystem() != java.nio.file.FileSystems.getDefault()
   }
   implicit object UriPathConvertible extends PathConvertible[URI] {
     def apply(uri: URI) = uri.getScheme() match {
