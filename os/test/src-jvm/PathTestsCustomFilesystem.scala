@@ -2,11 +2,10 @@ package test.os
 
 import utest._
 import os._
+
 import java.util.HashMap
-import java.nio.file.FileSystems
+import java.nio.file.{FileAlreadyExistsException, FileSystem, FileSystems}
 import java.net.URI
-import java.nio.file.FileSystem
-import java.nio.file.Paths
 import scala.util.control.NonFatal
 
 object PathTestsCustomFilesystem extends TestSuite {
@@ -186,15 +185,12 @@ object PathTestsCustomFilesystem extends TestSuite {
           assert(os.exists(root / "file.txt"))
         }
       }
-      test("moveToRootDirectoryWithCreateFolders") {
+      test("moveToRootDirectoryWithCreateFoldersSouldFail") {
         withCustomFs { fileSystem =>
-          // This should fail. Just test that it doesn't throw PathError.AbsolutePathOutsideRoot.
           val root = os.root("/", fileSystem)
-          try {
+          // This should fail. Just test that it doesn't throw PathError.AbsolutePathOutsideRoot.
+          intercept[FileAlreadyExistsException] {
             os.move(root / "test" / "dir", root, createFolders = true)
-          } catch {
-            case e: PathError.AbsolutePathOutsideRoot.type => throw e
-            case NonFatal(_) => ()
           }
         }
       }
