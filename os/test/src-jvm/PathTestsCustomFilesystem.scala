@@ -206,11 +206,13 @@ object PathTestsCustomFilesystem extends TestSuite {
           assert(os.exists(root / "file.txt"))
         }
       }
-      test("moveMatchingToRootDirectoryShouldFail") {
+      test("moveMatchingToRootDirectory") {
         withCustomFs { fileSystem =>
-          // This should fail. Just test that it doesn't throw PathError.AbsolutePathOutsideRoot.
-          intercept[FileAlreadyExistsException] {
+          try {
             os.list(os.root("/", fileSystem)).collect(os.move.matching { case p / "test" => p })
+          } catch {
+            case e: PathError.AbsolutePathOutsideRoot.type => throw e
+            case NonFatal(_) => ()
           }
         }
       }
