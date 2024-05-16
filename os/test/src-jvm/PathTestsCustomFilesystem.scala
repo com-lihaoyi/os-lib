@@ -6,6 +6,7 @@ import os._
 import java.util.HashMap
 import java.nio.file.{FileAlreadyExistsException, FileSystem, FileSystems}
 import java.net.URI
+import scala.util.{Failure, Try}
 import scala.util.control.NonFatal
 
 object PathTestsCustomFilesystem extends TestSuite {
@@ -15,7 +16,7 @@ object PathTestsCustomFilesystem extends TestSuite {
     path.toUri()
   }
 
-  def withCustomFs(f: FileSystem => Unit, fsUri: URI = customFsUri()): Unit = {
+  def withCustomFs[T](f: FileSystem => T, fsUri: URI = customFsUri()): T = {
     val uri = new URI("jar", fsUri.toString(), null);
     val env = new HashMap[String, String]();
     env.put("create", "true");
@@ -185,7 +186,7 @@ object PathTestsCustomFilesystem extends TestSuite {
           assert(os.exists(root / "file.txt"))
         }
       }
-      test("moveToRootDirectoryWithCreateFoldersSouldFail") {
+      test("failMoveToRootDirectoryWithCreateFolders") {
         withCustomFs { fileSystem =>
           val root = os.root("/", fileSystem)
           // This should fail. Just test that it doesn't throw PathError.AbsolutePathOutsideRoot.
@@ -206,13 +207,14 @@ object PathTestsCustomFilesystem extends TestSuite {
           assert(os.exists(root / "file.txt"))
         }
       }
-      test("moveMatchingToRootDirectory") {
+      test("failMoveMatchingToRootDirectory") {
         withCustomFs { fileSystem =>
-          try {
+          // can't use a `intercept`, see https://github.com/com-lihaoyi/os-lib/pull/267#issuecomment-2116131445
+          Try {
             os.list(os.root("/", fileSystem)).collect(os.move.matching { case p / "test" => p })
-          } catch {
-            case e: PathError.AbsolutePathOutsideRoot.type => throw e
-            case NonFatal(_) => ()
+          } match {
+            // This is expected. We just test that it doesn't throw PathError.AbsolutePathOutsideRoot.
+            case Failure(e @(_: IllegalArgumentException | _: FileAlreadyExistsException)) => e.getMessage
           }
         }
       }
