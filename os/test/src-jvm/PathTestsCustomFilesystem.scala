@@ -214,7 +214,8 @@ object PathTestsCustomFilesystem extends TestSuite {
             os.list(os.root("/", fileSystem)).collect(os.move.matching { case p / "test" => p })
           } match {
             // This is expected. We just test that it doesn't throw PathError.AbsolutePathOutsideRoot.
-            case Failure(e @(_: IllegalArgumentException | _: FileAlreadyExistsException)) => e.getMessage
+            case Failure(e @ (_: IllegalArgumentException | _: FileAlreadyExistsException)) =>
+              e.getMessage
           }
         }
       }
