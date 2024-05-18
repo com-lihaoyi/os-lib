@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.10.0
+:version: 0.10.1
 :link-geny: https://github.com/com-lihaoyi/geny
 :link-oslib: https://github.com/com-lihaoyi/os-lib
 :link-oslib-gitter: https://gitter.im/lihaoyi/os-lib
@@ -2220,6 +2220,11 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+[#0-10-1]
+=== 0.10.1
+
+* Fix `os.copy` and `os.move` directories to root (#267)
 
 [#0-10-0]
 === 0.10.0
