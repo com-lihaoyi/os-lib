@@ -2244,6 +2244,7 @@ string, int or set representations of the `os.PermSet` via:
 * Fix propagateEnv = false to not propagate env (#238)
 * Make os.home a def (#239)
 
+[#0-9-2]
 === 0.9.2 - 2023-11-05
 
 * Added new convenience API to create pipes between processes with `.pipeTo`
@@ -2254,11 +2255,13 @@ string, int or set representations of the `os.PermSet` via:
 * Dependency updates: sourcecode 0.3.1
 * Tooling updates: acyclic 0.3.9, Mill 0.11.5, mill-mima 0.0.24, mill-vcs-version 0.4.0, scalafmt 3.7.15
 
+[#0-9-1]
 === 0.9.1 - 2023-03-07
 
 * Refined return types when constructing paths with `/` and get rid of long `ThisType#ThisType` cascades.
 * Added a new `PathConvertible` to support `URI`s when constructing paths.
 
+[#0-9-0]
 === 0.9.0 - 2022-11-28
 
 * `os.proc` now also supports `CharSequence(s)` as `Shellable`
