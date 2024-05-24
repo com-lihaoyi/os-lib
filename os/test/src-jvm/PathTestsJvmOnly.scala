@@ -4,6 +4,10 @@ import java.nio.file.Paths
 
 import os._
 import utest._
+import java.util.HashMap
+import java.nio.file.FileSystems
+import java.net.URI
+
 object PathTestsJvmOnly extends TestSuite {
   val tests = Tests {
     test("construction") {

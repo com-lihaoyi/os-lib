@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.9.1
+:version: 0.10.1
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -14,7 +14,7 @@
 image:{link-oslib}/actions/workflows/build.yml/badge.svg[Build Status,link={link-oslib}/actions]
 image:https://badges.gitter.im/Join%20Chat.svg[Gitter Chat,link={link-oslib-gitter}]
 image:https://img.shields.io/badge/patreon-sponsor-ff69b4.svg[Patreon,link=https://www.patreon.com/lihaoyi]
-image:https://javadoc.io/badge2/com.lihaoyi/os-lib_3/javadoc.svg[API Docs (Scala 3),link=https://javadoc.io/doc/com.lihaoyi/os-lib_3]
+image:https://javadoc.io/badge2/com.lihaoyi/os-lib_3/scaladoc.svg[API Docs (Scala 3),link=https://javadoc.io/doc/com.lihaoyi/os-lib_3]
 
 [source,scala]
 ----
@@ -1131,7 +1131,7 @@ os.readLink(wd / "misc" / "broken-abs-symlink") ==> os.root / "doesnt" / "exist"
 ----
 
 Note that symbolic links can be either absolute ``os.Path``s or relative
-``os.RelPath``s, represented by `os.FilePath`. You can also use `os.readLink.all`
+``os.RelPath``s, represented by `os.FilePath`. You can also use `os.readLink.absolute`
 to automatically resolve relative symbolic links to their absolute destination:
 
 [source,scala]
@@ -1449,7 +1449,7 @@ the subprocess via `os.SubProcess#stdin`, and if used on its stdout it lets the
 parent process read from the subprocess via `os.SubProcess#stdout`
 and `os.SubProcess#stderr`.
 * `os.Inherit`: inherits the stream from the parent process. This lets the
-subprocess read directly from the paren process's standard input or write
+subprocess read directly from the parent process's standard input or write
 directly to the parent process's standard output or error
 * `os.Path`: connects the subprocess's stream to the given filesystem
 path, reading its standard input from a file or writing its standard
@@ -1657,6 +1657,48 @@ val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
 sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
 ----
 
+== Spawning Pipelines of Subprocesses
+
+After constructing a subprocess with `os.proc`, you can use the `pipeTo` method
+to pipe its output to another subprocess:
+
+[source,scala]
+----
+val wc = os.proc("ls", "-l")
+  .pipeTo(os.proc("wc", "-l"))
+  .call()
+  .out.text()
+----
+
+This is equivalent to the shell command `ls -l | wc -l`. You can chain together
+as many subprocesses as you like. Note that by using this API you can utilize
+the broken pipe behaviour of Unix systems. For example, you can take 10 first elements
+of output from the `yes` command, and after the `head` command terminates, the `yes`
+command will be terminated as well:
+
+[source,scala]
+----
+val yes10 = os.proc("yes")
+  .pipeTo(os.proc("head", "-n", "10"))
+  .call()
+  .out.text()
+----
+
+This feature is implemented inside the library and will terminate any process reading the
+stdin of other process in pipeline on every IO error. This behavior can be disabled via the 
+`handleBrokenPipe` flag on `call` and `spawn` methods. Note that Windows does not support 
+broken pipe behaviour, so a command like`yes` would run forever. `handleBrokenPipe` is set 
+to false by default on Windows.
+
+Both `call` and `spawn` correspond in their behavior to their counterparts in the `os.proc`,
+but `spawn` returns the `os.ProcessPipeline` instance instead. It offers the same 
+`API` as `SubProcess`, but will operate on the set of processes instead of a single one.
+
+`Pipefail` is enabled by default, so if any of the processes in the pipeline fails, the whole
+pipeline will have a non-zero exit code. This behavior can be disabled via the `pipefail` flag
+on `call` and `spawn` methods. Note that the pipefail does not kill the processes in the pipeline,
+it just sets the exit code of the pipeline to the exit code of the failed process.
+
 === Watching for Changes
 
 ==== `os.watch.watch`
@@ -1717,8 +1759,6 @@ paths changed: /Users/lihaoyi/Github/Ammonite/out/i am,/Users/lihaoyi/Github/Amm
 
 paths changed: /Users/lihaoyi/Github/Ammonite/out/version/log,/Users/lihaoyi/Github/Ammonite/out/version/meta.json,/Users/lihaoyi/Github/Ammonite/out/version
 ----
-
-`watch` currently only supports Linux and Mac-OSX, and not Windows.
 
 == Data Types
 
@@ -2025,6 +2065,38 @@ Python, ...) do. Even in cases where it's uncertain, e.g. you're taking user
 input as a String, you have to either handle both possibilities with BasePath or
 explicitly choose to convert relative paths to absolute using some base.
 
+==== Roots and filesystems
+
+If you are using a system that supports different roots of paths, e.g. Windows, 
+you can use the argument of `os.root` to specify which root you want to use. 
+If not specified, the default root will be used (usually, C on Windows, / on Unix).
+
+[source,scala]
+----
+val root = os.root('C:\') / "Users" / "me"
+assert(root == os.Path("C:\Users\me"))
+----
+
+Additionally, custom filesystems can be specified by passing a `FileSystem` to
+`os.root`. This allows you to use OS-Lib with non-standard filesystems, such as
+jar filesystems or in-memory filesystems.
+
+[source,scala]
+----
+val uri = new URI("jar", Paths.get("foo.jar").toURI().toString, null);
+val env = new HashMap[String, String]();
+env.put("create", "true");
+val fs = FileSystems.newFileSystem(uri, env);
+val path = os.root("/", fs) / "dir"
+----
+
+Note that the jar file system operations suchs as writing to a file are supported 
+only on JVM 11+. Depending on the filesystem, some operations may not be supported - 
+for example, running an `os.proc` with pwd in a jar file won't work. You may also 
+meet limitations imposed by the implementations - in jar file system, the files are 
+created only after the file system is closed. Until that, the ones created in your 
+program are kept in memory.
+
 ==== `os.ResourcePath`
 
 In addition to manipulating paths on the filesystem, you can also manipulate
@@ -2151,6 +2223,36 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+[#0-10-1]
+=== 0.10.1
+
+* Fix `os.copy` and `os.move` directories to root (#267)
+
+[#0-10-0]
+=== 0.10.0
+
+* Support for Scala-Native 0.5.0
+* Dropped support for Scala 2.11.x
+* Minimum version of Scala 3 increased to 3.3.1
+
+
+[#0-9-3]
+=== 0.9.3 - 2024-01-01
+
+* Fix `os.watch` on Windows (#236)
+* Fix propagateEnv = false to not propagate env (#238)
+* Make os.home a def (#239)
+
+=== 0.9.2 - 2023-11-05
+
+* Added new convenience API to create pipes between processes with `.pipeTo`
+* Fixed issue with leading `..` / `os.up` in path segments created from a `Seq`
+* Fixed Windows-specific issues with relative paths with leading (back)slashes
+* Removed some internal use of deprecated API
+* ScalaDoc now maps some external references to their online sites
+* Dependency updates: sourcecode 0.3.1
+* Tooling updates: acyclic 0.3.9, Mill 0.11.5, mill-mima 0.0.24, mill-vcs-version 0.4.0, scalafmt 3.7.15
 
 === 0.9.1 - 2023-03-07
 
