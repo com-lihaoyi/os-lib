@@ -46,13 +46,11 @@ object TestUtil {
       directory,
       new SimpleFileVisitor[Path]() {
         override def visitFile(file: Path, attrs: BasicFileAttributes) = {
-          println("visitFile " + file)
           Files.delete(file)
           FileVisitResult.CONTINUE
         }
 
         override def postVisitDirectory(dir: Path, exc: IOException) = {
-          println("postVisitDirectory " + dir)
           Files.delete(dir)
           FileVisitResult.CONTINUE
         }
