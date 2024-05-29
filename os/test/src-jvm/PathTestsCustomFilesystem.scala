@@ -2,11 +2,12 @@ package test.os
 
 import utest._
 import os._
+
 import java.util.HashMap
-import java.nio.file.FileSystems
+import java.nio.file.{FileAlreadyExistsException, FileSystem, FileSystems}
 import java.net.URI
-import java.nio.file.FileSystem
-import java.nio.file.Paths
+import scala.util.{Failure, Try}
+import scala.util.control.NonFatal
 
 object PathTestsCustomFilesystem extends TestSuite {
 
@@ -15,7 +16,7 @@ object PathTestsCustomFilesystem extends TestSuite {
     path.toUri()
   }
 
-  def withCustomFs(f: FileSystem => Unit, fsUri: URI = customFsUri()): Unit = {
+  def withCustomFs[T](f: FileSystem => T, fsUri: URI = customFsUri()): T = {
     val uri = new URI("jar", fsUri.toString(), null);
     val env = new HashMap[String, String]();
     env.put("create", "true");
@@ -173,6 +174,49 @@ object PathTestsCustomFilesystem extends TestSuite {
           os.copy(p / "file.txt", p / "file2.txt")
           assert(os.read(p / "file2.txt") == "Hello World")
           assert(os.exists(p / "file.txt"))
+        }
+      }
+      test("copyAndMergeToRootDirectoryWithCreateFolders") {
+        withCustomFs { fileSystem =>
+          val root = os.root("/", fileSystem)
+          val file = root / "test" / "dir" / "file.txt"
+          os.write(file, "Hello World")
+          os.copy(root / "test" / "dir", root, createFolders = true, mergeFolders = true)
+          assert(os.read(root / "file.txt") == "Hello World")
+          assert(os.exists(root / "file.txt"))
+        }
+      }
+      test("failMoveToRootDirectoryWithCreateFolders") {
+        withCustomFs { fileSystem =>
+          val root = os.root("/", fileSystem)
+          // This should fail. Just test that it doesn't throw PathError.AbsolutePathOutsideRoot.
+          intercept[FileAlreadyExistsException] {
+            os.move(root / "test" / "dir", root, createFolders = true)
+          }
+        }
+      }
+      test("copyMatchingAndMergeToRootDirectory") {
+        withCustomFs { fileSystem =>
+          val root = os.root("/", fileSystem)
+          val file = root / "test" / "dir" / "file.txt"
+          os.write(file, "Hello World")
+          os.list(root / "test").collect(os.copy.matching(mergeFolders = true) {
+            case p / "test" / _ => p
+          })
+          assert(os.read(root / "file.txt") == "Hello World")
+          assert(os.exists(root / "file.txt"))
+        }
+      }
+      test("failMoveMatchingToRootDirectory") {
+        withCustomFs { fileSystem =>
+          // can't use a `intercept`, see https://github.com/com-lihaoyi/os-lib/pull/267#issuecomment-2116131445
+          Try {
+            os.list(os.root("/", fileSystem)).collect(os.move.matching { case p / "test" => p })
+          } match {
+            case Failure(e @ (_: IllegalArgumentException | _: FileAlreadyExistsException))
+                if !e.isInstanceOf[PathError.AbsolutePathOutsideRoot.type] =>
+              e.getMessage
+          }
         }
       }
       test("remove") {

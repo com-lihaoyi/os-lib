@@ -10,19 +10,19 @@ import de.tobiasroeser.mill.vcs.version.VcsVersion
 
 val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 
-val scala213Version = "2.13.10"
+val scala213Version = "2.13.14"
 
 val scalaVersions = Seq(
   "3.3.1",
   "2.12.17",
-  scala213Version,
+  scala213Version
 ) ++ communityBuildDottyVersion
 
 object Deps {
-  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.11"
+  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.12"
   val jna = ivy"net.java.dev.jna:jna:5.14.0"
   val geny = ivy"com.lihaoyi::geny::1.1.0"
-  val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.0"
+  val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
   val utest = ivy"com.lihaoyi::utest::0.8.3"
   def scalaLibrary(version: String) = ivy"org.scala-lang:scala-library:${version}"
 }
@@ -51,7 +51,7 @@ trait SafeDeps extends ScalaModule {
 }
 
 trait MiMaChecks extends Mima {
-  def mimaPreviousVersions = Seq("0.9.0", "0.9.1", "0.9.2")
+  def mimaPreviousVersions = Seq("0.9.0", "0.9.1", "0.9.2", "0.9.3", "0.10.0")
   override def mimaBinaryIssueFilters: T[Seq[ProblemFilter]] = Seq(
     ProblemFilter.exclude[ReversedMissingMethodProblem]("os.PathConvertible.isCustomFs")
   )

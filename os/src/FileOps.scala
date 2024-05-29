@@ -68,7 +68,7 @@ object move {
       def isDefinedAt(x: Path) = partialFunction.isDefinedAt(x)
       def apply(from: Path) = {
         val dest = partialFunction(from)
-        makeDir.all(dest / up)
+        if (dest.segmentCount != 0) makeDir.all(dest / up)
         os.move(from, dest, replaceExisting, atomicMove, createFolders)
       }
     }
@@ -84,7 +84,7 @@ object move {
       atomicMove: Boolean = false,
       createFolders: Boolean = false
   ): Unit = {
-    if (createFolders) makeDir.all(to / up)
+    if (createFolders && to.segmentCount != 0) makeDir.all(to / up)
     val opts1 =
       if (replaceExisting) Array[CopyOption](StandardCopyOption.REPLACE_EXISTING)
       else Array[CopyOption]()
@@ -149,7 +149,7 @@ object copy {
       def isDefinedAt(x: Path) = partialFunction.isDefinedAt(x)
       def apply(from: Path) = {
         val dest = partialFunction(from)
-        makeDir.all(dest / up)
+        if (dest.segmentCount != 0) makeDir.all(dest / up)
         os.copy(
           from,
           dest,
@@ -176,7 +176,7 @@ object copy {
       createFolders: Boolean = false,
       mergeFolders: Boolean = false
   ): Unit = {
-    if (createFolders) makeDir.all(to / up)
+    if (createFolders && to.segmentCount != 0) makeDir.all(to / up)
     val opts1 =
       if (followLinks) Array[CopyOption]()
       else Array[CopyOption](LinkOption.NOFOLLOW_LINKS)
