@@ -66,6 +66,9 @@ object OpTestsJvmOnly extends TestSuite {
       ).head == "funcionó")
     }
 
-    test("listNonExistentFailure") - intercept[nio.NoSuchFileException](os.list(d / "nonexistent"))
+    test("listNonExistentFailure") - {
+      val d = testFolder / "readWrite"
+      intercept[nio.NoSuchFileException](os.list(d / "nonexistent"))
+    }
   }
 }
