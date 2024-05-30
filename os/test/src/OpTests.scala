@@ -238,7 +238,7 @@ object OpTests extends TestSuite {
         val d = testFolder / "failures"
         os.makeDir.all(d)
         test("nonexistant") {
-          
+
           test - intercept[nio.NoSuchFileException](os.read(d / "nonexistent"))
           test - intercept[nio.NoSuchFileException](os.copy(d / "nonexistent", d / "yolo"))
           test - intercept[nio.NoSuchFileException](os.move(d / "nonexistent", d / "yolo"))
