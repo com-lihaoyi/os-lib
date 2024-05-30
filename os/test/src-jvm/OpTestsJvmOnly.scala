@@ -11,7 +11,7 @@ object OpTestsJvmOnly extends TestSuite {
 
   val tests = Tests {
     val res = os.pwd / "os" / "test" / "resources" / "test"
-
+    val testFolder = os.pwd / "out" / "scratch" / "test"
     test("lsRecPermissions") {
       if (Unix()) {
         assert(os.walk(os.root / "var" / "run").nonEmpty)
@@ -56,7 +56,7 @@ object OpTestsJvmOnly extends TestSuite {
       }
     }
     test("charset") {
-      val testFolder = os.pwd / "out" / "scratch" / "test"
+
       val d = testFolder / "readWrite"
       os.makeDir.all(d)
       os.write.over(d / "charset.txt", "funcionó".getBytes(Charset.forName("Windows-1252")))
