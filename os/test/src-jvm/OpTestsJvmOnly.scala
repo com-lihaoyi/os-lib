@@ -56,6 +56,7 @@ object OpTestsJvmOnly extends TestSuite {
       }
     }
     test("charset") {
+      val testFolder = os.pwd / "out" / "scratch" / "test"
       val d = testFolder / "readWrite"
       os.makeDir.all(d)
       os.write.over(d / "charset.txt", "funcionó".getBytes(Charset.forName("Windows-1252")))
