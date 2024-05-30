@@ -15,13 +15,13 @@ object FilesystemMetadataTests extends TestSuite {
         assert(multilineSizes contains os.stat(wd / "Multi Line.txt").size)
         os.stat(wd / "folder1").fileType ==> os.FileType.Dir
       }
-//      test("full"){
-//        test - prep{ wd =>
-//          os.stat.full(wd / "File.txt").size ==> 8
-//          assert(multilineSizes contains os.stat.full(wd / "Multi Line.txt").size)
-//          os.stat.full(wd / "folder1").fileType ==> os.FileType.Dir
-//        }
-//      }
+      //      test("full"){
+      //        test - prep{ wd =>
+      //          os.stat.full(wd / "File.txt").size ==> 8
+      //          assert(multilineSizes contains os.stat.full(wd / "Multi Line.txt").size)
+      //          os.stat.full(wd / "folder1").fileType ==> os.FileType.Dir
+      //        }
+      //      }
     }
     test("isFile") {
       test - prep { wd =>
