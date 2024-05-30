@@ -103,12 +103,12 @@ object SpawningSubprocessesTests extends TestSuite {
           if (TestUtil.isInstalled("python") && Unix()) {
             // Start a long-lived python process which you can communicate with
             val sub = os.proc(
-                "python",
-                "-u",
-                "-c",
-                if (TestUtil.isPython3()) "while True: print(eval(input()))"
-                else "while True: print(eval(raw_input()))"
-              )
+              "python",
+              "-u",
+              "-c",
+              if (TestUtil.isPython3()) "while True: print(eval(input()))"
+              else "while True: print(eval(raw_input()))"
+            )
               .spawn(cwd = wd)
 
             // Sending some text to the subprocess
@@ -135,9 +135,9 @@ object SpawningSubprocessesTests extends TestSuite {
       test("spawn curl") {
         if (
           Unix() && // shasum seems to not accept stdin on Windows
-            TestUtil.isInstalled("curl") &&
-            TestUtil.isInstalled("gzip") &&
-            TestUtil.isInstalled("shasum")
+          TestUtil.isInstalled("curl") &&
+          TestUtil.isInstalled("gzip") &&
+          TestUtil.isInstalled("shasum")
         ) {
           // You can chain multiple subprocess' stdin/stdout together
           val curl =

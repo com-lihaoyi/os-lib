@@ -267,9 +267,9 @@ object ExampleTests extends TestSuite {
     }
 
     test("rename") {
-      //      val d1/"omg"/x1 = wd
-      //      val d2/"omg"/x2 = wd
-      //      ls! wd |? (_.ext == "scala") | (x => mv! x ! x.pref)
+//      val d1/"omg"/x1 = wd
+//      val d2/"omg"/x2 = wd
+//      ls! wd |? (_.ext == "scala") | (x => mv! x ! x.pref)
     }
     test("allSubpathsResolveCorrectly") {
 
