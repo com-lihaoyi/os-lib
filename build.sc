@@ -1,6 +1,6 @@
 // plugins
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
-import $ivy.`com.github.lolgab::mill-mima::0.1.0`
+import $ivy.`com.github.lolgab::mill-mima::0.1.1`
 
 // imports
 import mill._, scalalib._, scalanativelib._, publish._
