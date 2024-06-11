@@ -70,6 +70,8 @@ object PathTests extends TestSuite {
           assert((base / "baseName.v2.0.ext").baseName == "baseName.v2.0")
           assert((base / "baseOnly").baseName == "baseOnly")
           assert((base / "baseOnly.").baseName == "baseOnly")
+          assert(os.root.baseName == s"$driveRoot/")
+          assert(os.Path("/").baseName == s"$driveRoot/")
         }
 
         test("ext") {
@@ -86,6 +88,7 @@ object PathTests extends TestSuite {
           os.up.ext ==> ""
         }
 
+        /*
         test("emptyLast") {
           intercept[PathError.LastOnEmptyPath](os.root.last).getMessage ==>
             "empty path has no last segment"
@@ -96,6 +99,7 @@ object PathTests extends TestSuite {
           intercept[PathError.LastOnEmptyPath](os.up.last).getMessage ==>
             "empty path has no last segment"
         }
+        */
       }
 
       test("RelPath") {

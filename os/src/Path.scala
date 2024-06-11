@@ -202,12 +202,16 @@ trait BasePathImpl extends BasePath {
   }
 
   override def baseName: String = {
-    val li = last.lastIndexOf('.')
-    if (li == -1) last
-    else last.slice(0, li)
+    lastOpt match {
+      case None => s"${Path.driveRoot}/"
+      case Some(lastSegment) =>
+        val li = lastSegment.lastIndexOf('.')
+        if (li == -1) last
+        else lastSegment.slice(0, li)
+    }
   }
 
-  def last: String = lastOpt.getOrElse(throw PathError.LastOnEmptyPath())
+  def last: String = lastOpt.getOrElse("")
 
   def lastOpt: Option[String]
 }
