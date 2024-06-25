@@ -1,6 +1,6 @@
 // plugins
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
-import $ivy.`com.github.lolgab::mill-mima::0.1.0`
+import $ivy.`com.github.lolgab::mill-mima::0.1.1`
 
 // imports
 import mill._, scalalib._, scalanativelib._, publish._
@@ -21,7 +21,7 @@ val scalaVersions = Seq(
 object Deps {
   val acyclic = ivy"com.lihaoyi:::acyclic:0.3.12"
   val jna = ivy"net.java.dev.jna:jna:5.14.0"
-  val geny = ivy"com.lihaoyi::geny::1.1.0"
+  val geny = ivy"com.lihaoyi::geny::1.1.1"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
   val utest = ivy"com.lihaoyi::utest::0.8.3"
   def scalaLibrary(version: String) = ivy"org.scala-lang:scala-library:${version}"
