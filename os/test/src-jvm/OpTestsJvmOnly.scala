@@ -73,15 +73,17 @@ object OpTestsJvmOnly extends TestSuite {
 
     // Not sure why this doesn't work on native
     test("redirectSubprocessInheritedOutput") {
-      val scriptFolder = os.pwd / "os" / "test" / "resources" / "test"
-      val lines = collection.mutable.Buffer.empty[String]
-      os.Inherit.out.withValue(os.ProcessOutput.Readlines(lines.append(_))) {
-        os.proc(scriptFolder / "misc" / "echo_with_wd", "HELLO\nWorld").call(
-          cwd = os.root / "usr",
-          stdout = os.Inherit
-        )
+      if (Unix()) { // relies on bash scripts that don't run on windows
+        val scriptFolder = os.pwd / "os" / "test" / "resources" / "test"
+        val lines = collection.mutable.Buffer.empty[String]
+        os.Inherit.out.withValue(os.ProcessOutput.Readlines(lines.append(_))) {
+          os.proc(scriptFolder / "misc" / "echo_with_wd", "HELLO\nWorld").call(
+            cwd = os.root / "usr",
+            stdout = os.Inherit
+          )
+        }
+        assert(lines == Seq("HELLO", "World /usr"))
       }
-      assert(lines == Seq("HELLO", "World /usr"))
     }
   }
 }
