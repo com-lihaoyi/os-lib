@@ -73,9 +73,10 @@ object OpTestsJvmOnly extends TestSuite {
 
     // Not sure why this doesn't work on native
     test("redirectSubprocessInheritedOutput") {
+      val scriptFolder = os.pwd / "os" / "test" / "resources" / "test"
       val lines = collection.mutable.Buffer.empty[String]
       os.Inherit.out.withValue(os.ProcessOutput.Readlines(lines.append(_))) {
-        proc(scriptFolder / "misc" / "echo_with_wd", "HELLO\nWorld").call(cwd = root / "usr", stdout = os.Inherit)
+        os.proc(scriptFolder / "misc" / "echo_with_wd", "HELLO\nWorld").call(cwd = root / "usr", stdout = os.Inherit)
       }
       assert(lines == Seq("HELLO", "World /usr"))
     }
