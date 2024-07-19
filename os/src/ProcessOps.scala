@@ -121,7 +121,7 @@ case class proc(command: Shellable*) {
     def resolve[T](x: T, y: T) = if (x == os.Inherit) y else x
     val resolvedStdin = resolve(stdin, os.Inherit.in.value)
     val resolvedStdout = resolve(stdout, os.Inherit.out.value)
-    val resolvedStderr =  resolve(stderr, os.Inherit.err.value)
+    val resolvedStderr = resolve(stderr, os.Inherit.err.value)
 
     val builder = buildProcess(
       commandChunks,
