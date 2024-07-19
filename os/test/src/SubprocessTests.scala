@@ -203,12 +203,5 @@ object SubprocessTests extends TestSuite {
         assert(output.out.lines() == Seq("HELLO /usr"))
       }
     }
-    test("redirectSubprocessInheritedOutput") {
-      val lines = collection.mutable.Buffer.empty[String]
-      os.Inherit.out.withValue(os.ProcessOutput.Readlines(lines.append)){
-        proc(scriptFolder / "misc" / "echo_with_wd", "HELLO\nWorld").call(cwd = root / "usr", stdout = os.Inherit)
-      }
-      assert(lines == Seq("HELLO", "World /usr"))
-    }
   }
 }

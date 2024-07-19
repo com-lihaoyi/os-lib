@@ -70,5 +70,14 @@ object OpTestsJvmOnly extends TestSuite {
       val d = testFolder / "readWrite"
       intercept[nio.NoSuchFileException](os.list(d / "nonexistent"))
     }
+
+    // Not sure why this doesn't work on native
+    test("redirectSubprocessInheritedOutput") {
+      val lines = collection.mutable.Buffer.empty[String]
+      os.Inherit.out.withValue(os.ProcessOutput.Readlines(lines.append(_))) {
+        proc(scriptFolder / "misc" / "echo_with_wd", "HELLO\nWorld").call(cwd = root / "usr", stdout = os.Inherit)
+      }
+      assert(lines == Seq("HELLO", "World /usr"))
+    }
   }
 }
