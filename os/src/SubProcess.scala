@@ -467,7 +467,6 @@ object Inherit0 extends ProcessInput with ProcessOutput {
   def processOutput(stdin: => SubProcess.OutputStream) = None
 }
 
-
 /**
  * Pipe the input/output stream to the current process to be used via
  * `java.lang.Process#{getInputStream,getOutputStream,getErrorStream}`
