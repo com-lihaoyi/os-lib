@@ -119,6 +119,18 @@ case class proc(command: Shellable*) {
 
     val cmdChunks = commandChunks
     val commandStr = cmdChunks.mkString(" ")
+    val resolvedStdin = stdin match {
+      case os.Inherit => os.Inherit.in
+      case v => v
+    }
+    val resolvedStdout = stdout match {
+      case os.Inherit => os.Inherit.out
+      case v => v
+    }
+    val resolvedStderr = stderr match {
+      case os.Inherit => os.Inherit.err
+      case v => v
+    }
     lazy val proc: SubProcess = new SubProcess(
       builder.start(),
       stdin.processInput(proc.stdin).map(new Thread(_, commandStr + " stdin thread")),
