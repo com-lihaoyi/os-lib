@@ -2224,8 +2224,8 @@ string, int or set representations of the `os.PermSet` via:
 
 == Changelog
 
-[#0-10-3]
-=== 0.10.3
+[#main]
+=== main
 
 * `os.Inherit`
 
