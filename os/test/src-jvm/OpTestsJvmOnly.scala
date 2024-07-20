@@ -77,9 +77,15 @@ object OpTestsJvmOnly extends TestSuite {
         val scriptFolder = os.pwd / "os" / "test" / "resources" / "test"
         val lines = collection.mutable.Buffer.empty[String]
         os.Inherit.out.withValue(os.ProcessOutput.Readlines(lines.append(_))) {
+          // Redirected
           os.proc(scriptFolder / "misc" / "echo_with_wd", "HELLO\nWorld").call(
             cwd = os.root / "usr",
             stdout = os.Inherit
+          )
+          // Not Redirected
+          os.proc(scriptFolder / "misc" / "echo_with_wd", "hello\nWORLD").call(
+            cwd = os.root / "usr",
+            stdout = os.InheritRaw
           )
         }
         assert(lines == Seq("HELLO", "World /usr"))

@@ -460,7 +460,7 @@ object Inherit extends ProcessInput with ProcessOutput {
  * Inherit the input/output stream from the current process.
  * Identical of [[os.Inherit]], except it cannot be redirected globally
  */
-object Inherit0 extends ProcessInput with ProcessOutput {
+object InheritRaw extends ProcessInput with ProcessOutput {
   def redirectTo = ProcessBuilder.Redirect.INHERIT
   def redirectFrom = ProcessBuilder.Redirect.INHERIT
   def processInput(stdin: => SubProcess.InputStream) = None

@@ -2224,6 +2224,11 @@ string, int or set representations of the `os.PermSet` via:
 
 == Changelog
 
+[#0-10-3]
+=== 0.10.3
+
+* `os.Inherit`
+
 [#0-10-2]
 === 0.10.2
 
