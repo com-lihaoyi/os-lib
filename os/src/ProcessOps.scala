@@ -114,16 +114,31 @@ case class proc(command: Shellable*) {
       mergeErrIntoOut: Boolean = false,
       propagateEnv: Boolean = true
   ): SubProcess = {
-    val builder =
-      buildProcess(commandChunks, cwd, env, stdin, stdout, stderr, mergeErrIntoOut, propagateEnv)
 
     val cmdChunks = commandChunks
     val commandStr = cmdChunks.mkString(" ")
+
+    def resolve[T](x: T, y: T) = if (x == os.Inherit) y else x
+    val resolvedStdin = resolve(stdin, os.Inherit.in.value)
+    val resolvedStdout = resolve(stdout, os.Inherit.out.value)
+    val resolvedStderr = resolve(stderr, os.Inherit.err.value)
+
+    val builder = buildProcess(
+      commandChunks,
+      cwd,
+      env,
+      resolvedStdin,
+      resolvedStdout,
+      resolvedStderr,
+      mergeErrIntoOut,
+      propagateEnv
+    )
+
     lazy val proc: SubProcess = new SubProcess(
       builder.start(),
-      stdin.processInput(proc.stdin).map(new Thread(_, commandStr + " stdin thread")),
-      stdout.processOutput(proc.stdout).map(new Thread(_, commandStr + " stdout thread")),
-      stderr.processOutput(proc.stderr).map(new Thread(_, commandStr + " stderr thread"))
+      resolvedStdin.processInput(proc.stdin).map(new Thread(_, commandStr + " stdin thread")),
+      resolvedStdout.processOutput(proc.stdout).map(new Thread(_, commandStr + " stdout thread")),
+      resolvedStderr.processOutput(proc.stderr).map(new Thread(_, commandStr + " stderr thread"))
     )
 
     proc.inputPumperThread.foreach(_.start())

@@ -440,9 +440,27 @@ object ProcessOutput {
 }
 
 /**
- * Inherit the input/output stream from the current process
+ * Inherit the input/output stream from the current process.
+ *
+ * Can be overriden on a thread local basis for the various
+ * kinds of streams (stdin, stdout, stderr) via [[in]], [[out]], and [[err]]
  */
 object Inherit extends ProcessInput with ProcessOutput {
+  def redirectTo = ProcessBuilder.Redirect.INHERIT
+  def redirectFrom = ProcessBuilder.Redirect.INHERIT
+  def processInput(stdin: => SubProcess.InputStream) = None
+  def processOutput(stdin: => SubProcess.OutputStream) = None
+
+  val in = new scala.util.DynamicVariable[ProcessInput](Inherit)
+  val out = new scala.util.DynamicVariable[ProcessOutput](Inherit)
+  val err = new scala.util.DynamicVariable[ProcessOutput](Inherit)
+}
+
+/**
+ * Inherit the input/output stream from the current process.
+ * Identical of [[os.Inherit]], except it cannot be redirected globally
+ */
+object InheritRaw extends ProcessInput with ProcessOutput {
   def redirectTo = ProcessBuilder.Redirect.INHERIT
   def redirectFrom = ProcessBuilder.Redirect.INHERIT
   def processInput(stdin: => SubProcess.InputStream) = None
