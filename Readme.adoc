@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.10.2
+:version: 0.10.3
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -1450,7 +1450,10 @@ parent process read from the subprocess via `os.SubProcess#stdout`
 and `os.SubProcess#stderr`.
 * `os.Inherit`: inherits the stream from the parent process. This lets the
 subprocess read directly from the parent process's standard input or write
-directly to the parent process's standard output or error
+directly to the parent process's standard output or error. `os.Inherit`
+can be redirected on a threadlocal basis via `os.Inherit.in`, `.out`, or `.err`.
+* `os.InheritRaw`: identical to `os.Inherit`, but without being affected by
+redirects.
 * `os.Path`: connects the subprocess's stream to the given filesystem
 path, reading its standard input from a file or writing its standard
 output/error to the file.
@@ -2224,10 +2227,12 @@ string, int or set representations of the `os.PermSet` via:
 
 == Changelog
 
-[#main]
-=== main
+[#0-10-3]
+=== 0.10.3
 
-* `os.Inherit`
+* `os.Inherit` now can be redirected on a threadlocal basis via `os.Inherit.in`, `.out`, or `.err`.
+  `os.InheritRaw` is available if you do not want the redirects to take effect
+
 
 [#0-10-2]
 === 0.10.2
