@@ -119,6 +119,7 @@ class SubProcess(
     }
   }
 
+  // FIXME: documentation
   /**
    * Wait up to `millis` for the subprocess to terminate and all stdout and stderr
    * from the subprocess to be handled. By default waits indefinitely; if a time
@@ -126,11 +127,16 @@ class SubProcess(
    * the time the timeout has occurred
    */
   def join(timeout: Long = -1, timeoutGracePeriod: Long = 1000): Boolean = {
-    // FIXME:
     val exitedCleanly = waitFor(timeout)
     if (!exitedCleanly) {
-      destroy()
-      destroyForcibly()
+      if (timeoutGracePeriod == -1) destroy()
+      else if (timeoutGracePeriod == 0) destroyForcibly()
+      else {
+        destroy()
+        if (!waitFor(timeoutGracePeriod)) {
+            destroyForcibly()
+        }
+      }
       waitFor(-1)
     }
     outputPumperThread.foreach(_.join())
@@ -370,6 +376,11 @@ class ProcessPipeline(
       val timeNow = System.currentTimeMillis()
       joinRec(timeNow, processes, true)
     }
+
+    /*
+    outputPumperThread.foreach(_.join())
+    errorPumperThread.foreach(_.join())
+    */
   }
 }
 
