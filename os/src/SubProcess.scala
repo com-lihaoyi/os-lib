@@ -58,7 +58,6 @@ sealed trait ProcessLike extends java.lang.AutoCloseable {
    */
   def join(timeout: Long = -1, timeoutGracePeriod: Long = 1000): Boolean
 
-  @deprecated("do not use this", "0.10.4")
   @deprecatedOverriding("this method is now a forwarder, and should not be overriden", "0.10.4")
   private [os] def join(timeout: Long): Boolean = join(timeout, timeoutGracePeriod = 1000)
 }
