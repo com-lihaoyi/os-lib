@@ -129,6 +129,7 @@ class SubProcess(
   def join(timeout: Long = -1, timeoutGracePeriod: Long = 1000): Boolean = {
     val exitedCleanly = waitFor(timeout)
     if (!exitedCleanly) {
+      assume(timeout != -1, "if the waitFor does not complete cleanly, this implies there is a timeout imposed, so the grace period is applicable")
       if (timeoutGracePeriod == -1) destroy()
       else if (timeoutGracePeriod == 0) destroyForcibly()
       else {
@@ -352,35 +353,41 @@ class ProcessPipeline(
     }
   }
 
+  // FIXME: documentation
   /**
    * Wait up to `millis` for the [[ProcessPipeline]] to terminate all the processes
    * in pipeline. By default waits indefinitely; if a time limit is given, explicitly
    * destroys each process if it has not completed by the time the timeout has occurred.
    */
   override def join(timeout: Long = -1, timeoutGracePeriod: Long = 1000): Boolean = {
-    // FIXME:
-    @tailrec
-    def joinRec(startedAt: Long, processesLeft: Seq[SubProcess], result: Boolean): Boolean =
-      processesLeft match {
-        case Nil => result
-        case head :: tail =>
-          val elapsed = System.currentTimeMillis() - startedAt
-          val timeoutLeft = Math.max(0, timeout - elapsed)
-          val exitedCleanly = head.join(timeoutLeft) // FIXME:
-          joinRec(startedAt, tail, result && exitedCleanly)
-      }
+    // previously, this was implemented in a similar way to the waitFor above, but with
+    // join logic. This is much harder to make work with the grace period, because we
+    // want to evenly give all threads a chance to terminate gracefully. As such, this
+    // implementation interleaves the single-process join implementation more fairly
 
+    // in this case, the grace period does not apply, so fine
     if (timeout == -1) {
       processes.forall(_.join())
     } else {
-      val timeNow = System.currentTimeMillis()
-      joinRec(timeNow, processes, true)
+      // timeout is active, so the grace period must be accounted for
+      val exitedCleanly = waitFor(timeout)
+      if (!exitedCleanly) {
+        if (timeoutGracePeriod == -1) destroy()
+        else if (timeoutGracePeriod == 0) destroyForcibly()
+        else {
+          destroy()
+          if (!waitFor(timeoutGracePeriod)) {
+            destroyForcibly()
+          }
+        }
+        waitFor(-1)
+        // note that this is the only part that isn't shared with the other implementation of join... they could be unified if this is made an
+        // abstract method: then this implementation can move to the superclass (except for the default -1 case above, but that could be done via an override)
+        processes.flatMap(_.outputPumperThread).foreach(_.join())
+        processes.flatMap(_.errorPumperThread).foreach(_.join())
+      }
+      exitedCleanly
     }
-
-    /*
-    outputPumperThread.foreach(_.join())
-    errorPumperThread.foreach(_.join())
-    */
   }
 }
 
