@@ -45,17 +45,22 @@ case class proc(command: Shellable*) {
    * `call` provides a number of parameters that let you configure how the subprocess
    * is run:
    *
-   * @param cwd             the working directory of the subprocess
-   * @param env             any additional environment variables you wish to set in the subprocess
-   * @param stdin           any data you wish to pass to the subprocess's standard input
-   * @param stdout          How the process's output stream is configured.
-   * @param stderr          How the process's error stream is configured.
-   * @param mergeErrIntoOut merges the subprocess's stderr stream into it's stdout
-   * @param timeout         how long to wait in milliseconds for the subprocess to complete
-   * @param check           disable this to avoid throwing an exception if the subprocess
-   *                        fails with a non-zero exit code
-   * @param propagateEnv    disable this to avoid passing in this parent process's
-   *                        environment variables to the subprocess
+   * @param cwd                the working directory of the subprocess
+   * @param env                any additional environment variables you wish to set in the subprocess
+   * @param stdin              any data you wish to pass to the subprocess's standard input
+   * @param stdout             How the process's output stream is configured.
+   * @param stderr             How the process's error stream is configured.
+   * @param mergeErrIntoOut    merges the subprocess's stderr stream into it's stdout
+   * @param timeout            how long to wait in milliseconds for the subprocess to complete
+   *                           (-1 for no timeout)
+   * @param check              disable this to avoid throwing an exception if the subprocess
+   *                           fails with a non-zero exit code
+   * @param propagateEnv       disable this to avoid passing in this parent process's
+   *                           environment variables to the subprocess
+   * @param timeoutGracePeriod if the timeout is enabled, how long in milliseconds for the
+   *                           subprocess to gracefully terminate before attempting to
+   *                           forcibly kill it
+   *                           (-1 for no kill, 0 for always kill immediately)
    */
   def call(
       cwd: Path = null,
@@ -66,7 +71,9 @@ case class proc(command: Shellable*) {
       mergeErrIntoOut: Boolean = false,
       timeout: Long = -1,
       check: Boolean = true,
-      propagateEnv: Boolean = true
+      propagateEnv: Boolean = true,
+      // this cannot be next to `timeout` as this will introduce a bin-compat break (default arguments are numbered in the bytecode)
+      timeoutGracePeriod: Long = 1000,
   ): CommandResult = {
 
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
@@ -87,13 +94,26 @@ case class proc(command: Shellable*) {
       propagateEnv
     )
 
-    sub.join(timeout)
+    sub.join(timeout, timeoutGracePeriod)
 
     val chunksSeq = chunks.iterator.asScala.toIndexedSeq
     val res = CommandResult(commandChunks, sub.exitCode(), chunksSeq)
     if (res.exitCode == 0 || !check) res
     else throw SubprocessException(res)
   }
+
+  // forwarder for the new timeoutGracePeriod flag
+  private [proc] def call(
+      cwd: Path,
+      env: Map[String, String],
+      stdin: ProcessInput,
+      stdout: ProcessOutput,
+      stderr: ProcessOutput,
+      mergeErrIntoOut: Boolean,
+      timeout: Long,
+      check: Boolean,
+      propagateEnv: Boolean
+  ): CommandResult = call(cwd, env, stdin, stdout, stderr, mergeErrIntoOut, timeout, check, propagateEnv, timeoutGracePeriod = 1000)
 
   /**
    * The most flexible of the [[os.proc]] calls, `os.proc.spawn` simply configures
@@ -181,24 +201,28 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
    * `call` provides a number of parameters that let you configure how the pipeline
    * is run:
    *
-   * @param cwd              the working directory of the pipeline
-   * @param env              any additional environment variables you wish to set in the pipeline
-   * @param stdin            any data you wish to pass to the pipelines's standard input (to the first process)
-   * @param stdout           How the pipelines's output stream is configured (the last process stdout)
-   * @param stderr           How the process's error stream is configured (set for all processes)
-   * @param mergeErrIntoOut  merges the pipeline's stderr stream into it's stdout. Note that then the
-   *                         stderr will be forwarded with stdout to subsequent processes in the pipeline.
-   * @param timeout          how long to wait in milliseconds for the pipeline to complete
-   * @param check            disable this to avoid throwing an exception if the pipeline
-   *                         fails with a non-zero exit code
-   * @param propagateEnv     disable this to avoid passing in this parent process's
-   *                         environment variables to the pipeline
-   * @param pipefail         if true, the pipeline's exitCode will be the exit code of the first
-   *                         failing process. If no process fails, the exit code will be 0.
-   * @param handleBrokenPipe if true, every [[java.io.IOException]] when redirecting output of a process
-   *                         will be caught and handled by killing the writing process. This behaviour
-   *                         is consistent with handlers of SIGPIPE signals in most programs
-   *                         supporting interruptable piping. Disabled by default on Windows.
+   * @param cwd                the working directory of the pipeline
+   * @param env                any additional environment variables you wish to set in the pipeline
+   * @param stdin              any data you wish to pass to the pipelines's standard input (to the first process)
+   * @param stdout             How the pipelines's output stream is configured (the last process stdout)
+   * @param stderr             How the process's error stream is configured (set for all processes)
+   * @param mergeErrIntoOut    merges the pipeline's stderr stream into it's stdout. Note that then the
+   *                           stderr will be forwarded with stdout to subsequent processes in the pipeline.
+   * @param timeout            how long to wait in milliseconds for the pipeline to complete
+   * @param check              disable this to avoid throwing an exception if the pipeline
+   *                           fails with a non-zero exit code
+   * @param propagateEnv       disable this to avoid passing in this parent process's
+   *                           environment variables to the pipeline
+   * @param pipefail           if true, the pipeline's exitCode will be the exit code of the first
+   *                           failing process. If no process fails, the exit code will be 0.
+   * @param handleBrokenPipe   if true, every [[java.io.IOException]] when redirecting output of a process
+   *                           will be caught and handled by killing the writing process. This behaviour
+   *                           is consistent with handlers of SIGPIPE signals in most programs
+   *                           supporting interruptable piping. Disabled by default on Windows.
+   * @param timeoutGracePeriod if the timeout is enabled, how long in milliseconds for the
+   *                           subprocess to gracefully terminate before attempting to
+   *                           forcibly kill it
+   *                           (-1 for no kill, 0 for always kill immediately)
    */
   def call(
       cwd: Path = null,
@@ -211,7 +235,9 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
       check: Boolean = true,
       propagateEnv: Boolean = true,
       pipefail: Boolean = true,
-      handleBrokenPipe: Boolean = !isWindows
+      handleBrokenPipe: Boolean = !isWindows,
+      // this cannot be next to `timeout` as this will introduce a bin-compat break (default arguments are numbered in the bytecode)
+      timeoutGracePeriod: Long = 1000,
   ): CommandResult = {
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
 
@@ -232,7 +258,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
       pipefail
     )
 
-    sub.join(timeout)
+    sub.join(timeout, timeoutGracePeriod)
 
     val chunksSeq = chunks.iterator.asScala.toIndexedSeq
     val res =
@@ -240,6 +266,20 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
     if (res.exitCode == 0 || !check) res
     else throw SubprocessException(res)
   }
+
+  private [ProcGroup] def call(
+      cwd: Path,
+      env: Map[String, String],
+      stdin: ProcessInput,
+      stdout: ProcessOutput,
+      stderr: ProcessOutput,
+      mergeErrIntoOut: Boolean,
+      timeout: Long,
+      check: Boolean,
+      propagateEnv: Boolean,
+      pipefail: Boolean,
+      handleBrokenPipe: Boolean,
+  ): CommandResult = call(cwd, env, stdin, stdout, stderr, mergeErrIntoOut, timeout, check, propagateEnv, pipefail, handleBrokenPipe, timeoutGracePeriod = 1000)
 
   /**
    * The most flexible of the [[os.ProcGroup]] calls. It sets-up a pipeline of processes,

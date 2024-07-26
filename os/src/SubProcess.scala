@@ -49,19 +49,25 @@ sealed trait ProcessLike extends java.lang.AutoCloseable {
    */
   def waitFor(timeout: Long = -1): Boolean
 
+  // FIXME: docs
   /**
    * Wait up to `millis` for the [[ProcessLike]] to terminate and all stdout and stderr
    * from the subprocess to be handled. By default waits indefinitely; if a time
    * limit is given, explicitly destroys the [[ProcessLike]] if it has not completed by
    * the time the timeout has occurred
    */
-  def join(timeout: Long = -1): Boolean
+  def join(timeout: Long = -1, timeoutGracePeriod: Long = 1000): Boolean
+
+  @deprecated("do not use this", "0.10.4")
+  @deprecatedOverriding("this method is now a forwarder, and should not be overriden", "0.10.4")
+  private [os] def join(timeout: Long): Boolean = join(timeout, timeoutGracePeriod = 1000)
 }
 
 /**
  * Represents a spawn subprocess that has started and may or may not have
  * completed.
  */
+@deprecatedInheritance("this class will be made final: if you are using it be aware that `join` has a new overloading", "0.10.4")
 class SubProcess(
     val wrapped: java.lang.Process,
     val inputPumperThread: Option[Thread],
@@ -120,7 +126,8 @@ class SubProcess(
    * limit is given, explicitly destroys the subprocess if it has not completed by
    * the time the timeout has occurred
    */
-  def join(timeout: Long = -1): Boolean = {
+  def join(timeout: Long = -1, timeoutGracePeriod: Long = 1000): Boolean = {
+    // FIXME:
     val exitedCleanly = waitFor(timeout)
     if (!exitedCleanly) {
       destroy()
@@ -222,6 +229,7 @@ object SubProcess {
   }
 }
 
+@deprecatedInheritance("this class will be made final: if you are using it be aware that `join` has a new overloading", "0.10.4")
 class ProcessPipeline(
     val processes: Seq[SubProcess],
     pipefail: Boolean,
@@ -344,7 +352,8 @@ class ProcessPipeline(
    * in pipeline. By default waits indefinitely; if a time limit is given, explicitly
    * destroys each process if it has not completed by the time the timeout has occurred.
    */
-  override def join(timeout: Long = -1): Boolean = {
+  override def join(timeout: Long = -1, timeoutGracePeriod: Long = 1000): Boolean = {
+    // FIXME:
     @tailrec
     def joinRec(startedAt: Long, processesLeft: Seq[SubProcess], result: Boolean): Boolean =
       processesLeft match {
@@ -352,7 +361,7 @@ class ProcessPipeline(
         case head :: tail =>
           val elapsed = System.currentTimeMillis() - startedAt
           val timeoutLeft = Math.max(0, timeout - elapsed)
-          val exitedCleanly = head.join(timeoutLeft)
+          val exitedCleanly = head.join(timeoutLeft) // FIXME:
           joinRec(startedAt, tail, result && exitedCleanly)
       }
 
