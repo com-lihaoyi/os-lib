@@ -59,14 +59,17 @@ sealed trait ProcessLike extends java.lang.AutoCloseable {
   def join(timeout: Long = -1, timeoutGracePeriod: Long = 1000): Boolean
 
   @deprecatedOverriding("this method is now a forwarder, and should not be overriden", "0.10.4")
-  private [os] def join(timeout: Long): Boolean = join(timeout, timeoutGracePeriod = 1000)
+  private[os] def join(timeout: Long): Boolean = join(timeout, timeoutGracePeriod = 1000)
 }
 
 /**
  * Represents a spawn subprocess that has started and may or may not have
  * completed.
  */
-@deprecatedInheritance("this class will be made final: if you are using it be aware that `join` has a new overloading", "0.10.4")
+@deprecatedInheritance(
+  "this class will be made final: if you are using it be aware that `join` has a new overloading",
+  "0.10.4"
+)
 class SubProcess(
     val wrapped: java.lang.Process,
     val inputPumperThread: Option[Thread],
@@ -129,13 +132,16 @@ class SubProcess(
   def join(timeout: Long = -1, timeoutGracePeriod: Long = 1000): Boolean = {
     val exitedCleanly = waitFor(timeout)
     if (!exitedCleanly) {
-      assume(timeout != -1, "if the waitFor does not complete cleanly, this implies there is a timeout imposed, so the grace period is applicable")
+      assume(
+        timeout != -1,
+        "if the waitFor does not complete cleanly, this implies there is a timeout imposed, so the grace period is applicable"
+      )
       if (timeoutGracePeriod == -1) destroy()
       else if (timeoutGracePeriod == 0) destroyForcibly()
       else {
         destroy()
         if (!waitFor(timeoutGracePeriod)) {
-            destroyForcibly()
+          destroyForcibly()
         }
       }
       waitFor(-1)
@@ -235,7 +241,10 @@ object SubProcess {
   }
 }
 
-@deprecatedInheritance("this class will be made final: if you are using it be aware that `join` has a new overloading", "0.10.4")
+@deprecatedInheritance(
+  "this class will be made final: if you are using it be aware that `join` has a new overloading",
+  "0.10.4"
+)
 class ProcessPipeline(
     val processes: Seq[SubProcess],
     pipefail: Boolean,

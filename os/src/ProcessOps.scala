@@ -73,7 +73,7 @@ case class proc(command: Shellable*) {
       check: Boolean = true,
       propagateEnv: Boolean = true,
       // this cannot be next to `timeout` as this will introduce a bin-compat break (default arguments are numbered in the bytecode)
-      timeoutGracePeriod: Long = 1000,
+      timeoutGracePeriod: Long = 1000
   ): CommandResult = {
 
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
@@ -103,7 +103,7 @@ case class proc(command: Shellable*) {
   }
 
   // forwarder for the new timeoutGracePeriod flag
-  private [proc] def call(
+  private[proc] def call(
       cwd: Path,
       env: Map[String, String],
       stdin: ProcessInput,
@@ -113,7 +113,18 @@ case class proc(command: Shellable*) {
       timeout: Long,
       check: Boolean,
       propagateEnv: Boolean
-  ): CommandResult = call(cwd, env, stdin, stdout, stderr, mergeErrIntoOut, timeout, check, propagateEnv, timeoutGracePeriod = 1000)
+  ): CommandResult = call(
+    cwd,
+    env,
+    stdin,
+    stdout,
+    stderr,
+    mergeErrIntoOut,
+    timeout,
+    check,
+    propagateEnv,
+    timeoutGracePeriod = 1000
+  )
 
   /**
    * The most flexible of the [[os.proc]] calls, `os.proc.spawn` simply configures
@@ -237,7 +248,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
       pipefail: Boolean = true,
       handleBrokenPipe: Boolean = !isWindows,
       // this cannot be next to `timeout` as this will introduce a bin-compat break (default arguments are numbered in the bytecode)
-      timeoutGracePeriod: Long = 1000,
+      timeoutGracePeriod: Long = 1000
   ): CommandResult = {
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
 
@@ -267,7 +278,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
     else throw SubprocessException(res)
   }
 
-  private [ProcGroup] def call(
+  private[ProcGroup] def call(
       cwd: Path,
       env: Map[String, String],
       stdin: ProcessInput,
@@ -278,8 +289,21 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
       check: Boolean,
       propagateEnv: Boolean,
       pipefail: Boolean,
-      handleBrokenPipe: Boolean,
-  ): CommandResult = call(cwd, env, stdin, stdout, stderr, mergeErrIntoOut, timeout, check, propagateEnv, pipefail, handleBrokenPipe, timeoutGracePeriod = 1000)
+      handleBrokenPipe: Boolean
+  ): CommandResult = call(
+    cwd,
+    env,
+    stdin,
+    stdout,
+    stderr,
+    mergeErrIntoOut,
+    timeout,
+    check,
+    propagateEnv,
+    pipefail,
+    handleBrokenPipe,
+    timeoutGracePeriod = 1000
+  )
 
   /**
    * The most flexible of the [[os.ProcGroup]] calls. It sets-up a pipeline of processes,
