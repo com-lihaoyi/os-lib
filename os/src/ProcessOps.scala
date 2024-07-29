@@ -103,7 +103,7 @@ case class proc(command: Shellable*) {
   }
 
   // forwarder for the new timeoutGracePeriod flag
-  private[proc] def call(
+  private[os] def call(
       cwd: Path,
       env: Map[String, String],
       stdin: ProcessInput,
@@ -278,7 +278,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
     else throw SubprocessException(res)
   }
 
-  private[ProcGroup] def call(
+  private[os] def call(
       cwd: Path,
       env: Map[String, String],
       stdin: ProcessInput,
