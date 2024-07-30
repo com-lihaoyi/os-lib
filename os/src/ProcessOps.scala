@@ -73,7 +73,7 @@ case class proc(command: Shellable*) {
       check: Boolean = true,
       propagateEnv: Boolean = true,
       // this cannot be next to `timeout` as this will introduce a bin-compat break (default arguments are numbered in the bytecode)
-      timeoutGracePeriod: Long = 1000
+      timeoutGracePeriod: Long = 100
   ): CommandResult = {
 
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
@@ -123,7 +123,7 @@ case class proc(command: Shellable*) {
     timeout,
     check,
     propagateEnv,
-    timeoutGracePeriod = 1000
+    timeoutGracePeriod = 100
   )
 
   /**
@@ -248,7 +248,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
       pipefail: Boolean = true,
       handleBrokenPipe: Boolean = !isWindows,
       // this cannot be next to `timeout` as this will introduce a bin-compat break (default arguments are numbered in the bytecode)
-      timeoutGracePeriod: Long = 1000
+      timeoutGracePeriod: Long = 100
   ): CommandResult = {
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
 
@@ -302,7 +302,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
     propagateEnv,
     pipefail,
     handleBrokenPipe,
-    timeoutGracePeriod = 1000
+    timeoutGracePeriod = 100
   )
 
   /**

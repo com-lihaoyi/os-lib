@@ -56,10 +56,34 @@ sealed trait ProcessLike extends java.lang.AutoCloseable {
    * limit is given, explicitly destroys the [[ProcessLike]] if it has not completed by
    * the time the timeout has occurred
    */
-  def join(timeout: Long = -1, timeoutGracePeriod: Long = 1000): Boolean
+  def join(timeout: Long = -1, timeoutGracePeriod: Long = 100): Boolean = {
+    val exitedCleanly = waitFor(timeout)
+    if (!exitedCleanly) {
+      assume(
+        timeout != -1,
+        "if the waitFor does not complete cleanly, this implies there is a timeout imposed, so the grace period is applicable"
+      )
+      if (timeoutGracePeriod == -1) destroy()
+      else if (timeoutGracePeriod == 0) destroyForcibly()
+      else {
+        destroy()
+        if (!waitFor(timeoutGracePeriod)) {
+          destroyForcibly()
+        }
+      }
+      waitFor(-1)
+    }
+    joinPumperThreadsHook()
+    exitedCleanly
+  }
 
   @deprecatedOverriding("this method is now a forwarder, and should not be overriden", "0.10.4")
-  private[os] def join(timeout: Long): Boolean = join(timeout, timeoutGracePeriod = 1000)
+  private[os] def join(timeout: Long): Boolean = join(timeout, timeoutGracePeriod = 100)
+
+  /**
+   * A hook method used by `join` to close the input and output streams associated with the process, not for public consumption.
+   */
+  private[os] def joinPumperThreadsHook(): Unit
 }
 
 /**
@@ -122,33 +146,9 @@ class SubProcess(
     }
   }
 
-  // FIXME: documentation
-  /**
-   * Wait up to `millis` for the subprocess to terminate and all stdout and stderr
-   * from the subprocess to be handled. By default waits indefinitely; if a time
-   * limit is given, explicitly destroys the subprocess if it has not completed by
-   * the time the timeout has occurred
-   */
-  def join(timeout: Long = -1, timeoutGracePeriod: Long = 1000): Boolean = {
-    val exitedCleanly = waitFor(timeout)
-    if (!exitedCleanly) {
-      assume(
-        timeout != -1,
-        "if the waitFor does not complete cleanly, this implies there is a timeout imposed, so the grace period is applicable"
-      )
-      if (timeoutGracePeriod == -1) destroy()
-      else if (timeoutGracePeriod == 0) destroyForcibly()
-      else {
-        destroy()
-        if (!waitFor(timeoutGracePeriod)) {
-          destroyForcibly()
-        }
-      }
-      waitFor(-1)
-    }
+  private[os] def joinPumperThreadsHook(): Unit = {
     outputPumperThread.foreach(_.join())
     errorPumperThread.foreach(_.join())
-    exitedCleanly
   }
 }
 
@@ -335,12 +335,12 @@ class ProcessPipeline(
   }
 
   /**
-   * Wait up to `millis` for the [[ProcessPipeline]] to terminate, by default waits
+   * Wait up to `timeout` for the [[ProcessPipeline]] to terminate, by default waits
    * indefinitely. Returns `true` if the [[ProcessPipeline]] has terminated by the time
    * this method returns.
    *
    * Waits for each process one by one, while aggregating the total time waited. If
-   * [[timeout]] has passed before all processes have terminated, returns `false`.
+   * `timeout` has passed before all processes have terminated, returns `false`.
    */
   override def waitFor(timeout: Long = -1): Boolean = {
     @tailrec
@@ -364,39 +364,19 @@ class ProcessPipeline(
 
   // FIXME: documentation
   /**
-   * Wait up to `millis` for the [[ProcessPipeline]] to terminate all the processes
+   * Wait up to `timeout` for the [[ProcessPipeline]] to terminate all the processes
    * in pipeline. By default waits indefinitely; if a time limit is given, explicitly
    * destroys each process if it has not completed by the time the timeout has occurred.
    */
-  override def join(timeout: Long = -1, timeoutGracePeriod: Long = 1000): Boolean = {
-    // previously, this was implemented in a similar way to the waitFor above, but with
-    // join logic. This is much harder to make work with the grace period, because we
-    // want to evenly give all threads a chance to terminate gracefully. As such, this
-    // implementation interleaves the single-process join implementation more fairly
-
+  override def join(timeout: Long = -1, timeoutGracePeriod: Long = 100): Boolean = {
     // in this case, the grace period does not apply, so fine
     if (timeout == -1) {
       processes.forall(_.join())
-    } else {
-      // timeout is active, so the grace period must be accounted for
-      val exitedCleanly = waitFor(timeout)
-      if (!exitedCleanly) {
-        if (timeoutGracePeriod == -1) destroy()
-        else if (timeoutGracePeriod == 0) destroyForcibly()
-        else {
-          destroy()
-          if (!waitFor(timeoutGracePeriod)) {
-            destroyForcibly()
-          }
-        }
-        waitFor(-1)
-        // note that this is the only part that isn't shared with the other implementation of join... they could be unified if this is made an
-        // abstract method: then this implementation can move to the superclass (except for the default -1 case above, but that could be done via an override)
-        processes.flatMap(_.outputPumperThread).foreach(_.join())
-        processes.flatMap(_.errorPumperThread).foreach(_.join())
-      }
-      exitedCleanly
-    }
+    } else super.join(timeout, timeoutGracePeriod)
+  }
+
+  private[os] def joinPumperThreadsHook(): Unit = {
+    processes.foreach(_.joinPumperThreadsHook())
   }
 }
 
