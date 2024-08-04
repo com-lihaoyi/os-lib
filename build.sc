@@ -90,10 +90,6 @@ trait OsLibModule
       "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString,
       "TEST_SUBPROCESS_ENV" -> "value"
     )
-
-    object testJarWriter extends JavaModule
-    object testJarReader extends JavaModule
-    object testJarExit extends JavaModule
   }
 }
 
@@ -125,7 +121,11 @@ object os extends Module {
 
   object jvm extends Cross[OsJvmModule](scalaVersions)
   trait OsJvmModule extends OsModule with MiMaChecks {
-    object test extends ScalaTests with OsLibTestModule
+    object test extends ScalaTests with OsLibTestModule{
+      object testJarWriter extends JavaModule
+      object testJarReader extends JavaModule
+      object testJarExit extends JavaModule
+    }
     object nohometest extends ScalaTests with OsLibTestModule
   }
 
