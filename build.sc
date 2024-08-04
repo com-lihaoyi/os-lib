@@ -57,10 +57,6 @@ trait MiMaChecks extends Mima {
   )
 }
 
-object testJarWriter extends JavaModule
-object testJarReader extends JavaModule
-object testJarExit extends JavaModule
-
 trait OsLibModule
     extends CrossScalaModule
     with PublishModule
@@ -94,6 +90,10 @@ trait OsLibModule
       "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString,
       "TEST_SUBPROCESS_ENV" -> "value"
     )
+
+    object testJarWriter extends JavaModule
+    object testJarReader extends JavaModule
+    object testJarExit extends JavaModule
   }
 }
 
@@ -121,6 +121,7 @@ trait OsModule extends OsLibModule { outer =>
 }
 
 object os extends Module {
+
 
   object jvm extends Cross[OsJvmModule](scalaVersions)
   trait OsJvmModule extends OsModule with MiMaChecks {
