@@ -59,10 +59,6 @@ trait MiMaChecks extends Mima {
   )
 }
 
-object testJarWriter extends JavaModule
-object testJarReader extends JavaModule
-object testJarExit extends JavaModule
-
 trait OsLibModule
     extends CrossScalaModule
     with PublishModule
@@ -87,13 +83,9 @@ trait OsLibModule
 
   trait OsLibTestModule extends ScalaModule with TestModule.Utest with SafeDeps {
     def ivyDeps = Agg(Deps.utest, Deps.sourcecode)
-
     // we check the textual output of system commands and expect it in english
     def forkEnv = super.forkEnv() ++ Map(
       "LC_ALL" -> "C",
-      "TEST_JAR_WRITER_ASSEMBLY" -> testJarWriter.assembly().path.toString,
-      "TEST_JAR_READER_ASSEMBLY" -> testJarReader.assembly().path.toString,
-      "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString,
       "TEST_SUBPROCESS_ENV" -> "value"
     )
   }
@@ -124,9 +116,22 @@ trait OsModule extends OsLibModule { outer =>
 
 object os extends Module {
 
+
   object jvm extends Cross[OsJvmModule](scalaVersions)
   trait OsJvmModule extends OsModule with MiMaChecks {
-    object test extends ScalaTests with OsLibTestModule
+    object test extends ScalaTests with OsLibTestModule{
+
+      // we check the textual output of system commands and expect it in english
+      def forkEnv = super.forkEnv() ++ Map(
+        "TEST_JAR_WRITER_ASSEMBLY" -> testJarWriter.assembly().path.toString,
+        "TEST_JAR_READER_ASSEMBLY" -> testJarReader.assembly().path.toString,
+        "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString,
+      )
+
+      object testJarWriter extends JavaModule
+      object testJarReader extends JavaModule
+      object testJarExit extends JavaModule
+    }
     object nohometest extends ScalaTests with OsLibTestModule
   }
 
