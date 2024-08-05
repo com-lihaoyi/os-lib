@@ -49,12 +49,20 @@ sealed trait ProcessLike extends java.lang.AutoCloseable {
    */
   def waitFor(timeout: Long = -1): Boolean
 
-  // FIXME: docs
   /**
    * Wait up to `millis` for the [[ProcessLike]] to terminate and all stdout and stderr
    * from the subprocess to be handled. By default waits indefinitely; if a time
    * limit is given, explicitly destroys the [[ProcessLike]] if it has not completed by
-   * the time the timeout has occurred
+   * the time the timeout has occurred.
+   *
+   * By default, a process is destroyed by sending a `SIGTERM` signal, which allows an opportunity
+   * for it to clean up any resources it was using. If the process is unresponsive to this, a
+   * `SIGKILL` signal is sent `timeoutGracePeriod` milliseconds later. If `timeoutGracePeriod` is
+   * `0`, then there is no `SIGTERM`; if it is `-1`, there is no `SIGKILL` sent.
+   *
+   * @returns `true` when the process did not require explicit termination by either `SIGTERM` or `SIGKILL` and `false` otherwise.
+   * @note the issuing of `SIGTERM` instead of `SIGKILL` is implementation dependent on your JVM version. Pre-Java 9, no `SIGTERM` may be
+   *       issued. Check the documentation for your JDK's `Process.destroy`.
    */
   def join(timeout: Long = -1, timeoutGracePeriod: Long = 100): Boolean = {
     val exitedCleanly = waitFor(timeout)
@@ -362,11 +370,19 @@ class ProcessPipeline(
     }
   }
 
-  // FIXME: documentation
   /**
    * Wait up to `timeout` for the [[ProcessPipeline]] to terminate all the processes
    * in pipeline. By default waits indefinitely; if a time limit is given, explicitly
    * destroys each process if it has not completed by the time the timeout has occurred.
+   *
+   * By default, the processes are destroyed by sending `SIGTERM` signals, which allows an opportunity
+   * for them to clean up any resources it. If any process is unresponsive to this, a
+   * `SIGKILL` signal is sent `timeoutGracePeriod` milliseconds later. If `timeoutGracePeriod` is
+   * `0`, then there is no `SIGTERM`; if it is `-1`, there is no `SIGKILL` sent.
+   *
+   * @returns `true` when the processes did not require explicit termination by either `SIGTERM` or `SIGKILL` and `false` otherwise.
+   * @note the issuing of `SIGTERM` instead of `SIGKILL` is implementation dependent on your JVM version. Pre-Java 9, no `SIGTERM` may be
+   *       issued. Check the documentation for your JDK's `Process.destroy`.
    */
   override def join(timeout: Long = -1, timeoutGracePeriod: Long = 100): Boolean = {
     // in this case, the grace period does not apply, so fine

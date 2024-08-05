@@ -61,6 +61,9 @@ case class proc(command: Shellable*) {
    *                           subprocess to gracefully terminate before attempting to
    *                           forcibly kill it
    *                           (-1 for no kill, 0 for always kill immediately)
+   *
+   * @note the issuing of `SIGTERM` instead of `SIGKILL` is implementation dependent on your JVM version. Pre-Java 9, no `SIGTERM` may be
+   *       issued. Check the documentation for your JDK's `Process.destroy`.
    */
   def call(
       cwd: Path = null,
@@ -234,6 +237,9 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
    *                           subprocess to gracefully terminate before attempting to
    *                           forcibly kill it
    *                           (-1 for no kill, 0 for always kill immediately)
+   *
+   * @note the issuing of `SIGTERM` instead of `SIGKILL` is implementation dependent on your JVM version. Pre-Java 9, no `SIGTERM` may be
+   *       issued. Check the documentation for your JDK's `Process.destroy`.
    */
   def call(
       cwd: Path = null,
