@@ -23,7 +23,7 @@ object Deps {
   val jna = ivy"net.java.dev.jna:jna:5.14.0"
   val geny = ivy"com.lihaoyi::geny::1.1.1"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
-  val utest = ivy"com.lihaoyi::utest::0.8.3"
+  val utest = ivy"com.lihaoyi::utest::0.8.4"
   def scalaLibrary(version: String) = ivy"org.scala-lang:scala-library:${version}"
 }
 
@@ -116,16 +116,15 @@ trait OsModule extends OsLibModule { outer =>
 
 object os extends Module {
 
-
   object jvm extends Cross[OsJvmModule](scalaVersions)
   trait OsJvmModule extends OsModule with MiMaChecks {
-    object test extends ScalaTests with OsLibTestModule{
+    object test extends ScalaTests with OsLibTestModule {
 
       // we check the textual output of system commands and expect it in english
       def forkEnv = super.forkEnv() ++ Map(
         "TEST_JAR_WRITER_ASSEMBLY" -> testJarWriter.assembly().path.toString,
         "TEST_JAR_READER_ASSEMBLY" -> testJarReader.assembly().path.toString,
-        "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString,
+        "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString
       )
 
       object testJarWriter extends JavaModule
