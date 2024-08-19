@@ -112,6 +112,31 @@ trait OsModule extends OsLibModule { outer =>
 
   def scalaDocOptions = super.scalaDocOptions() ++ conditionalScalaDocOptions()
 
+  def generatedSources = T{
+    val conversions = for(i <- Range.inclusive(2, 22)) yield {
+      val ts = Range.inclusive(1, i).map(n => s"T$n").mkString(", ")
+      val fs = Range.inclusive(1, i).map(n => s"f$n: T$n => R").mkString(", ")
+      val vs = Range.inclusive(1, i).map(n => s"f$n(t._$n)").mkString(", ")
+      s"""  implicit def tuple${i}Conversion[$ts]
+         |    (t: ($ts))
+         |    (implicit $fs): R = {
+         |      this.flatten($vs)
+         |  }
+         |""".stripMargin
+    }
+    _root_.os.write(
+      T.dest / "os" / "GeneratedTupleConversions.scala",
+      s"""package os
+         |trait GeneratedTupleConversions[R]{
+         |  protected def flatten(vs: R*): R
+         |  ${conversions.mkString("\n")}
+         |}
+         |
+         |""".stripMargin,
+      createFolders = true
+    )
+    Seq(PathRef(T.dest))
+  }
 }
 
 object os extends Module {

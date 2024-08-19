@@ -10,6 +10,69 @@ import java.util.concurrent.LinkedBlockingQueue
 import ProcessOps._
 import scala.util.Try
 
+object call {
+
+  /**
+   * @see [[os.proc.call]]
+   */
+  def apply(
+      cmd: Shellable,
+      env: Map[String, String] = null,
+      // Make sure `cwd` only comes after `env`, so `os.call("foo", path)` is a compile error
+      // since the correct syntax is `os.call(("foo", path))`
+      cwd: Path = null,
+      stdin: ProcessInput = Pipe,
+      stdout: ProcessOutput = Pipe,
+      stderr: ProcessOutput = os.Inherit,
+      mergeErrIntoOut: Boolean = false,
+      timeout: Long = -1,
+      check: Boolean = true,
+      propagateEnv: Boolean = true,
+      timeoutGracePeriod: Long = 100
+  ): CommandResult = {
+    os.proc(cmd).call(
+      cwd = cwd,
+      env = env,
+      stdin = stdin,
+      stdout = stdout,
+      stderr = stderr,
+      mergeErrIntoOut = mergeErrIntoOut,
+      timeout = timeout,
+      check = check,
+      propagateEnv = propagateEnv,
+      timeoutGracePeriod = timeoutGracePeriod
+    )
+  }
+}
+object spawn {
+
+  /**
+   * @see [[os.proc.spawn]]
+   */
+  def apply(
+      cmd: Shellable,
+      // Make sure `cwd` only comes after `env`, so `os.spawn("foo", path)` is a compile error
+      // since the correct syntax is `os.spawn(("foo", path))`
+      env: Map[String, String] = null,
+      cwd: Path = null,
+      stdin: ProcessInput = Pipe,
+      stdout: ProcessOutput = Pipe,
+      stderr: ProcessOutput = os.Inherit,
+      mergeErrIntoOut: Boolean = false,
+      propagateEnv: Boolean = true
+  ): SubProcess = {
+    os.proc(cmd).spawn(
+      cwd = cwd,
+      env = env,
+      stdin = stdin,
+      stdout = stdout,
+      stderr = stderr,
+      mergeErrIntoOut = mergeErrIntoOut,
+      propagateEnv = propagateEnv
+    )
+  }
+}
+
 /**
  * Convenience APIs around [[java.lang.Process]] and [[java.lang.ProcessBuilder]]:
  *
@@ -27,7 +90,6 @@ import scala.util.Try
  *   the standard stdin/stdout/stderr streams, using whatever protocol you
  *   want
  */
-
 case class proc(command: Shellable*) {
   def commandChunks: Seq[String] = command.flatMap(_.value)
 

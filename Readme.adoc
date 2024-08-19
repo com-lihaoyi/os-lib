@@ -1424,8 +1424,9 @@ os.owner.set(wd / "File.txt", originalOwner)
 
 === Spawning Subprocesses
 
-Subprocess are spawned using `+os.proc(command: os.Shellable*).foo(...)+` calls,
-where the `command: Shellable*` sets up the basic command you wish to run and
+Subprocess are spawned using `+os.call(cmd: os.Shellable, ...)+` or
+`+os.spawn(cmd: os.Shellable, ...)+` calls,
+where the `cmd: Shellable` sets up the basic command you wish to run and
 `+.foo(...)+` specifies how you want to run it. `os.Shellable` represents a value
 that can make up part of your subprocess command, and the following values can
 be used as ``os.Shellable``s:
@@ -1436,6 +1437,7 @@ be used as ``os.Shellable``s:
 * `os.RelPath`
 * `T: Numeric`
 * ``Iterable[T]``s of any of the above
+* ``TupleN[T1, T2, ...Tn]``s of any of the above
 
 Most of the subprocess commands also let you redirect the subprocess's
 `stdin`/`stdout`/`stderr` streams via `os.ProcessInput` or `os.ProcessOutput`
@@ -1467,12 +1469,12 @@ Often, if you are only interested in capturing the standard output of the
 subprocess but want any errors sent to the console, you might set `stderr =
 os.Inherit` while leaving `stdout = os.Pipe`.
 
-==== `os.proc.call`
+==== `os.call`
 
 [source,scala]
 ----
-os.proc(command: os.Shellable*)
-  .call(cwd: Path = null,
+os.call(cmd: os.Shellable,
+        cwd: Path = null,
         env: Map[String, String] = null,
         stdin: ProcessInput = Pipe,
         stdout: ProcessOutput = Pipe,
@@ -1482,6 +1484,8 @@ os.proc(command: os.Shellable*)
         check: Boolean = true,
         propagateEnv: Boolean = true): os.CommandResult
 ----
+
+_Also callable via `os.proc(cmd).call(...)`_
 
 Invokes the given subprocess like a function, passing in input and returning a
 `CommandResult`. You can then call `result.exitCode` to see how it exited, or
@@ -1508,7 +1512,7 @@ Note that redirecting `stdout`/`stderr` elsewhere means that the respective
 
 [source,scala]
 ----
-val res = os.proc('ls, wd/"folder2").call()
+val res = os.call(cmd = ('ls, wd/"folder2"))
 
 res.exitCode ==> 0
 
@@ -1531,13 +1535,13 @@ res.out.bytes
 
 // Non-zero exit codes throw an exception by default
 val thrown = intercept[os.SubprocessException]{
-  os.proc('ls, "doesnt-exist").call(cwd = wd)
+  os.call(cmd = ('ls, "doesnt-exist"), cwd = wd)
 }
 
 assert(thrown.result.exitCode != 0)
 
 // Though you can avoid throwing by setting `check = false`
-val fail = os.proc('ls, "doesnt-exist").call(cwd = wd, check = false)
+val fail = os.call(cmd = ('ls, "doesnt-exist"), cwd = wd, check = false)
 
 assert(fail.exitCode != 0)
 
@@ -1547,11 +1551,11 @@ fail.out.text() ==> ""
 assert(fail.err.text().contains("No such file or directory"))
 
 // You can pass in data to a subprocess' stdin
-val hash = os.proc("shasum", "-a", "256").call(stdin = "Hello World")
+val hash = os.call(cmd = ("shasum", "-a", "256"), stdin = "Hello World")
 hash.out.trim() ==> "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e  -"
 
 // Taking input from a file and directing output to another file
-os.proc("base64").call(stdin = wd / "File.txt", stdout = wd / "File.txt.b64")
+os.call(cmd = ("base64"), stdin = wd / "File.txt", stdout = wd / "File.txt.b64")
 
 os.read(wd / "File.txt.b64") ==> "SSBhbSBjb3c="
 ----
@@ -1570,7 +1574,8 @@ of `os.proc.call` in a streaming fashion, either on groups of bytes:
 [source,scala]
 ----
 var lineCount = 1
-os.proc('find, ".").call(
+os.call(
+  cmd = ('find, "."),
   cwd = wd,
   stdout = os.ProcessOutput(
     (buf, len) => lineCount += buf.slice(0, len).count(_ == '\n')
@@ -1584,7 +1589,8 @@ Or on lines of output:
 ----
 lineCount ==> 22
 var lineCount = 1
-os.proc('find, ".").call(
+os.call(
+  cmd = ('find, "."),
   cwd = wd,
   stdout = os.ProcessOutput.Readlines(
     line => lineCount += 1
@@ -1593,12 +1599,12 @@ os.proc('find, ".").call(
 lineCount ==> 22
 ----
 
-==== `os.proc.spawn`
+==== `os.spawn`
 
 [source,scala]
 ----
-os.proc(command: os.Shellable*)
-  .spawn(cwd: Path = null,
+os.spawn(cmd: os.Shellable,
+         cwd: Path = null,
          env: Map[String, String] = null,
          stdin: os.ProcessInput = os.Pipe,
          stdout: os.ProcessOutput = os.Pipe,
@@ -1607,7 +1613,9 @@ os.proc(command: os.Shellable*)
          propagateEnv: Boolean = true): os.SubProcess
 ----
 
-The most flexible of the `os.proc` calls, `os.proc.spawn` simply configures and
+_Also callable via `os.proc(cmd).spawn(...)`_
+
+The most flexible of the `os.proc` calls, `os.spawn` simply configures and
 starts a subprocess, and returns it as a `os.SubProcess`. `os.SubProcess` is a
 simple wrapper around `java.lang.Process`, which provides `stdin`, `stdout`, and
 `stderr` streams for you to interact with however you like. e.g. You can sending
@@ -1619,10 +1627,7 @@ as the stdin of a second spawned process.
 Note that if you provide `ProcessOutput` callbacks to `stdout`/`stderr`, the
 calls to those callbacks take place on newly spawned threads that execute in
 parallel with the main thread. Thus make sure any data processing you do in
-those callbacks is thread safe! For simpler cases, it may be easier to use
-`os.proc.stream` which triggers it's `onOut`/`onErr` callbacks
-all on the calling thread, avoiding needing to think about multithreading and
-concurrency issues.
+those callbacks is thread safe!
 
 `stdin`, `stdout` and `stderr` are ``java.lang.OutputStream``s and
 ``java.lang.InputStream``s enhanced with the `.writeLine(s: String)`/`.readLine()`
@@ -1631,8 +1636,10 @@ methods for easy reading and writing of character and line-based data.
 [source,scala]
 ----
 // Start a long-lived python process which you can communicate with
-val sub = os.proc("python", "-u", "-c", "while True: print(eval(raw_input()))")
-            .spawn(cwd = wd)
+val sub = os.spawn(
+  cmd = ("python", "-u", "-c", "while True: print(eval(raw_input()))"),
+  cwd = wd
+)
 
 // Sending some text to the subprocess
 sub.stdin.write("1 + 2")
@@ -1654,9 +1661,9 @@ sub.stdout.read() ==> '8'.toByte
 sub.destroy()
 
 // You can chain multiple subprocess' stdin/stdout together
-val curl = os.proc("curl", "-L" , "https://git.io/fpfTs").spawn(stderr = os.Inherit)
-val gzip = os.proc("gzip", "-n").spawn(stdin = curl.stdout)
-val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
+val curl = os.spawn(cmd = ("curl", "-L" , "https://git.io/fpfTs"), stderr = os.Inherit)
+val gzip = os.spawn(cmd = ("gzip", "-n"), stdin = curl.stdout)
+val sha = os.spawn(cmd = ("shasum", "-a", "256"), stdin = gzip.stdout)
 sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
 ----
 
