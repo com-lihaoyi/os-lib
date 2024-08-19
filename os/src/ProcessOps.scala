@@ -17,8 +17,8 @@ object call {
    */
   def apply(
       cmd: Shellable,
-      cwd: Path = null,
       env: Map[String, String] = null,
+      cwd: Path = null,
       stdin: ProcessInput = Pipe,
       stdout: ProcessOutput = Pipe,
       stderr: ProcessOutput = os.Inherit,
@@ -49,8 +49,8 @@ object spawn {
    */
   def apply(
       cmd: Shellable,
-      cwd: Path = null,
       env: Map[String, String] = null,
+      cwd: Path = null,
       stdin: ProcessInput = Pipe,
       stdout: ProcessOutput = Pipe,
       stderr: ProcessOutput = os.Inherit,
