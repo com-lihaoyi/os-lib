@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.10.3
+:version: 0.10.4
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -2233,6 +2233,15 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+[#0-10-4]
+=== 0.10.4
+
+* Add a lightweight syntax for `os.call()` and `os.spawn` APIs
+  (https://github.com/com-lihaoyi/os-lib/pull/292)
+* Add a configurable grace period when subprocesses timeout and have to
+  be terminated to give a chance for shutdown logic to run
+  (https://github.com/com-lihaoyi/os-lib/pull/286)
 
 [#0-10-3]
 === 0.10.3
