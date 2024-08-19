@@ -215,7 +215,7 @@ case class SubprocessException(result: CommandResult) extends Exception(result.t
  * be "interpolated" directly into a subprocess call.
  */
 case class Shellable(value: Seq[String])
-object Shellable extends os.GeneratedTupleConversions[Shellable]{
+object Shellable extends os.GeneratedTupleConversions[Shellable] {
   implicit def StringShellable(s: String): Shellable = Shellable(Seq(s))
   implicit def CharSequenceShellable(cs: CharSequence): Shellable = Shellable(Seq(cs.toString))
 

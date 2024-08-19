@@ -1424,8 +1424,9 @@ os.owner.set(wd / "File.txt", originalOwner)
 
 === Spawning Subprocesses
 
-Subprocess are spawned using `+os.proc(command: os.Shellable*).foo(...)+` calls,
-where the `command: Shellable*` sets up the basic command you wish to run and
+Subprocess are spawned using `+os.call(cmd: os.Shellable, ...)+` or
+`+os.spawn(cmd: os.Shellable, ...)+` calls,
+where the `cmd: Shellable` sets up the basic command you wish to run and
 `+.foo(...)+` specifies how you want to run it. `os.Shellable` represents a value
 that can make up part of your subprocess command, and the following values can
 be used as ``os.Shellable``s:
@@ -1436,6 +1437,7 @@ be used as ``os.Shellable``s:
 * `os.RelPath`
 * `T: Numeric`
 * ``Iterable[T]``s of any of the above
+* ``TupleN[T1, T2, ...Tn]``s of any of the above
 
 Most of the subprocess commands also let you redirect the subprocess's
 `stdin`/`stdout`/`stderr` streams via `os.ProcessInput` or `os.ProcessOutput`

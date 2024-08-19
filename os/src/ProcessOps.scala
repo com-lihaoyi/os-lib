@@ -11,21 +11,23 @@ import ProcessOps._
 import scala.util.Try
 
 object call {
+
   /**
    * @see [[os.proc.call]]
    */
-  def apply(cmd: Shellable,
-            cwd: Path = null,
-            env: Map[String, String] = null,
-            stdin: ProcessInput = Pipe,
-            stdout: ProcessOutput = Pipe,
-            stderr: ProcessOutput = os.Inherit,
-            mergeErrIntoOut: Boolean = false,
-            timeout: Long = -1,
-            check: Boolean = true,
-            propagateEnv: Boolean = true,
-            timeoutGracePeriod: Long = 100
-           ): CommandResult = {
+  def apply(
+      cmd: Shellable,
+      cwd: Path = null,
+      env: Map[String, String] = null,
+      stdin: ProcessInput = Pipe,
+      stdout: ProcessOutput = Pipe,
+      stderr: ProcessOutput = os.Inherit,
+      mergeErrIntoOut: Boolean = false,
+      timeout: Long = -1,
+      check: Boolean = true,
+      propagateEnv: Boolean = true,
+      timeoutGracePeriod: Long = 100
+  ): CommandResult = {
     os.proc(cmd).call(
       cwd = cwd,
       env = env,
@@ -36,23 +38,25 @@ object call {
       timeout = timeout,
       check = check,
       propagateEnv = propagateEnv,
-      timeoutGracePeriod = timeoutGracePeriod,
+      timeoutGracePeriod = timeoutGracePeriod
     )
   }
 }
 object spawn {
+
   /**
    * @see [[os.proc.spawn]]
    */
-  def apply(cmd: Shellable,
-             cwd: Path = null,
-             env: Map[String, String] = null,
-             stdin: ProcessInput = Pipe,
-             stdout: ProcessOutput = Pipe,
-             stderr: ProcessOutput = os.Inherit,
-             mergeErrIntoOut: Boolean = false,
-             propagateEnv: Boolean = true
-           ): SubProcess = {
+  def apply(
+      cmd: Shellable,
+      cwd: Path = null,
+      env: Map[String, String] = null,
+      stdin: ProcessInput = Pipe,
+      stdout: ProcessOutput = Pipe,
+      stderr: ProcessOutput = os.Inherit,
+      mergeErrIntoOut: Boolean = false,
+      propagateEnv: Boolean = true
+  ): SubProcess = {
     os.proc(cmd).spawn(
       cwd = cwd,
       env = env,
@@ -60,7 +64,7 @@ object spawn {
       stdout = stdout,
       stderr = stderr,
       mergeErrIntoOut = mergeErrIntoOut,
-      propagateEnv = propagateEnv,
+      propagateEnv = propagateEnv
     )
   }
 }

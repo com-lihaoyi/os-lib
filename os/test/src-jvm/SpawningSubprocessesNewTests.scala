@@ -41,7 +41,8 @@ object SpawningSubprocessesNewTests extends TestSuite {
 
             assert(thrown.result.exitCode != 0)
 
-            val fail = os.call(cmd = ("ls", "doesnt-exist"), cwd = wd, check = false, stderr = os.Pipe)
+            val fail =
+              os.call(cmd = ("ls", "doesnt-exist"), cwd = wd, check = false, stderr = os.Pipe)
 
             assert(fail.exitCode != 0)
 
@@ -109,7 +110,8 @@ object SpawningSubprocessesNewTests extends TestSuite {
                 "-u",
                 "-c",
                 if (TestUtil.isPython3()) "while True: print(eval(input()))"
-                else "while True: print(eval(raw_input()))"),
+                else "while True: print(eval(raw_input()))"
+              ),
               cwd = wd
             )
 
