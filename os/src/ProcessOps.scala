@@ -18,6 +18,8 @@ object call {
   def apply(
       cmd: Shellable,
       env: Map[String, String] = null,
+      // Make sure `cwd` only comes after `env`, so `os.call("foo", path)` is a compile error
+      // since the correct syntax is `os.call(("foo", path))`
       cwd: Path = null,
       stdin: ProcessInput = Pipe,
       stdout: ProcessOutput = Pipe,
@@ -49,6 +51,8 @@ object spawn {
    */
   def apply(
       cmd: Shellable,
+      // Make sure `cwd` only comes after `env`, so `os.spawn("foo", path)` is a compile error
+      // since the correct syntax is `os.spawn(("foo", path))`
       env: Map[String, String] = null,
       cwd: Path = null,
       stdin: ProcessInput = Pipe,
