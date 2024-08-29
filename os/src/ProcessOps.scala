@@ -251,6 +251,10 @@ case class proc(command: Shellable*) {
   def pipeTo(next: proc): ProcGroup = ProcGroup(Seq(this, next))
 }
 
+object proc {
+  val env = new scala.util.DynamicVariable[Map[String, String]](sys.env)
+}
+
 /**
  * A group of processes that are piped together, corresponding to e.g. `ls -l | grep .scala`.
  * You can create a `ProcGroup` by calling `.pipeTo` on a [[proc]] multiple times.
@@ -485,17 +489,21 @@ private[os] object ProcessOps {
     val builder = new java.lang.ProcessBuilder()
 
     val environment = builder.environment()
+    environment.clear()
 
-    if (!propagateEnv) {
-      environment.clear()
-    }
-
-    if (env != null) {
-      for ((k, v) <- env) {
-        if (v != null) builder.environment().put(k, v)
-        else builder.environment().remove(k)
+    def addToProcessEnv(env: Map[String, String]) =
+      if (env != null) {
+        for ((k, v) <- env) {
+          if (v != null) builder.environment().put(k, v)
+          else builder.environment().remove(k)
+        }
       }
+
+    if (propagateEnv) {
+      addToProcessEnv(os.proc.env.value)
     }
+
+    addToProcessEnv(env)
 
     builder.directory(Option(cwd).getOrElse(os.pwd).toIO)
 
