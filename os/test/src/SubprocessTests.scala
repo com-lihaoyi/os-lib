@@ -149,10 +149,10 @@ object SubprocessTests extends TestSuite {
     test("envWithValue") {
       if (Unix()) {
         def envValue() = os.proc("bash", "-c", "echo \"$TEST_ENV_FOO\"").call().out.lines().head
-        
+
         val before = envValue()
         assert(before == "")
-        
+
         os.proc.env.withValue(Map("TEST_ENV_FOO" -> "bar")) {
           val res = envValue()
           assert(res == "bar")

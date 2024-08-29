@@ -252,7 +252,16 @@ case class proc(command: Shellable*) {
 }
 
 object proc {
+
+  /**
+   * The env passed by default to child processes
+   */
   val env = new scala.util.DynamicVariable[Map[String, String]](sys.env)
+
+  // TODO: Delete when in binary compatibity breaking window
+  def andThen[T](f: proc => T): Seq[Shellable] => T = s => f(apply(s))
+  // TODO: Delete when in binary compatibity breaking window
+  def compose[T](f: T => Seq[Shellable]): T => proc = t => apply(f(t))
 }
 
 /**
