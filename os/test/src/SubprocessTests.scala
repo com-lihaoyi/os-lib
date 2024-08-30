@@ -153,7 +153,7 @@ object SubprocessTests extends TestSuite {
         def envValue() = os.proc(
           "bash",
           "-c",
-          s"if [ -z $${$variableName+x} ]; then echo \"unset\"; else echo \"$$$variableName\"; fi"
+          s"""if [ -z $${$variableName+x} ]; then echo "unset"; else echo "$$$variableName"; fi"""
         ).call().out.lines().head
 
         val before = envValue()
