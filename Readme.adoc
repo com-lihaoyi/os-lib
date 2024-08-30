@@ -1676,7 +1676,7 @@ It is possible to customize the default environment passed to subprocesses by se
 ----
 val clientEnvironment: Map[String, String] = ???
 os.SubProcess.env.withValue(clientEnvironment) {
-  os.proc(command).call() // clientEnvironment is passed by default instead of the system environment
+  os.call(command) // clientEnvironment is passed by default instead of the system environment
 }
 ----
 
