@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.10.4
+:version: 0.10.5
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -2246,6 +2246,12 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+[#0-10-5]
+=== 0.10.5
+
+* Introduce `os.SubProcess.env` `DynamicVariable` to override default `env`
+  (https://github.com/com-lihaoyi/os-lib/pull/295)
 
 [#0-10-4]
 === 0.10.4
