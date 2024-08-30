@@ -150,7 +150,11 @@ object SubprocessTests extends TestSuite {
       if (Unix()) {
         val variableName = "TEST_ENV_FOO"
         val variableValue = "bar"
-        def envValue() = os.proc("bash", "-c", s"if [ -z $${$variableName+x} ]; then echo \"unset\"; else echo \"$$$variableName\"; fi").call().out.lines().head
+        def envValue() = os.proc(
+          "bash",
+          "-c",
+          s"if [ -z $${$variableName+x} ]; then echo \"unset\"; else echo \"$$$variableName\"; fi"
+        ).call().out.lines().head
 
         val before = envValue()
         assert(before == "unset")
