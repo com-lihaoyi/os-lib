@@ -251,19 +251,6 @@ case class proc(command: Shellable*) {
   def pipeTo(next: proc): ProcGroup = ProcGroup(Seq(this, next))
 }
 
-object proc {
-
-  /**
-   * The env passed by default to child processes
-   */
-  val env = new scala.util.DynamicVariable[Map[String, String]](sys.env)
-
-  // TODO: Delete when in binary compatibity breaking window
-  def andThen[T](f: proc => T): Seq[Shellable] => T = s => f(apply(s))
-  // TODO: Delete when in binary compatibity breaking window
-  def compose[T](f: T => Seq[Shellable]): T => proc = t => apply(f(t))
-}
-
 /**
  * A group of processes that are piped together, corresponding to e.g. `ls -l | grep .scala`.
  * You can create a `ProcGroup` by calling `.pipeTo` on a [[proc]] multiple times.
@@ -509,7 +496,7 @@ private[os] object ProcessOps {
       }
 
     if (propagateEnv) {
-      addToProcessEnv(os.proc.env.value)
+      addToProcessEnv(os.SubProcess.env.value)
     }
 
     addToProcessEnv(env)

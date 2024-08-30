@@ -153,7 +153,7 @@ object SubprocessTests extends TestSuite {
         val before = envValue()
         assert(before == "")
 
-        os.proc.env.withValue(Map("TEST_ENV_FOO" -> "bar")) {
+        os.SubProcess.env.withValue(Map("TEST_ENV_FOO" -> "bar")) {
           val res = envValue()
           assert(res == "bar")
         }

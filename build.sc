@@ -55,8 +55,7 @@ trait MiMaChecks extends Mima {
   override def mimaBinaryIssueFilters: T[Seq[ProblemFilter]] = Seq(
     ProblemFilter.exclude[ReversedMissingMethodProblem]("os.PathConvertible.isCustomFs"),
     // this is fine, because ProcessLike is sealed (and its subclasses should be final)
-    ProblemFilter.exclude[ReversedMissingMethodProblem]("os.ProcessLike.joinPumperThreadsHook"),
-    ProblemFilter.exclude[MissingTypesProblem]("os.proc$")
+    ProblemFilter.exclude[ReversedMissingMethodProblem]("os.ProcessLike.joinPumperThreadsHook")
   )
 }
 
