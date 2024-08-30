@@ -1667,6 +1667,19 @@ val sha = os.spawn(cmd = ("shasum", "-a", "256"), stdin = gzip.stdout)
 sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
 ----
 
+==== Customizing the default environment
+
+Client-server CLI applications sometimes want to run subprocesses on the server based on the environment of the client.
+It is possible to customize the default environment passed to subprocesses by setting the `os.SubProcess.env` threadlocal:
+
+[source,scala]
+----
+val clientEnvironment: Map[String, String] = ???
+os.SubProcess.env.withValue(clientEnvironment) {
+  os.call(command) // clientEnvironment is passed by default instead of the system environment
+}
+----
+
 == Spawning Pipelines of Subprocesses
 
 After constructing a subprocess with `os.proc`, you can use the `pipeTo` method

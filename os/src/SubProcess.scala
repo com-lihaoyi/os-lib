@@ -163,6 +163,12 @@ class SubProcess(
 object SubProcess {
 
   /**
+   * The env passed by default to child processes.
+   * When `null`, the system environment is used.
+   */
+  val env = new scala.util.DynamicVariable[Map[String, String]](null)
+
+  /**
    * A [[BufferedWriter]] with the underlying [[java.io.OutputStream]] exposed
    *
    * Note that all writes that occur through this class are thread-safe and

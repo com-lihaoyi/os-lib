@@ -486,16 +486,27 @@ private[os] object ProcessOps {
 
     val environment = builder.environment()
 
-    if (!propagateEnv) {
-      environment.clear()
+    def addToProcessEnv(env: Map[String, String]) =
+      if (env != null) {
+        for ((k, v) <- env) {
+          if (v != null) environment.put(k, v)
+          else environment.remove(k)
+        }
+      }
+
+    os.SubProcess.env.value match {
+      case null =>
+        if (!propagateEnv) {
+          environment.clear()
+        }
+      case subProcessEnvValue =>
+        environment.clear()
+        if (propagateEnv) {
+          addToProcessEnv(subProcessEnvValue)
+        }
     }
 
-    if (env != null) {
-      for ((k, v) <- env) {
-        if (v != null) builder.environment().put(k, v)
-        else builder.environment().remove(k)
-      }
-    }
+    addToProcessEnv(env)
 
     builder.directory(Option(cwd).getOrElse(os.pwd).toIO)
 
