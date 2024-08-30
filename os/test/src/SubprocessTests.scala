@@ -148,18 +148,20 @@ object SubprocessTests extends TestSuite {
     }
     test("envWithValue") {
       if (Unix()) {
-        def envValue() = os.proc("bash", "-c", "echo \"$TEST_ENV_FOO\"").call().out.lines().head
+        val variableName = "TEST_ENV_FOO"
+        val variableValue = "bar"
+        def envValue() = os.proc("bash", "-c", s"if [ -z $${$variableName+x} ]; then echo \"unset\"; else echo \"$$$variableName\"; fi").call().out.lines().head
 
         val before = envValue()
-        assert(before == "")
+        assert(before == "unset")
 
-        os.SubProcess.env.withValue(Map("TEST_ENV_FOO" -> "bar")) {
+        os.SubProcess.env.withValue(Map(variableName -> variableValue)) {
           val res = envValue()
-          assert(res == "bar")
+          assert(res == variableValue)
         }
 
         val after = envValue()
-        assert(after == "")
+        assert(after == "unset")
       }
     }
     test("multiChunk") {
