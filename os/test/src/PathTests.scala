@@ -11,14 +11,6 @@ object PathTests extends TestSuite {
   private def nonValidPathSegment(chars:String) = s"[$chars] is not a valid path segment."
 
   val tests = Tests {
-    test("Temp") {
-//      os.pwd / "."
-//      Macros.validateLiteralPath("")
-//      Macros.validateLiteralPath(".")
-//      Macros.validateLiteralPath("..")
-//      Macros.validateLiteralPath("./b")
-    }
-
     test("Literals"){
       test("Basic"){
         assert(rel / "src" / "Main/.scala" == rel / "src" / "Main" / ".scala")
