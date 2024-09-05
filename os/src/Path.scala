@@ -5,24 +5,33 @@ import java.nio.file.Paths
 
 import collection.JavaConverters._
 import scala.language.implicitConversions
-import java.nio.file
+import acyclic.skipped //needed for cross-version defined macros
 
 trait PathChunk {
   def segments: Seq[String]
   def ups: Int
 }
-object PathChunk {
+trait ViewBoundImplicit{
+  /**macros are not avaliable as implicit views, so this is needed for [[os.PathChunk.ArrayPathChunk]] to work*/
+  implicit def validatedStringFun(s:String): PathChunk =  new PathChunk.StringPathChunkInternal(s)
+}
+
+object PathChunk extends PathChunkMacros {
+
   implicit class RelPathChunk(r: RelPath) extends PathChunk {
     def segments = r.segments
     def ups = r.ups
     override def toString() = r.toString
   }
+
   implicit class SubPathChunk(r: SubPath) extends PathChunk {
     def segments = r.segments
     def ups = 0
     override def toString() = r.toString
   }
-  implicit class StringPathChunk(s: String) extends PathChunk {
+
+  /**this needed for usages of [[/]] inside this project, as we cannot use macros in same compilation unit*/
+  private[os] implicit class StringPathChunkInternal(s: String) extends PathChunk {
     BasePath.checkSegment(s)
     def segments = Seq(s)
     def ups = 0
@@ -473,6 +482,7 @@ object Path {
 
 trait ReadablePath {
   def toSource: os.Source
+
   def getInputStream: java.io.InputStream
 }
 

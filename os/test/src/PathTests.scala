@@ -2,16 +2,52 @@ package test.os
 
 import java.nio.file.Paths
 import java.io.File
-
 import os._
-import os.Path.{driveRoot}
+import os.Path.driveRoot
 import utest.{assert => _, _}
+
 import java.net.URI
 object PathTests extends TestSuite {
+  private def nonValidPathSegment(chars:String) = s"[$chars] is not a valid path segment."
+
   val tests = Tests {
+    test("Temp") {
+//      os.pwd / "."
+//      Macros.validateLiteralPath("")
+//      Macros.validateLiteralPath(".")
+//      Macros.validateLiteralPath("..")
+//      Macros.validateLiteralPath("./b")
+    }
+
+    test("Literals"){
+      test("Basic"){
+        assert(rel / "src" / "Main/.scala" == rel / "src" / "Main" / ".scala")
+        assert ( root / "core/src/test" == root / "core" / "src"/ "test")
+        assert ( root / "core/src/test" == root / "core" / "src/test")
+      }
+      test("Compile errors"){
+        compileError(""" rel / "src" / "" """).check("",nonValidPathSegment(""))
+        compileError(""" rel / "src" / "." """).check("", nonValidPathSegment("."))
+        compileError(""" rel / "src" / ".." """).check("",nonValidPathSegment(".."))
+
+        compileError { """ root / "src/"  """}.check("",nonValidPathSegment(""))
+        compileError { """ root / "src/." """ }.check("", nonValidPathSegment("."))
+        compileError { """ root / "src/.." """ }.check("",nonValidPathSegment(".."))
+
+        compileError { """ root / "" """ }.check("", nonValidPathSegment(""))
+        compileError { """ root / "." """ }.check("", nonValidPathSegment("."))
+        compileError { """ root / ".." """ }.check("",nonValidPathSegment(".."))
+
+
+        compileError(""" root / "hello" / ".." / "world" """).check("",nonValidPathSegment(".."))
+        compileError(""" root / "hello" / "../world" """).check("",nonValidPathSegment(".."))
+        compileError(""" root / "hello/../world" """).check("",nonValidPathSegment(".."))
+      }
+    }
     test("Basic") {
       val base = rel / "src" / "main" / "scala"
       val subBase = sub / "src" / "main" / "scala"
+
       test("Transform posix paths") {
         // verify posix string format of driveRelative path
         assert(posix(root / "omg") == posix(Paths.get("/omg").toAbsolutePath))
@@ -279,29 +315,32 @@ object PathTests extends TestSuite {
       }
     }
     test("Errors") {
+      def nonLiteral(s:String) = s
+
+
       test("InvalidChars") {
-        val ex = intercept[PathError.InvalidSegment](rel / "src" / "Main/.scala")
+        val ex = intercept[PathError.InvalidSegment](rel / "src" / nonLiteral("Main/.scala"))
 
         val PathError.InvalidSegment("Main/.scala", msg1) = ex
 
         assert(msg1.contains("[/] is not a valid character to appear in a path segment"))
 
-        val ex2 = intercept[PathError.InvalidSegment](root / "hello" / ".." / "world")
+        val ex2 = intercept[PathError.InvalidSegment](root / "hello" / nonLiteral("..") / "world")
 
         val PathError.InvalidSegment("..", msg2) = ex2
 
         assert(msg2.contains("use the `up` segment from `os.up`"))
       }
       test("InvalidSegments") {
-        intercept[PathError.InvalidSegment] { root / "core/src/test" }
-        intercept[PathError.InvalidSegment] { root / "" }
-        intercept[PathError.InvalidSegment] { root / "." }
-        intercept[PathError.InvalidSegment] { root / ".." }
+        intercept[PathError.InvalidSegment] { root / nonLiteral("core/src/test") }
+        intercept[PathError.InvalidSegment] { root / nonLiteral("") }
+        intercept[PathError.InvalidSegment] { root / nonLiteral(".") }
+        intercept[PathError.InvalidSegment] { root / nonLiteral("..") }
       }
       test("EmptySegment") {
-        intercept[PathError.InvalidSegment](rel / "src" / "")
-        intercept[PathError.InvalidSegment](rel / "src" / ".")
-        intercept[PathError.InvalidSegment](rel / "src" / "..")
+        intercept[PathError.InvalidSegment](rel / "src" / nonLiteral(""))
+        intercept[PathError.InvalidSegment](rel / "src" / nonLiteral("."))
+        intercept[PathError.InvalidSegment](rel / "src" / nonLiteral(".."))
       }
       test("CannotRelativizeAbsAndRel") {
         val abs = pwd
