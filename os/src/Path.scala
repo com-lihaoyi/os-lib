@@ -11,9 +11,10 @@ trait PathChunk {
   def segments: Seq[String]
   def ups: Int
 }
-trait ViewBoundImplicit{
-  /**macros are not avaliable as implicit views, so this is needed for [[os.PathChunk.ArrayPathChunk]] to work*/
-  implicit def validatedStringFun(s:String): PathChunk =  new PathChunk.StringPathChunkInternal(s)
+trait ViewBoundImplicit {
+
+  /** macros are not avaliable as implicit views, so this is needed for [[os.PathChunk.ArrayPathChunk]] to work */
+  implicit def validatedStringFun(s: String): PathChunk = new PathChunk.StringPathChunkInternal(s)
 }
 
 object PathChunk extends PathChunkMacros {
@@ -30,7 +31,7 @@ object PathChunk extends PathChunkMacros {
     override def toString() = r.toString
   }
 
-  /**this needed for usages of [[/]] inside this project, as we cannot use macros in same compilation unit*/
+  /** this needed for usages of [[/]] inside this project, as we cannot use macros in same compilation unit */
   private[os] implicit class StringPathChunkInternal(s: String) extends PathChunk {
     BasePath.checkSegment(s)
     def segments = Seq(s)

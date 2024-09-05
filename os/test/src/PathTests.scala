@@ -8,32 +8,31 @@ import utest.{assert => _, _}
 
 import java.net.URI
 object PathTests extends TestSuite {
-  private def nonValidPathSegment(chars:String) = s"[$chars] is not a valid path segment."
+  private def nonValidPathSegment(chars: String) = s"[$chars] is not a valid path segment."
 
   val tests = Tests {
-    test("Literals"){
-      test("Basic"){
+    test("Literals") {
+      test("Basic") {
         assert(rel / "src" / "Main/.scala" == rel / "src" / "Main" / ".scala")
-        assert ( root / "core/src/test" == root / "core" / "src"/ "test")
-        assert ( root / "core/src/test" == root / "core" / "src/test")
+        assert(root / "core/src/test" == root / "core" / "src" / "test")
+        assert(root / "core/src/test" == root / "core" / "src/test")
       }
-      test("Compile errors"){
-        compileError(""" rel / "src" / "" """).check("",nonValidPathSegment(""))
+      test("Compile errors") {
+        compileError(""" rel / "src" / "" """).check("", nonValidPathSegment(""))
         compileError(""" rel / "src" / "." """).check("", nonValidPathSegment("."))
-        compileError(""" rel / "src" / ".." """).check("",nonValidPathSegment(".."))
+        compileError(""" rel / "src" / ".." """).check("", nonValidPathSegment(".."))
 
-        compileError { """ root / "src/"  """}.check("",nonValidPathSegment(""))
+        compileError { """ root / "src/"  """ }.check("", nonValidPathSegment(""))
         compileError { """ root / "src/." """ }.check("", nonValidPathSegment("."))
-        compileError { """ root / "src/.." """ }.check("",nonValidPathSegment(".."))
+        compileError { """ root / "src/.." """ }.check("", nonValidPathSegment(".."))
 
         compileError { """ root / "" """ }.check("", nonValidPathSegment(""))
         compileError { """ root / "." """ }.check("", nonValidPathSegment("."))
-        compileError { """ root / ".." """ }.check("",nonValidPathSegment(".."))
+        compileError { """ root / ".." """ }.check("", nonValidPathSegment(".."))
 
-
-        compileError(""" root / "hello" / ".." / "world" """).check("",nonValidPathSegment(".."))
-        compileError(""" root / "hello" / "../world" """).check("",nonValidPathSegment(".."))
-        compileError(""" root / "hello/../world" """).check("",nonValidPathSegment(".."))
+        compileError(""" root / "hello" / ".." / "world" """).check("", nonValidPathSegment(".."))
+        compileError(""" root / "hello" / "../world" """).check("", nonValidPathSegment(".."))
+        compileError(""" root / "hello/../world" """).check("", nonValidPathSegment(".."))
       }
     }
     test("Basic") {
@@ -307,8 +306,7 @@ object PathTests extends TestSuite {
       }
     }
     test("Errors") {
-      def nonLiteral(s:String) = s
-
+      def nonLiteral(s: String) = s
 
       test("InvalidChars") {
         val ex = intercept[PathError.InvalidSegment](rel / "src" / nonLiteral("Main/.scala"))
