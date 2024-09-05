@@ -4,6 +4,7 @@ import java.nio.file.Paths
 import java.io.File
 import os._
 import os.Path.driveRoot
+import os.PathChunk.segmentsFromString
 import utest.{assert => _, _}
 
 import java.net.URI
@@ -11,6 +12,36 @@ object PathTests extends TestSuite {
   private def nonValidPathSegment(chars: String) = s"[$chars] is not a valid path segment."
 
   val tests = Tests {
+    test("segmentsFromString") {
+      def testSegmentsFromString(s: String, expected: List[String]) = {
+        assert(segmentsFromString(s).sameElements(expected))
+      }
+
+      testSegmentsFromString("  ", "  " :: Nil)
+
+      testSegmentsFromString("", "" :: Nil)
+
+      testSegmentsFromString("""foo/bar/baz""", "foo" :: "bar" :: "baz" :: Nil)
+
+      testSegmentsFromString("""/""", "" :: "" :: Nil)
+      testSegmentsFromString("""//""", "" :: "" :: "" :: Nil)
+      testSegmentsFromString("""///""", "" :: "" :: "" :: "" :: Nil)
+
+      testSegmentsFromString("""a/""", "a" :: "" :: Nil)
+      testSegmentsFromString("""a//""", "a" :: "" :: "" :: Nil)
+      testSegmentsFromString("""a///""", "a" :: "" :: "" :: "" :: Nil)
+
+      testSegmentsFromString("""ahs/""", "ahs" :: "" :: Nil)
+      testSegmentsFromString("""ahs//""", "ahs" :: "" :: "" :: Nil)
+
+      testSegmentsFromString("""ahs/aa/""", "ahs" :: "aa" :: "" :: Nil)
+      testSegmentsFromString("""ahs/aa/""", "ahs" :: "aa" :: "" :: Nil)
+      testSegmentsFromString("""ahs/aa//""", "ahs" :: "aa" :: "" :: "" :: Nil)
+
+      testSegmentsFromString("""/a""", "" :: "a" :: Nil)
+      testSegmentsFromString("""//a""", "" :: "" :: "a" :: Nil)
+      testSegmentsFromString("""//a/""", "" :: "" :: "a" :: "" :: Nil)
+    }
     test("Literals") {
       test("Basic") {
         assert(rel / "src" / "Main/.scala" == rel / "src" / "Main" / ".scala")

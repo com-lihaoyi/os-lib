@@ -18,6 +18,12 @@ trait ViewBoundImplicit {
 }
 
 object PathChunk extends PathChunkMacros {
+  def segmentsFromString(s: String): Array[String] = {
+    val trailingSeparatorsCount = s.reverseIterator.takeWhile(_ == '/').length
+    val strNoTrailingSeps = s.dropRight(trailingSeparatorsCount)
+    val splitted = strNoTrailingSeps.split('/')
+    splitted ++ Array.fill(trailingSeparatorsCount)("")
+  }
 
   implicit class RelPathChunk(r: RelPath) extends PathChunk {
     def segments = r.segments

@@ -1,7 +1,8 @@
 package os
 
 import scala.reflect.macros.blackbox
-import os.PathChunk.SubPathChunk
+import os.PathChunk.{SubPathChunk, segmentsFromString}
+
 import scala.language.experimental.macros
 import acyclic.skipped
 
@@ -16,11 +17,11 @@ object Macros {
 
     s match {
       case Expr(Literal(Constant(literal: String))) =>
-        val splitted = literal.splitWithDelimiters("/", -1).filterNot(_ == "/")
-        splitted.foreach(BasePath.checkSegment)
+        val stringSegments = segmentsFromString(literal)
+        stringSegments.foreach(BasePath.checkSegment)
 
         c.Expr(
-          q"new _root_.os.PathChunk.SubPathChunk(_root_.os.SubPath.apply(${splitted}.toIndexedSeq))"
+          q"new _root_.os.PathChunk.SubPathChunk(_root_.os.SubPath.apply(${stringSegments}.toIndexedSeq))"
         )
       case nonLiteral =>
         c.Expr(
