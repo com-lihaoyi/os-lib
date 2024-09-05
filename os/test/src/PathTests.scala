@@ -35,7 +35,6 @@ object PathTests extends TestSuite {
       testSegmentsFromString("""ahs//""", "ahs" :: "" :: "" :: Nil)
 
       testSegmentsFromString("""ahs/aa/""", "ahs" :: "aa" :: "" :: Nil)
-      testSegmentsFromString("""ahs/aa/""", "ahs" :: "aa" :: "" :: Nil)
       testSegmentsFromString("""ahs/aa//""", "ahs" :: "aa" :: "" :: "" :: Nil)
 
       testSegmentsFromString("""/a""", "" :: "a" :: Nil)
@@ -47,8 +46,27 @@ object PathTests extends TestSuite {
         assert(rel / "src" / "Main/.scala" == rel / "src" / "Main" / ".scala")
         assert(root / "core/src/test" == root / "core" / "src" / "test")
         assert(root / "core/src/test" == root / "core" / "src/test")
+        assert(root / "core/   " == root / "core" / "   ")
+        assert(root / " / " == root / " " / " ")
       }
       test("Compile errors") {
+
+        compileError("""root / "/" """).check("", nonValidPathSegment(""))
+        compileError("""root / "/ " """).check("", nonValidPathSegment(""))
+        compileError("""root / " /" """).check("", nonValidPathSegment(""))
+        compileError("""root / "//" """).check("", nonValidPathSegment(""))
+
+        compileError("""root / "foo/" """).check("", nonValidPathSegment(""))
+        compileError("""root / "foo//" """).check("", nonValidPathSegment(""))
+
+        compileError("""root / "foo/bar/" """).check("", nonValidPathSegment(""))
+        compileError("""root / "foo/bar//" """).check("", nonValidPathSegment(""))
+
+        compileError("""root / "/foo" """).check("", nonValidPathSegment(""))
+        compileError("""root / "//foo" """).check("", nonValidPathSegment(""))
+
+        compileError("""root / "//foo/" """).check("", nonValidPathSegment(""))
+
         compileError(""" rel / "src" / "" """).check("", nonValidPathSegment(""))
         compileError(""" rel / "src" / "." """).check("", nonValidPathSegment("."))
         compileError(""" rel / "src" / ".." """).check("", nonValidPathSegment(".."))
