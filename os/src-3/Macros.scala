@@ -1,18 +1,17 @@
 package os
 
-import os.Macros.validatedPathChunkImpl
 import os.PathChunk.{SubPathChunk, segmentsFromString}
 
-import scala.collection.immutable.IndexedSeq
 import scala.quoted.{Expr, Quotes}
 
 // StringPathChunkConversion is a fallback to non-macro String => PathChunk implicit conversion in case eta expansion is needed, this is required for ArrayPathChunk and SeqPathChunk
-trait PathChunkMacros extends StringPathChunkConversion{
-  inline implicit def stringPathChunkValidated(s:String): PathChunk = ${stringPathChunkValidatedImpl('s)}
+trait PathChunkMacros extends StringPathChunkConversion {
+  inline implicit def stringPathChunkValidated(s: String): PathChunk =
+    ${ Macros.stringPathChunkValidatedImpl('s) }
 }
 
 object Macros {
-  def stringPathChunkValidatedImpl(s:Expr[String])(using quotes: Quotes): Expr[SubPathChunk] = {
+  def stringPathChunkValidatedImpl(s: Expr[String])(using quotes: Quotes): Expr[SubPathChunk] = {
     import quotes.reflect.*
 
     s.asTerm match {
@@ -20,9 +19,9 @@ object Macros {
         val stringSegments = segmentsFromString(literal)
         stringSegments.foreach(BasePath.checkSegment)
 
-        '{new SubPathChunk(SubPath.apply(${Expr(stringSegments)}.toIndexedSeq))}
+        '{ new SubPathChunk(SubPath.apply(${ Expr(stringSegments) }.toIndexedSeq)) }
       case _ =>
-        '{{new SubPathChunk(SubPath.apply(IndexedSeq($s)))}}
+        '{ { new SubPathChunk(SubPath.apply(IndexedSeq($s))) } }
     }
   }
 }
