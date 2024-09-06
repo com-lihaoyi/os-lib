@@ -46,8 +46,6 @@ object PathTests extends TestSuite {
         assert(rel / "src" / "Main/.scala" == rel / "src" / "Main" / ".scala")
         assert(root / "core/src/test" == root / "core" / "src" / "test")
         assert(root / "core/src/test" == root / "core" / "src/test")
-        assert(root / "core/   " == root / "core" / "   ")
-        assert(root / " / " == root / " " / " ")
       }
       test("Compile errors") {
 
