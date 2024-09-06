@@ -11,10 +11,9 @@ trait PathChunk {
   def segments: Seq[String]
   def ups: Int
 }
-trait ViewBoundImplicit {
+trait StringPathChunkConversion {
 
-  // fallback to non-macro String => PathChunk implicit conversion in case eta expansion is needed, this is required for ArrayPathChunk and SeqPathChunk
-  implicit def validatedStringFunction(s: String): PathChunk =
+  implicit def stringToPathChunk(s: String): PathChunk =
     new PathChunk.StringPathChunkInternal(s)
 }
 

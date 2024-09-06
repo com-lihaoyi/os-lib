@@ -6,12 +6,13 @@ import os.PathChunk.{SubPathChunk, segmentsFromString}
 import scala.collection.immutable.IndexedSeq
 import scala.quoted.{Expr, Quotes}
 
-trait PathChunkMacros extends ViewBoundImplicit{
-  inline implicit def validatedStringChunk(s:String): PathChunk = ${validatedPathChunkImpl('s)}
+// StringPathChunkConversion is a fallback to non-macro String => PathChunk implicit conversion in case eta expansion is needed, this is required for ArrayPathChunk and SeqPathChunk
+trait PathChunkMacros extends StringPathChunkConversion{
+  inline implicit def stringPathChunkValidated(s:String): PathChunk = ${stringPathChunkValidatedImpl('s)}
 }
 
 object Macros {
-  def validatedPathChunkImpl(s:Expr[String])(using quotes: Quotes): Expr[SubPathChunk] = {
+  def stringPathChunkValidatedImpl(s:Expr[String])(using quotes: Quotes): Expr[SubPathChunk] = {
     import quotes.reflect.*
 
     s.asTerm match {
