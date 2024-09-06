@@ -44,6 +44,7 @@ object PathChunk extends PathChunkMacros {
     def ups = 0
     override def toString() = s
   }
+
   // binary compatibility shim
   class StringPathChunk(s: String) extends StringPathChunkInternal(s)
 
