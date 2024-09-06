@@ -44,6 +44,11 @@ object PathChunk extends PathChunkMacros {
     def ups = 0
     override def toString() = s
   }
+  // binary compatibility shim
+  class StringPathChunk(s: String) extends StringPathChunkInternal(s)
+  // binary compatibility shim
+  def StringPathChunk(s: String) = new StringPathChunk(s)
+
   implicit class SymbolPathChunk(s: Symbol) extends PathChunk {
     BasePath.checkSegment(s.name)
     def segments = Seq(s.name)
