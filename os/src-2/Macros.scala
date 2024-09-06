@@ -1,7 +1,7 @@
 package os
 
 import scala.reflect.macros.blackbox
-import os.PathChunk.{SubPathChunk, segmentsFromString}
+import os.PathChunk.segmentsFromString
 
 import scala.language.experimental.macros
 import acyclic.skipped
@@ -14,7 +14,7 @@ trait PathChunkMacros extends StringPathChunkConversion {
 
 object Macros {
 
-  def stringPathChunkValidatedImpl(c: blackbox.Context)(s: c.Expr[String]): c.Expr[SubPathChunk] = {
+  def stringPathChunkValidatedImpl(c: blackbox.Context)(s: c.Expr[String]): c.Expr[PathChunk] = {
     import c.universe._
 
     s match {
@@ -23,11 +23,11 @@ object Macros {
         stringSegments.foreach(BasePath.checkSegment)
 
         c.Expr(
-          q"new _root_.os.PathChunk.SubPathChunk(_root_.os.SubPath.apply(${stringSegments}.toIndexedSeq))"
+          q"new _root_.os.PathChunk.ArrayPathChunk[String]($stringSegments)(_root_.os.PathChunk.stringToPathChunk)"
         )
       case nonLiteral =>
         c.Expr(
-          q"new _root_.os.PathChunk.SubPathChunk(_root_.os.SubPath.apply(IndexedSeq($nonLiteral)))"
+          q"new _root_.os.PathChunk.StringPathChunk($nonLiteral)"
         )
     }
   }

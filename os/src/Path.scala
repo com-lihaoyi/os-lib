@@ -46,8 +46,9 @@ object PathChunk extends PathChunkMacros {
   }
   // binary compatibility shim
   class StringPathChunk(s: String) extends StringPathChunkInternal(s)
+
   // binary compatibility shim
-  def StringPathChunk(s: String) = new StringPathChunk(s)
+  def StringPathChunk(s: String): StringPathChunk = new StringPathChunk(s)
 
   implicit class SymbolPathChunk(s: Symbol) extends PathChunk {
     BasePath.checkSegment(s.name)

@@ -1,6 +1,6 @@
 package os
 
-import os.PathChunk.{SubPathChunk, segmentsFromString}
+import os.PathChunk.{ArrayPathChunk, StringPathChunk, segmentsFromString, stringToPathChunk}
 
 import scala.quoted.{Expr, Quotes}
 
@@ -11,7 +11,7 @@ trait PathChunkMacros extends StringPathChunkConversion {
 }
 
 object Macros {
-  def stringPathChunkValidatedImpl(s: Expr[String])(using quotes: Quotes): Expr[SubPathChunk] = {
+  def stringPathChunkValidatedImpl(s: Expr[String])(using quotes: Quotes): Expr[PathChunk] = {
     import quotes.reflect.*
 
     s.asTerm match {
@@ -19,9 +19,9 @@ object Macros {
         val stringSegments = segmentsFromString(literal)
         stringSegments.foreach(BasePath.checkSegment)
 
-        '{ new SubPathChunk(SubPath.apply(${ Expr(stringSegments) }.toIndexedSeq)) }
+        '{ new ArrayPathChunk[String](${ Expr(stringSegments) })(using stringToPathChunk) }
       case _ =>
-        '{ { new SubPathChunk(SubPath.apply(IndexedSeq($s))) } }
+        '{ { new StringPathChunk($s) } }
     }
   }
 }
