@@ -204,20 +204,23 @@ object SubprocessTests extends TestSuite {
       }
     }
     test("pwd0") {
+      // Windows doesnt have bash installed so a bit inconvenient 
+      // to run these subprocesses for testing
+      if (!scala.util.Properties.isWin) {
+        val outsidePwd = os.pwd
+        val tmp0 = os.temp.dir()
+        val tmp = os.followLink(tmp0).getOrElse(tmp0)
+        val x = proc("bash", "-c", "pwd").call()
+        val y = os.pwd0.withValue(tmp) {
+          proc("bash", "-c", "pwd").call()
+        }
 
-      val outsidePwd = os.pwd
-      val tmp0 = os.temp.dir()
-      val tmp = os.followLink(tmp0).getOrElse(tmp0)
-      val x = proc("bash", "-c", "pwd").call()
-      val y = os.pwd0.withValue(tmp) {
-        proc("bash", "-c", "pwd").call()
+        val z = proc("bash", "-c", "pwd").call()
+        assert(outsidePwd.toString != tmp.toString)
+        assert(x.out.trim() == outsidePwd.toString)
+        assert(y.out.trim() == tmp.toString)
+        assert(z.out.trim() == outsidePwd.toString)
       }
-
-      val z = proc("bash", "-c", "pwd").call()
-      assert(outsidePwd.toString != tmp.toString)
-      assert(x.out.trim() == outsidePwd.toString)
-      assert(y.out.trim() == tmp.toString)
-      assert(z.out.trim() == outsidePwd.toString)
     }
   }
 }
