@@ -203,5 +203,21 @@ object SubprocessTests extends TestSuite {
         assert(output.out.lines() == Seq("HELLO /usr"))
       }
     }
+    test("pwd0") {
+
+      val outsidePwd = os.pwd
+      val tmp0 = os.temp.dir()
+      val tmp = os.followLink(tmp0).getOrElse(tmp0)
+      val x = proc("bash", "-c", "pwd").call()
+      val y = os.pwd0.withValue(tmp) {
+        proc("bash", "-c", "pwd").call()
+      }
+
+      val z = proc("bash", "-c", "pwd").call()
+      assert(outsidePwd.toString != tmp.toString)
+      assert(x.out.trim() == outsidePwd.toString)
+      assert(y.out.trim() == tmp.toString)
+      assert(z.out.trim() == outsidePwd.toString)
+    }
   }
 }

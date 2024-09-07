@@ -39,9 +39,9 @@ package object os {
   /**
    * The current working directory for this process.
    */
-  val pwd: Path = pwd0.value
+  def pwd: Path = pwd0.value
   val pwd0: DynamicVariable[Path] =
-    DynamicVariable(os.Path(java.nio.file.Paths.get(".").toAbsolutePath))
+    new DynamicVariable(os.Path(java.nio.file.Paths.get(".").toAbsolutePath))
 
   val up: RelPath = RelPath.up
 
