@@ -1,5 +1,6 @@
 import java.nio.file.FileSystem
 import java.nio.file.FileSystems
+import scala.util.DynamicVariable
 package object os {
   type Generator[+T] = geny.Generator[T]
   val Generator = geny.Generator
@@ -31,7 +32,9 @@ package object os {
   /**
    * The current working directory for this process.
    */
-  val pwd: Path = os.Path(java.nio.file.Paths.get(".").toAbsolutePath)
+  val pwd: Path = pwd0.value
+  val pwd0: DynamicVariable[Path] =
+    DynamicVariable(os.Path(java.nio.file.Paths.get(".").toAbsolutePath))
 
   val up: RelPath = RelPath.up
 

@@ -1815,8 +1815,8 @@ wd / os.up
 wd / os.up / os.up
 ----
 
-Note that there are no in-built operations to change the `os.pwd`. In general,
-you should not need to: simply defining a new path, e.g.
+`os.pwd` can be modified in certain scopes via the `os.pwd0` dynamic variable, but
+best practice is not to change it. Instead simply define a new path, e.g.
 
 [source,scala]
 ----
