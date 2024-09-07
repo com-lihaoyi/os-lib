@@ -2247,6 +2247,11 @@ string, int or set representations of the `os.PermSet` via:
 
 == Changelog
 
+[#main]
+=== main
+
+* Make `os.pwd` modifiable via the `os.dynamicPwd0`
+
 [#0-10-6]
 === 0.10.6
 
