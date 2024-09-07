@@ -1815,7 +1815,7 @@ wd / os.up
 wd / os.up / os.up
 ----
 
-`os.pwd` can be modified in certain scopes via the `os.pwd0` dynamic variable, but
+`os.pwd` can be modified in certain scopes via the `os.dynamicPwd` dynamic variable, but
 best practice is not to change it. Instead simply define a new path, e.g.
 
 [source,scala]

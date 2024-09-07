@@ -434,9 +434,9 @@ object PathTests extends TestSuite {
       System.err.printf("p[%s]\n", posix(p))
       assert(posix(p) contains "/omg")
     }
-    test("pwd0") {
+    test("dynamicPwd") {
       val x = os.pwd
-      val y = os.pwd0.withValue(os.pwd / "hello") {
+      val y = os.dynamicPwd.withValue(os.pwd / "hello") {
         os.pwd
       }
 

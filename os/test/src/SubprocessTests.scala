@@ -203,7 +203,7 @@ object SubprocessTests extends TestSuite {
         assert(output.out.lines() == Seq("HELLO /usr"))
       }
     }
-    test("pwd0") {
+    test("dynamicPwd") {
       // Windows doesnt have bash installed so a bit inconvenient
       // to run these subprocesses for testing
       if (!scala.util.Properties.isWin) {
@@ -211,7 +211,7 @@ object SubprocessTests extends TestSuite {
         val tmp0 = os.temp.dir()
         val tmp = os.followLink(tmp0).getOrElse(tmp0)
         val x = proc("bash", "-c", "pwd").call()
-        val y = os.pwd0.withValue(tmp) {
+        val y = os.dynamicPwd.withValue(tmp) {
           proc("bash", "-c", "pwd").call()
         }
 
