@@ -204,7 +204,7 @@ object SubprocessTests extends TestSuite {
       }
     }
     test("pwd0") {
-      // Windows doesnt have bash installed so a bit inconvenient 
+      // Windows doesnt have bash installed so a bit inconvenient
       // to run these subprocesses for testing
       if (!scala.util.Properties.isWin) {
         val outsidePwd = os.pwd
