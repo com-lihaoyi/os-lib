@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.10.4
+:version: 0.10.5
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -2234,6 +2234,11 @@ string, int or set representations of the `os.PermSet` via:
 
 == Changelog
 
+[#0-10-5]
+=== 0.10.5
+
+* Make `os.pwd` modifiable via the `os.dynamicPwd` dynamic variable https://github.com/com-lihaoyi/os-lib/pull/298
+
 [#0-10-4]
 === 0.10.4
 
@@ -2253,7 +2258,7 @@ string, int or set representations of the `os.PermSet` via:
 [#0-10-2]
 === 0.10.2
 
-* Support `os.proc` on Scala Native ([#257](https://github.com/com-lihaoyi/os-lib/pull/257))
+* Support `os.proc` on Scala Native (https://github.com/com-lihaoyi/os-lib/pull/257)
 
 [#0-10-1]
 === 0.10.1
