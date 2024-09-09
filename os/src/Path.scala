@@ -2,10 +2,12 @@ package os
 
 import java.net.URI
 import java.nio.file.Paths
-
 import collection.JavaConverters._
 import scala.language.implicitConversions
-import acyclic.skipped //needed for cross-version defined macros
+import acyclic.skipped
+import os.PathError.{InvalidSegment, NonCanonicalLiteral}
+
+import scala.util.Try //needed for cross-version defined macros
 
 trait PathChunk {
   def segments: Seq[String]
@@ -23,6 +25,25 @@ object PathChunk extends PathChunkMacros {
     val strNoTrailingSeps = s.dropRight(trailingSeparatorsCount)
     val splitted = strNoTrailingSeps.split('/')
     splitted ++ Array.fill(trailingSeparatorsCount)("")
+  }
+
+  private[os] def segmentsFromStringLiteralValidation(literal: String) = {
+    val stringSegments = segmentsFromString(literal)
+    val validSegmnts = validLiteralSegments(stringSegments)
+    val sanitizedLiteral = validSegmnts.mkString("/")
+    if (validSegmnts.isEmpty) throw InvalidSegment(
+      literal,
+      s"Literal path sequence [$literal] doesn't affect path being formed, please remove it"
+    )
+    if (literal != sanitizedLiteral) throw NonCanonicalLiteral(literal, sanitizedLiteral)
+    stringSegments
+  }
+  private def validLiteralSegments(segments: Array[String]): Array[String] = {
+    val AllowedLiteralSegment = ".."
+    segments.collect {
+      case AllowedLiteralSegment => AllowedLiteralSegment
+      case segment if Try(BasePath.checkSegment(segment)).isSuccess => segment
+    }
   }
 
   implicit class RelPathChunk(r: RelPath) extends PathChunk {
@@ -250,6 +271,11 @@ object PathError {
 
   case class LastOnEmptyPath()
       extends IAE("empty path has no last segment")
+
+  case class NonCanonicalLiteral(providedLiteral: String, sanitizedLiteral: String)
+      extends IAE(
+        s"Literal path sequence [$providedLiteral] used in OS-Lib must be in a canonical form, please use [$sanitizedLiteral] instead"
+      )
 }
 
 /**
@@ -320,6 +346,7 @@ class RelPath private[os] (segments0: Array[String], val ups: Int)
 }
 
 object RelPath {
+
   def apply[T: PathConvertible](f0: T): RelPath = {
     val f = implicitly[PathConvertible[T]].apply(f0)
 
@@ -342,6 +369,10 @@ object RelPath {
   val up: RelPath = new RelPath(Internals.emptyStringArray, 1)
   val rel: RelPath = new RelPath(Internals.emptyStringArray, 0)
   implicit def SubRelPath(p: SubPath): RelPath = new RelPath(p.segments0, 0)
+  def fromStringSegments(segments: Array[String]): RelPath = segments.foldLeft(RelPath.rel) {
+    case (agg, "..") => agg / up
+    case (agg, seg) => agg / seg
+  }
 }
 
 /**

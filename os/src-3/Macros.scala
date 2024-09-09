@@ -1,13 +1,17 @@
 package os
 
-import os.PathChunk.{ArrayPathChunk, StringPathChunk, segmentsFromString, stringToPathChunk}
+import os.PathChunk.{RelPathChunk, StringPathChunk, segmentsFromStringLiteralValidation}
+import os.RelPath.fromStringSegments
 
 import scala.quoted.{Expr, Quotes}
+import acyclic.skipped
 
 // StringPathChunkConversion is a fallback to non-macro String => PathChunk implicit conversion in case eta expansion is needed, this is required for ArrayPathChunk and SeqPathChunk
 trait PathChunkMacros extends StringPathChunkConversion {
   inline implicit def stringPathChunkValidated(s: String): PathChunk =
-    ${ Macros.stringPathChunkValidatedImpl('s) }
+    ${
+      Macros.stringPathChunkValidatedImpl('s)
+    }
 }
 
 object Macros {
@@ -16,12 +20,18 @@ object Macros {
 
     s.asTerm match {
       case Inlined(_, _, Literal(StringConstant(literal))) =>
-        val stringSegments = segmentsFromString(literal)
-        stringSegments.foreach(BasePath.checkSegment)
-
-        '{ new ArrayPathChunk[String](${ Expr(stringSegments) })(using stringToPathChunk) }
+        val stringSegments = segmentsFromStringLiteralValidation(literal)
+        '{
+          new RelPathChunk(fromStringSegments(${
+            Expr(stringSegments)
+          }))
+        }
       case _ =>
-        '{ { new StringPathChunk($s) } }
+        '{
+          {
+            new StringPathChunk($s)
+          }
+        }
     }
   }
 }

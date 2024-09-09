@@ -9,7 +9,10 @@ import utest.{assert => _, _}
 
 import java.net.URI
 object PathTests extends TestSuite {
-  private def nonValidPathSegment(chars: String) = s"[$chars] is not a valid path segment."
+  private def nonCanonicalLiteral(providedLiteral: String, sanitizedLiteral: String) =
+    s"Literal path sequence [$providedLiteral] used in OS-Lib must be in a canonical form, please use [$sanitizedLiteral] instead"
+  private def removeLiteralErr(literal: String) =
+    s"Literal path sequence [$literal] doesn't affect path being formed, please remove it"
 
   val tests = Tests {
     test("segmentsFromString") {
@@ -17,29 +20,29 @@ object PathTests extends TestSuite {
         assert(segmentsFromString(s).sameElements(expected))
       }
 
-      testSegmentsFromString("  ", "  " :: Nil)
+      testSegmentsFromString("  ", List("  "))
 
-      testSegmentsFromString("", "" :: Nil)
+      testSegmentsFromString("", List(""))
 
-      testSegmentsFromString("""foo/bar/baz""", "foo" :: "bar" :: "baz" :: Nil)
+      testSegmentsFromString("""foo/bar/baz""", List("foo", "bar", "baz"))
 
-      testSegmentsFromString("""/""", "" :: "" :: Nil)
-      testSegmentsFromString("""//""", "" :: "" :: "" :: Nil)
-      testSegmentsFromString("""///""", "" :: "" :: "" :: "" :: Nil)
+      testSegmentsFromString("""/""", List("", ""))
+      testSegmentsFromString("""//""", List("", "", ""))
+      testSegmentsFromString("""///""", List("", "", "", ""))
 
-      testSegmentsFromString("""a/""", "a" :: "" :: Nil)
-      testSegmentsFromString("""a//""", "a" :: "" :: "" :: Nil)
-      testSegmentsFromString("""a///""", "a" :: "" :: "" :: "" :: Nil)
+      testSegmentsFromString("""a/""", List("a", ""))
+      testSegmentsFromString("""a//""", List("a", "", ""))
+      testSegmentsFromString("""a///""", List("a", "", "", ""))
 
-      testSegmentsFromString("""ahs/""", "ahs" :: "" :: Nil)
-      testSegmentsFromString("""ahs//""", "ahs" :: "" :: "" :: Nil)
+      testSegmentsFromString("""ahs/""", List("ahs", ""))
+      testSegmentsFromString("""ahs//""", List("ahs", "", ""))
 
-      testSegmentsFromString("""ahs/aa/""", "ahs" :: "aa" :: "" :: Nil)
-      testSegmentsFromString("""ahs/aa//""", "ahs" :: "aa" :: "" :: "" :: Nil)
+      testSegmentsFromString("""ahs/aa/""", List("ahs", "aa", ""))
+      testSegmentsFromString("""ahs/aa//""", List("ahs", "aa", "", ""))
 
-      testSegmentsFromString("""/a""", "" :: "a" :: Nil)
-      testSegmentsFromString("""//a""", "" :: "" :: "a" :: Nil)
-      testSegmentsFromString("""//a/""", "" :: "" :: "a" :: "" :: Nil)
+      testSegmentsFromString("""/a""", List("", "a"))
+      testSegmentsFromString("""//a""", List("", "", "a"))
+      testSegmentsFromString("""//a/""", List("", "", "a", ""))
     }
     test("Literals") {
       test("Basic") {
@@ -47,39 +50,44 @@ object PathTests extends TestSuite {
         assert(root / "core/src/test" == root / "core" / "src" / "test")
         assert(root / "core/src/test" == root / "core" / "src/test")
       }
+      test("literals with [..]") {
+        assert(rel / "src" / ".." == rel / "src" / os.up)
+        assert(root / "src/.." == root / "src" / os.up)
+        assert(root / "src" / ".." == root / "src" / os.up)
+        assert(root / "hello" / ".." / "world" == root / "hello" / os.up / "world")
+        assert(root / "hello" / "../world" == root / "hello" / os.up / "world")
+        assert(root / "hello/../world" == root / "hello" / os.up / "world")
+      }
+
       test("Compile errors") {
+        compileError("""root / "/" """).check("", removeLiteralErr("/"))
+        compileError("""root / "/ " """).check("", nonCanonicalLiteral("/ ", " "))
+        compileError("""root / " /" """).check("", nonCanonicalLiteral(" /", " "))
+        compileError("""root / "//" """).check("", removeLiteralErr("//"))
 
-        compileError("""root / "/" """).check("", nonValidPathSegment(""))
-        compileError("""root / "/ " """).check("", nonValidPathSegment(""))
-        compileError("""root / " /" """).check("", nonValidPathSegment(""))
-        compileError("""root / "//" """).check("", nonValidPathSegment(""))
+        compileError("""root / "foo/" """).check("", nonCanonicalLiteral("foo/", "foo"))
+        compileError("""root / "foo//" """).check("", nonCanonicalLiteral("foo//", "foo"))
 
-        compileError("""root / "foo/" """).check("", nonValidPathSegment(""))
-        compileError("""root / "foo//" """).check("", nonValidPathSegment(""))
+        compileError("""root / "foo/bar/" """).check("", nonCanonicalLiteral("foo/bar/", "foo/bar"))
+        compileError("""root / "foo/bar//" """).check(
+          "",
+          nonCanonicalLiteral("foo/bar//", "foo/bar")
+        )
 
-        compileError("""root / "foo/bar/" """).check("", nonValidPathSegment(""))
-        compileError("""root / "foo/bar//" """).check("", nonValidPathSegment(""))
+        compileError("""root / "/foo" """).check("", nonCanonicalLiteral("/foo", "foo"))
+        compileError("""root / "//foo" """).check("", nonCanonicalLiteral("//foo", "foo"))
 
-        compileError("""root / "/foo" """).check("", nonValidPathSegment(""))
-        compileError("""root / "//foo" """).check("", nonValidPathSegment(""))
+        compileError("""root / "//foo/" """).check("", nonCanonicalLiteral("//foo/", "foo"))
 
-        compileError("""root / "//foo/" """).check("", nonValidPathSegment(""))
+        compileError(""" rel / "src" / "" """).check("", removeLiteralErr(""))
+        compileError(""" rel / "src" / "." """).check("", removeLiteralErr("."))
 
-        compileError(""" rel / "src" / "" """).check("", nonValidPathSegment(""))
-        compileError(""" rel / "src" / "." """).check("", nonValidPathSegment("."))
-        compileError(""" rel / "src" / ".." """).check("", nonValidPathSegment(".."))
+        compileError(""" root / "src/"  """).check("", nonCanonicalLiteral("src/", "src"))
+        compileError(""" root / "src/." """).check("", nonCanonicalLiteral("src/.", "src"))
 
-        compileError { """ root / "src/"  """ }.check("", nonValidPathSegment(""))
-        compileError { """ root / "src/." """ }.check("", nonValidPathSegment("."))
-        compileError { """ root / "src/.." """ }.check("", nonValidPathSegment(".."))
+        compileError(""" root / "" """).check("", removeLiteralErr(""))
+        compileError(""" root / "." """).check("", removeLiteralErr("."))
 
-        compileError { """ root / "" """ }.check("", nonValidPathSegment(""))
-        compileError { """ root / "." """ }.check("", nonValidPathSegment("."))
-        compileError { """ root / ".." """ }.check("", nonValidPathSegment(".."))
-
-        compileError(""" root / "hello" / ".." / "world" """).check("", nonValidPathSegment(".."))
-        compileError(""" root / "hello" / "../world" """).check("", nonValidPathSegment(".."))
-        compileError(""" root / "hello/../world" """).check("", nonValidPathSegment(".."))
       }
     }
     test("Basic") {
