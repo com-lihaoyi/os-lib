@@ -96,11 +96,10 @@ trait OsLibModule
 trait OsModule extends OsLibModule { outer =>
   def ivyDeps = Agg(Deps.geny)
   override def compileIvyDeps = T{
-    scalaVersion.zip(super.compileIvyDeps).map{
-      case (scalaVer,superDeps) =>
-        val scalaReflectOpt = if (!ZincWorkerUtil.isDottyOrScala3(scalaVer)) Some(Deps.scalaReflect(scalaVer)) else None
-        superDeps ++ Agg.from(scalaReflectOpt)
-    }
+    val scalaReflectOpt = Option.when(!ZincWorkerUtil.isDottyOrScala3(scalaVersion())) (
+      Deps.scalaReflect(scalaVersion())
+    )
+    super.compileIvyDeps() ++ scalaReflectOpt
   }
 
   def artifactName = "os-lib"
