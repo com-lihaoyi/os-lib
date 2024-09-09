@@ -57,7 +57,7 @@ object TestUtil {
       }
     )
 
-    val original = Paths.get("os", "test", "resources", "test")
+    val original = Paths.get(sys.env("MILL_TEST_RESOURCE_FOLDER"), "test")
     Files.walkFileTree(
       original,
       new SimpleFileVisitor[Path]() {

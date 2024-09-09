@@ -10,7 +10,7 @@ import java.nio.charset.Charset
 object OpTestsJvmOnly extends TestSuite {
 
   val tests = Tests {
-    val res = os.pwd / "os" / "test" / "resources" / "test"
+    val res = os.Path(sys.env("MILL_TEST_RESOURCE_FOLDER")) / "test"
     val testFolder = os.pwd / "out" / "scratch" / "test"
     test("lsRecPermissions") {
       if (Unix()) {
@@ -74,7 +74,7 @@ object OpTestsJvmOnly extends TestSuite {
     // Not sure why this doesn't work on native
     test("redirectSubprocessInheritedOutput") {
       if (Unix()) { // relies on bash scripts that don't run on windows
-        val scriptFolder = os.pwd / "os" / "test" / "resources" / "test"
+        val scriptFolder = os.Path(sys.env("MILL_TEST_RESOURCE_FOLDER")) / "test"
         val lines = collection.mutable.Buffer.empty[String]
         os.Inherit.out.withValue(os.ProcessOutput.Readlines(lines.append(_))) {
           // Redirected

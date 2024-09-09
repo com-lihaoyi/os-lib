@@ -10,7 +10,7 @@ import java.nio.charset.Charset
 object OpTests extends TestSuite {
 
   val tests = Tests {
-    val res = os.pwd / "os" / "test" / "resources" / "test"
+    val res = os.Path(sys.env("MILL_TEST_RESOURCE_FOLDER")) / "test"
     test("ls") - assert(
       os.list(res).toSet == Set(
         res / "folder1",
