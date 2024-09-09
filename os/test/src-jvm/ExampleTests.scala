@@ -254,7 +254,7 @@ object ExampleTests extends TestSuite {
     }
     test("findWc") {
 
-      val wd = os.Path(sys.env("MILL_TEST_RESOURCE_FOLDER")) / "test"
+      val wd = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "test"
 
       // find . -name '*.txt' | xargs wc -l
       val lines = os.walk(wd)

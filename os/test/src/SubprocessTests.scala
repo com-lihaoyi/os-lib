@@ -9,7 +9,7 @@ import utest._
 import scala.collection.mutable
 
 object SubprocessTests extends TestSuite {
-  val scriptFolder = os.Path(sys.env("MILL_TEST_RESOURCE_FOLDER")) / "test"
+  val scriptFolder = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "test"
 
   val lsCmd = if (scala.util.Properties.isWin) "dir" else "ls"
 
@@ -197,7 +197,7 @@ object SubprocessTests extends TestSuite {
       }
       test("jarTf") {
         // This was the original repro for the multi-chunk concurrency bugs
-        val jarFile = os.Path(sys.env("MILL_TEST_RESOURCE_FOLDER")) / "misc" / "out.jar"
+        val jarFile = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "misc" / "out.jar"
         assert(TestUtil.eqIgnoreNewlineStyle(
           os.proc("jar", "-tf", jarFile).call().out.text(),
           """META-INF/MANIFEST.MF
