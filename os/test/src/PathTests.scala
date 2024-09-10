@@ -4,7 +4,6 @@ import java.nio.file.Paths
 import java.io.File
 import os._
 import os.Path.driveRoot
-import os.PathChunk.segmentsFromString
 import utest.{assert => _, _}
 
 import java.net.URI
@@ -15,35 +14,6 @@ object PathTests extends TestSuite {
     s"Literal path sequence [$literal] doesn't affect path being formed, please remove it"
 
   val tests = Tests {
-    test("segmentsFromString") {
-      def testSegmentsFromString(s: String, expected: List[String]) = {
-        assert(segmentsFromString(s).sameElements(expected))
-      }
-
-      testSegmentsFromString("  ", List("  "))
-
-      testSegmentsFromString("", List(""))
-
-      testSegmentsFromString("""foo/bar/baz""", List("foo", "bar", "baz"))
-
-      testSegmentsFromString("""/""", List("", ""))
-      testSegmentsFromString("""//""", List("", "", ""))
-      testSegmentsFromString("""///""", List("", "", "", ""))
-
-      testSegmentsFromString("""a/""", List("a", ""))
-      testSegmentsFromString("""a//""", List("a", "", ""))
-      testSegmentsFromString("""a///""", List("a", "", "", ""))
-
-      testSegmentsFromString("""ahs/""", List("ahs", ""))
-      testSegmentsFromString("""ahs//""", List("ahs", "", ""))
-
-      testSegmentsFromString("""ahs/aa/""", List("ahs", "aa", ""))
-      testSegmentsFromString("""ahs/aa//""", List("ahs", "aa", "", ""))
-
-      testSegmentsFromString("""/a""", List("", "a"))
-      testSegmentsFromString("""//a""", List("", "", "a"))
-      testSegmentsFromString("""//a/""", List("", "", "a", ""))
-    }
     test("Literals") {
       test("Basic") {
         assert(rel / "src" / "Main/.scala" == rel / "src" / "Main" / ".scala")

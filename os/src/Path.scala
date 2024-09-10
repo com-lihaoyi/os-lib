@@ -20,7 +20,7 @@ trait StringPathChunkConversion {
 }
 
 object PathChunk extends PathChunkMacros {
-  def segmentsFromString(s: String): Array[String] = {
+  private[os] def segmentsFromString(s: String): Array[String] = {
     val trailingSeparatorsCount = s.reverseIterator.takeWhile(_ == '/').length
     val strNoTrailingSeps = s.dropRight(trailingSeparatorsCount)
     val splitted = strNoTrailingSeps.split('/')
