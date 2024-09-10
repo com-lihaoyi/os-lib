@@ -2,6 +2,7 @@ import scala.language.implicitConversions
 import java.nio.file.FileSystem
 import java.nio.file.FileSystems
 import java.nio.file.Paths
+import scala.util.DynamicVariable
 
 package object os {
   type Generator[+T] = geny.Generator[T]
@@ -38,7 +39,19 @@ package object os {
   /**
    * The current working directory for this process.
    */
-  val pwd: Path = os.Path(java.nio.file.Paths.get(".").toAbsolutePath)
+  def pwd: Path = dynamicPwdFunction.value()
+
+  private val pwd0 = os.Path(java.nio.file.Paths.get(".").toAbsolutePath)
+
+  /**
+   * Used to override `pwd` within a certain scope with a generated value
+   */
+  val dynamicPwdFunction: DynamicVariable[() => Path] = new DynamicVariable(() => dynamicPwd.value)
+
+  /**
+   * Used to override `pwd` within a certain scope with a fixed value
+   */
+  val dynamicPwd: DynamicVariable[Path] = new DynamicVariable(pwd0)
 
   val up: RelPath = RelPath.up
 

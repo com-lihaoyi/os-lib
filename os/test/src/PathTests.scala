@@ -488,6 +488,14 @@ object PathTests extends TestSuite {
       System.err.printf("p[%s]\n", posix(p))
       assert(posix(p) contains "/omg")
     }
+    test("dynamicPwd") {
+      val x = os.pwd
+      val y = os.dynamicPwd.withValue(os.pwd / "hello") {
+        os.pwd
+      }
+
+      assert(x / "hello" == y)
+    }
   }
   // compare absolute paths
   def sameFile(a: java.nio.file.Path, b: java.nio.file.Path): Boolean = {
