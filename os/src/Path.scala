@@ -171,34 +171,31 @@ object BasePath {
   def checkSegment(s: String) = {
     def fail(msg: String) = throw PathError.InvalidSegment(s, msg)
     def considerStr =
-      "use the Path(...) or RelPath(...) constructor calls to convert them. "
+      "If you are dealing with dynamic path-strings coming from external sources, " +
+        "use the Path(...)/RelPath(...)/SubPath(...) constructor calls to convert them."
 
     s.indexOf('/') match {
       case -1 => // do nothing
       case c => fail(
-          s"[/] is not a valid character to appear in a path segment. " +
-            "If you want to parse an absolute or relative path that may have " +
-            "multiple segments, e.g. path-strings coming from external sources " +
+          s"[/] is not a valid character to appear in a non-literal path segment. " +
             considerStr
         )
 
     }
-    def externalStr = "If you are dealing with path-strings coming from external sources, "
     s match {
       case "" =>
         fail(
-          "OS-Lib does not allow empty path segments " +
-            externalStr + considerStr
+          "OS-Lib does not allow empty path segments. " +
+            considerStr
         )
       case "." =>
         fail(
-          "OS-Lib does not allow [.] as a path segment " +
-            externalStr + considerStr
+          "OS-Lib does not allow [.] in a non-literal path segment. " +
+            considerStr
         )
       case ".." =>
         fail(
-          "OS-Lib does not allow [..] as a path segment " +
-            externalStr +
+          "OS-Lib does not allow [..] in a non-literal path segment. " +
             considerStr +
             "If you want to use the `..` segment manually to represent going up " +
             "one level in the path, use the `up` segment from `os.up` " +

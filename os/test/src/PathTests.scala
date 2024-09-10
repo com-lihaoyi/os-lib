@@ -338,7 +338,13 @@ object PathTests extends TestSuite {
 
         val PathError.InvalidSegment("Main/.scala", msg1) = ex
 
-        assert(msg1.contains("[/] is not a valid character to appear in a path segment"))
+        assert(
+          msg1.contains(
+            "[/] is not a valid character to appear in a non-literal path segment. If you are " +
+              "dealing with dynamic path-strings coming from external sources, use the " +
+              "Path(...)/RelPath(...)/SubPath(...) constructor calls to convert them."
+          )
+        )
 
         val ex2 = intercept[PathError.InvalidSegment](root / "hello" / nonLiteral("..") / "world")
 
