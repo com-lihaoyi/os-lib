@@ -172,7 +172,7 @@ object BasePath {
     def fail(msg: String) = throw PathError.InvalidSegment(s, msg)
     def considerStr =
       "If you are dealing with dynamic path-strings coming from external sources, " +
-      "use the Path(...)/RelPath(...)/SubPath(...) constructor calls to convert them."
+        "use the Path(...)/RelPath(...)/SubPath(...) constructor calls to convert them."
 
     s.indexOf('/') match {
       case -1 => // do nothing

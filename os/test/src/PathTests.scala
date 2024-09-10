@@ -340,9 +340,9 @@ object PathTests extends TestSuite {
 
         assert(
           msg1.contains(
-            "[/] is not a valid character to appear in a non-literal path segment. If you are "+
-            "dealing with dynamic path-strings coming from external sources, use the "+
-            "Path(...)/RelPath(...)/SubPath(...) constructor calls to convert them."
+            "[/] is not a valid character to appear in a non-literal path segment. If you are " +
+              "dealing with dynamic path-strings coming from external sources, use the " +
+              "Path(...)/RelPath(...)/SubPath(...) constructor calls to convert them."
           )
         )
 
