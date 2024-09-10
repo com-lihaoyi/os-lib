@@ -2250,7 +2250,7 @@ string, int or set representations of the `os.PermSet` via:
 [#main]
 === main
 
-* Make `os.pwd` modifiable via the `os.dynamicPwd0`
+* Allow multi-segment paths segments for literals https://github.com/com-lihaoyi/os-lib/pull/297
 
 [#0-10-6]
 === 0.10.6
