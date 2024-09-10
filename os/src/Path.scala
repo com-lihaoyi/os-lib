@@ -2,32 +2,76 @@ package os
 
 import java.net.URI
 import java.nio.file.Paths
-
 import collection.JavaConverters._
 import scala.language.implicitConversions
-import java.nio.file
+import acyclic.skipped
+import os.PathError.{InvalidSegment, NonCanonicalLiteral}
+
+import scala.util.Try //needed for cross-version defined macros
 
 trait PathChunk {
   def segments: Seq[String]
   def ups: Int
 }
-object PathChunk {
+trait StringPathChunkConversion {
+
+  implicit def stringToPathChunk(s: String): PathChunk =
+    new PathChunk.StringPathChunkInternal(s)
+}
+
+object PathChunk extends PathChunkMacros {
+  private[os] def segmentsFromString(s: String): Array[String] = {
+    val trailingSeparatorsCount = s.reverseIterator.takeWhile(_ == '/').length
+    val strNoTrailingSeps = s.dropRight(trailingSeparatorsCount)
+    val splitted = strNoTrailingSeps.split('/')
+    splitted ++ Array.fill(trailingSeparatorsCount)("")
+  }
+
+  private[os] def segmentsFromStringLiteralValidation(literal: String) = {
+    val stringSegments = segmentsFromString(literal)
+    val validSegmnts = validLiteralSegments(stringSegments)
+    val sanitizedLiteral = validSegmnts.mkString("/")
+    if (validSegmnts.isEmpty) throw InvalidSegment(
+      literal,
+      s"Literal path sequence [$literal] doesn't affect path being formed, please remove it"
+    )
+    if (literal != sanitizedLiteral) throw NonCanonicalLiteral(literal, sanitizedLiteral)
+    stringSegments
+  }
+  private def validLiteralSegments(segments: Array[String]): Array[String] = {
+    val AllowedLiteralSegment = ".."
+    segments.collect {
+      case AllowedLiteralSegment => AllowedLiteralSegment
+      case segment if Try(BasePath.checkSegment(segment)).isSuccess => segment
+    }
+  }
+
   implicit class RelPathChunk(r: RelPath) extends PathChunk {
     def segments = r.segments
     def ups = r.ups
     override def toString() = r.toString
   }
+
   implicit class SubPathChunk(r: SubPath) extends PathChunk {
     def segments = r.segments
     def ups = 0
     override def toString() = r.toString
   }
-  implicit class StringPathChunk(s: String) extends PathChunk {
+
+  // Implicit String => PathChunk conversion used inside os-lib, prevents macro expansion in same compilation unit
+  private[os] implicit class StringPathChunkInternal(s: String) extends PathChunk {
     BasePath.checkSegment(s)
     def segments = Seq(s)
     def ups = 0
     override def toString() = s
   }
+
+  // binary compatibility shim
+  class StringPathChunk(s: String) extends StringPathChunkInternal(s)
+
+  // binary compatibility shim
+  def StringPathChunk(s: String): StringPathChunk = new StringPathChunk(s)
+
   implicit class SymbolPathChunk(s: Symbol) extends PathChunk {
     BasePath.checkSegment(s.name)
     def segments = Seq(s.name)
@@ -227,6 +271,11 @@ object PathError {
 
   case class LastOnEmptyPath()
       extends IAE("empty path has no last segment")
+
+  case class NonCanonicalLiteral(providedLiteral: String, sanitizedLiteral: String)
+      extends IAE(
+        s"Literal path sequence [$providedLiteral] used in OS-Lib must be in a canonical form, please use [$sanitizedLiteral] instead"
+      )
 }
 
 /**
@@ -297,6 +346,7 @@ class RelPath private[os] (segments0: Array[String], val ups: Int)
 }
 
 object RelPath {
+
   def apply[T: PathConvertible](f0: T): RelPath = {
     val f = implicitly[PathConvertible[T]].apply(f0)
 
@@ -319,6 +369,10 @@ object RelPath {
   val up: RelPath = new RelPath(Internals.emptyStringArray, 1)
   val rel: RelPath = new RelPath(Internals.emptyStringArray, 0)
   implicit def SubRelPath(p: SubPath): RelPath = new RelPath(p.segments0, 0)
+  def fromStringSegments(segments: Array[String]): RelPath = segments.foldLeft(RelPath.rel) {
+    case (agg, "..") => agg / up
+    case (agg, seg) => agg / seg
+  }
 }
 
 /**
@@ -473,6 +527,7 @@ object Path {
 
 trait ReadablePath {
   def toSource: os.Source
+
   def getInputStream: java.io.InputStream
 }
 
