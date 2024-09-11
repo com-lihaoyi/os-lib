@@ -16,16 +16,16 @@ object PathTests extends TestSuite {
   val tests = Tests {
     test("Literals") {
       test("Basic") {
-        assert(rel / "src/Main/.scala" == rel / "src/Main/.scala")
-        assert(root / "core/src/test" == root / "core/src/test")
-        assert(root / "core/src/test" == root / "core/src/test")
+        assert(rel / "src" / "Main/.scala" == rel / "src" / "Main" / ".scala")
+        assert(root / "core/src/test" == root / "core" / "src" / "test")
+        assert(root / "core/src/test" == root / "core" / "src/test")
       }
       test("literals with [..]") {
-        assert(rel / "src/.." == rel / "src" / os.up)
+        assert(rel / "src" / ".." == rel / "src" / os.up)
         assert(root / "src/.." == root / "src" / os.up)
-        assert(root / "src/.." == root / "src" / os.up)
-        assert(root / "hello/../world" == root / "hello" / os.up / "world")
-        assert(root / "hello/../world" == root / "hello" / os.up / "world")
+        assert(root / "src" / ".." == root / "src" / os.up)
+        assert(root / "hello" / ".." / "world" == root / "hello" / os.up / "world")
+        assert(root / "hello" / "../world" == root / "hello" / os.up / "world")
         assert(root / "hello/../world" == root / "hello" / os.up / "world")
       }
 
@@ -49,8 +49,8 @@ object PathTests extends TestSuite {
 
         compileError("""root / "//foo/" """).check("", nonCanonicalLiteral("//foo/", "foo"))
 
-        compileError(""" rel / "src/" """).check("", removeLiteralErr(""))
-        compileError(""" rel / "src/." """).check("", removeLiteralErr("."))
+        compileError(""" rel / "src" / "" """).check("", removeLiteralErr(""))
+        compileError(""" rel / "src" / "." """).check("", removeLiteralErr("."))
 
         compileError(""" root / "src/"  """).check("", nonCanonicalLiteral("src/", "src"))
         compileError(""" root / "src/." """).check("", nonCanonicalLiteral("src/.", "src"))
@@ -61,8 +61,8 @@ object PathTests extends TestSuite {
       }
     }
     test("Basic") {
-      val base = rel / "src/main/scala"
-      val subBase = sub / "src/main/scala"
+      val base = rel / "src" / "main" / "scala"
+      val subBase = sub / "src" / "main" / "scala"
 
       test("Transform posix paths") {
         // verify posix string format of driveRelative path
@@ -194,13 +194,13 @@ object PathTests extends TestSuite {
         }
         test("Relativize") {
           def eq[T](p: T, q: T) = assert(p == q)
-          test - eq(rel / "omg/bbq/wtf" relativeTo rel / "omg/bbq/wtf", rel)
-          test - eq(rel / "omg/bbq" relativeTo rel / "omg/bbq/wtf", up)
-          test - eq(rel / "omg/bbq/wtf" relativeTo rel / "omg/bbq", rel / "wtf")
-          test - eq(rel / "omg/bbq" relativeTo rel / "omg/bbq/wtf", up)
-          test - eq(up / "omg/bbq" relativeTo rel / "omg/bbq", up / up / up / "omg/bbq")
+          test - eq(rel / "omg" / "bbq" / "wtf" relativeTo rel / "omg" / "bbq" / "wtf", rel)
+          test - eq(rel / "omg" / "bbq" relativeTo rel / "omg" / "bbq" / "wtf", up)
+          test - eq(rel / "omg" / "bbq" / "wtf" relativeTo rel / "omg" / "bbq", rel / "wtf")
+          test - eq(rel / "omg" / "bbq" relativeTo rel / "omg" / "bbq" / "wtf", up)
+          test - eq(up / "omg" / "bbq" relativeTo rel / "omg" / "bbq", up / up / up / "omg" / "bbq")
           test - intercept[PathError.NoRelativePath](
-            rel / "omg/bbq" relativeTo up / "omg/bbq"
+            rel / "omg" / "bbq" relativeTo up / "omg" / "bbq"
           )
         }
       }
@@ -248,10 +248,10 @@ object PathTests extends TestSuite {
         }
         test("Relativize") {
           def eq[T](p: T, q: T) = assert(p == q)
-          test - eq(sub / "omg/bbq/wtf" relativeTo sub / "omg/bbq/wtf", rel)
-          test - eq(sub / "omg/bbq" relativeTo sub / "omg/bbq/wtf", up)
-          test - eq(sub / "omg/bbq/wtf" relativeTo sub / "omg/bbq", rel / "wtf")
-          test - eq(sub / "omg/bbq" relativeTo sub / "omg/bbq/wtf", up)
+          test - eq(sub / "omg" / "bbq" / "wtf" relativeTo sub / "omg" / "bbq" / "wtf", rel)
+          test - eq(sub / "omg" / "bbq" relativeTo sub / "omg" / "bbq" / "wtf", up)
+          test - eq(sub / "omg" / "bbq" / "wtf" relativeTo sub / "omg" / "bbq", rel / "wtf")
+          test - eq(sub / "omg" / "bbq" relativeTo sub / "omg" / "bbq" / "wtf", up)
         }
       }
 
@@ -266,24 +266,24 @@ object PathTests extends TestSuite {
         }
         test("Relativize") {
           def eq[T](p: T, q: T) = assert(p == q)
-          test - eq(root / "omg/bbq/wtf" relativeTo root / "omg/bbq/wtf", rel)
-          test - eq(root / "omg/bbq" relativeTo root / "omg/bbq/wtf", up)
-          test - eq(root / "omg/bbq/wtf" relativeTo root / "omg/bbq", rel / "wtf")
-          test - eq(root / "omg/bbq" relativeTo root / "omg/bbq/wtf", up)
+          test - eq(root / "omg" / "bbq" / "wtf" relativeTo root / "omg" / "bbq" / "wtf", rel)
+          test - eq(root / "omg" / "bbq" relativeTo root / "omg" / "bbq" / "wtf", up)
+          test - eq(root / "omg" / "bbq" / "wtf" relativeTo root / "omg" / "bbq", rel / "wtf")
+          test - eq(root / "omg" / "bbq" relativeTo root / "omg" / "bbq" / "wtf", up)
           test - intercept[PathError.NoRelativePath](
-            rel / "omg/bbq" relativeTo up / "omg/bbq"
+            rel / "omg" / "bbq" relativeTo up / "omg" / "bbq"
           )
         }
       }
       test("Ups") {
         test("RelativeUps") {
           val rel2 = base / up
-          assert(rel2 == rel / "src/main")
+          assert(rel2 == rel / "src" / "main")
           assert(base / up / up == rel / "src")
           assert(base / up / up / up == rel)
           assert(base / up / up / up / up == up)
           assert(base / up / up / up / up / up == up / up)
-          assert(up / base == up / "src/main/scala")
+          assert(up / base == up / "src" / "main" / "scala")
         }
         test("AbsoluteUps") {
           // Keep applying `up` and verify that the path gets
@@ -306,21 +306,21 @@ object PathTests extends TestSuite {
       }
       test("Comparison") {
         test("Relative") - {
-          assert(rel / "omg/wtf" == rel / "omg/wtf")
-          assert(rel / "omg/wtf" != rel / "omg/wtf/bbq")
-          assert(rel / "omg/wtf/bbq" startsWith rel / "omg/wtf")
-          assert(rel / "omg/wtf" startsWith rel / "omg/wtf")
-          assert(up / "omg/wtf" startsWith up / "omg/wtf")
-          assert(!(rel / "omg/wtf" startsWith rel / "omg/wtf/bbq"))
-          assert(!(up / "omg/wtf" startsWith rel / "omg/wtf"))
-          assert(!(rel / "omg/wtf" startsWith up / "omg/wtf"))
+          assert(rel / "omg" / "wtf" == rel / "omg" / "wtf")
+          assert(rel / "omg" / "wtf" != rel / "omg" / "wtf" / "bbq")
+          assert(rel / "omg" / "wtf" / "bbq" startsWith rel / "omg" / "wtf")
+          assert(rel / "omg" / "wtf" startsWith rel / "omg" / "wtf")
+          assert(up / "omg" / "wtf" startsWith up / "omg" / "wtf")
+          assert(!(rel / "omg" / "wtf" startsWith rel / "omg" / "wtf" / "bbq"))
+          assert(!(up / "omg" / "wtf" startsWith rel / "omg" / "wtf"))
+          assert(!(rel / "omg" / "wtf" startsWith up / "omg" / "wtf"))
         }
         test("Absolute") - {
-          assert(root / "omg/wtf" == root / "omg/wtf")
-          assert(root / "omg/wtf" != root / "omg/wtf/bbq")
-          assert(root / "omg/wtf/bbq" startsWith root / "omg/wtf")
-          assert(root / "omg/wtf" startsWith root / "omg/wtf")
-          assert(!(root / "omg/wtf" startsWith root / "omg/wtf/bbq"))
+          assert(root / "omg" / "wtf" == root / "omg" / "wtf")
+          assert(root / "omg" / "wtf" != root / "omg" / "wtf" / "bbq")
+          assert(root / "omg" / "wtf" / "bbq" startsWith root / "omg" / "wtf")
+          assert(root / "omg" / "wtf" startsWith root / "omg" / "wtf")
+          assert(!(root / "omg" / "wtf" startsWith root / "omg" / "wtf" / "bbq"))
         }
         test("Invalid") {
           compileError("""root/"omg"/"wtf" < "omg"/"wtf"""")
@@ -365,7 +365,7 @@ object PathTests extends TestSuite {
       }
       test("CannotRelativizeAbsAndRel") {
         val abs = pwd
-        val rel = os.rel / "omg/wtf"
+        val rel = os.rel / "omg" / "wtf"
         compileError("""
         abs.relativeTo(rel)
       """).msg.toLowerCase.contains("required: os.path") ==> true
@@ -385,7 +385,7 @@ object PathTests extends TestSuite {
     }
     test("Extractors") {
       test("paths") {
-        val a / b / c / d / "omg" = pwd / "A/B/C/D/omg"
+        val a / b / c / d / "omg" = pwd / "A" / "B" / "C" / "D" / "omg"
         assert(a == pwd / "A")
         assert(b == "B")
         assert(c == "C")
@@ -408,8 +408,8 @@ object PathTests extends TestSuite {
       }
 
       test - assert(
-        Seq(up / "c", up / up / "c", rel / "b/c", rel / "a/c", rel / "a/d").sorted ==
-          Seq(rel / "a/c", rel / "a/d", rel / "b/c", up / "c", up / up / "c")
+        Seq(up / "c", up / up / "c", rel / "b" / "c", rel / "a" / "c", rel / "a" / "d").sorted ==
+          Seq(rel / "a" / "c", rel / "a" / "d", rel / "b" / "c", up / "c", up / up / "c")
       )
 
       test - assert(
@@ -423,9 +423,9 @@ object PathTests extends TestSuite {
         val absStr = "/hello/world"
 
         val lhs = Path(absStr)
-        val rhs = root / "hello/world"
+        val rhs = root / "hello" / "world"
         assert(
-          RelPath(relStr) == rel / "hello/cow",
+          RelPath(relStr) == rel / "hello" / "cow",
           // Path(...) also allows paths starting with ~,
           // which is expanded to become your home directory
           lhs == rhs
@@ -436,25 +436,25 @@ object PathTests extends TestSuite {
         val relIoFile = new java.io.File(relStr)
         val absNioFile = java.nio.file.Paths.get(absStr)
 
-        assert(RelPath(relIoFile) == rel / "hello/cow")
-        assert(Path(absNioFile) == root / "hello/world")
-        assert(Path(relIoFile, root / "base") == root / "base/hello/cow")
+        assert(RelPath(relIoFile) == rel / "hello" / "cow")
+        assert(Path(absNioFile) == root / "hello" / "world")
+        assert(Path(relIoFile, root / "base") == root / "base" / "hello" / "cow")
       }
       test("basepath") {
         val relStr = "hello/cow/world/.."
         val absStr = "/hello/world"
         assert(
-          FilePath(relStr) == rel / "hello/cow",
-          FilePath(absStr) == root / "hello/world"
+          FilePath(relStr) == rel / "hello" / "cow",
+          FilePath(absStr) == root / "hello" / "world"
         )
       }
       test("based") {
         val relStr = "hello/cow/world/.."
         val absStr = "/hello/world"
         val basePath: FilePath = FilePath(relStr)
-        assert(Path(relStr, root / "base") == root / "base/hello/cow")
-        assert(Path(absStr, root / "base") == root / "hello/world")
-        assert(Path(basePath, root / "base") == root / "base/hello/cow")
+        assert(Path(relStr, root / "base") == root / "base" / "hello" / "cow")
+        assert(Path(absStr, root / "base") == root / "hello" / "world")
+        assert(Path(basePath, root / "base") == root / "base" / "hello" / "cow")
         assert(Path(".", pwd).last != "")
       }
       test("failure") {
@@ -477,16 +477,16 @@ object PathTests extends TestSuite {
     test("issue159") {
       val result1 = os.rel / Seq(os.up, os.rel / "hello", os.rel / "world")
       val result2 = os.rel / Array(os.up, os.rel / "hello", os.rel / "world")
-      val expected = os.up / "hello/world"
+      val expected = os.up / "hello" / "world"
       assert(result1 == expected)
       assert(result2 == expected)
     }
     test("custom root") {
       assert(os.root == os.root(os.root.root))
       File.listRoots().foreach { root =>
-        val path = os.root(root.toPath().toString) / "test/dir"
+        val path = os.root(root.toPath().toString) / "test" / "dir"
         assert(path.root == root.toString)
-        assert(path.relativeTo(os.root(root.toPath().toString)) == rel / "test/dir")
+        assert(path.relativeTo(os.root(root.toPath().toString)) == rel / "test" / "dir")
       }
     }
     test("issue201") {
