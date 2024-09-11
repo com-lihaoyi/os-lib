@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.10.6
+:version: 0.10.7
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -2262,8 +2262,8 @@ string, int or set representations of the `os.PermSet` via:
 
 == Changelog
 
-[#main]
-=== main
+[#0-10-7]
+=== 0.10.7
 
 * Allow multi-segment paths segments for literals https://github.com/com-lihaoyi/os-lib/pull/297
 
