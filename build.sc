@@ -53,7 +53,7 @@ trait SafeDeps extends ScalaModule {
 
 trait MiMaChecks extends Mima {
   def mimaPreviousVersions =
-    Seq("0.9.0", "0.9.1", "0.9.2", "0.9.3", "0.10.0", "0.10.1", "0.10.2", "0.10.3", "0.10.4")
+    Seq("0.9.0", "0.9.1", "0.9.2", "0.9.3", "0.10.0", "0.10.1", "0.10.2", "0.10.3", "0.10.4", "0.10.5", "0.10.6")
   override def mimaBinaryIssueFilters: T[Seq[ProblemFilter]] = Seq(
     ProblemFilter.exclude[ReversedMissingMethodProblem]("os.PathConvertible.isCustomFs"),
     // this is fine, because ProcessLike is sealed (and its subclasses should be final)
