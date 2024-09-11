@@ -190,7 +190,7 @@ largestThree ==> Seq(
 [source,scala]
 ----
 // Move all files inside the "misc" folder out of it
-import os.{GlobSyntax, /}
+import os./
 os.list(wd / "misc").map(os.move.matching { case p/"misc"/x => p/x } )
 ----
 
