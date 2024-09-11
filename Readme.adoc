@@ -2265,7 +2265,10 @@ string, int or set representations of the `os.PermSet` via:
 [#0-10-7]
 === 0.10.7
 
-* Allow multi-segment paths segments for literals https://github.com/com-lihaoyi/os-lib/pull/297
+* Allow multi-segment paths segments for literals https://github.com/com-lihaoyi/os-lib/pull/297: You
+  can now write `os.pwd / "foo/bar/qux"` rather than `os.pwd / "foo" / "bar" / "qux"`. Note that this
+  is only allowed for string literals, and non-literal path segments still need to be wrapped e.g.
+  `def myString = "foo/bar/qux"; os.pwd / os.SubPath(myString)` for security and safety purposes
 
 [#0-10-6]
 === 0.10.6
