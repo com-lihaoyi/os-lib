@@ -2262,8 +2262,8 @@ string, int or set representations of the `os.PermSet` via:
 
 == Changelog
 
-[#0-10-7]
-=== 0.10.7
+[#main]
+=== main
 
 * Allow multi-segment paths segments for literals https://github.com/com-lihaoyi/os-lib/pull/297
 
