@@ -6,7 +6,7 @@ object ReadingWritingTests extends TestSuite {
     test("read") {
       test - prep { wd =>
         os.read(wd / "File.txt") ==> "I am cow"
-        os.read(wd / "folder1" / "one.txt") ==> "Contents of folder one"
+        os.read(wd / "folder1/one.txt") ==> "Contents of folder one"
         os.read(wd / "Multi Line.txt") ==>
           """I am cow
             |Hear me moo
@@ -31,7 +31,7 @@ object ReadingWritingTests extends TestSuite {
       test("bytes") {
         test - prep { wd =>
           os.read.bytes(wd / "File.txt") ==> "I am cow".getBytes
-          os.read.bytes(wd / "misc" / "binary.png").length ==> 711
+          os.read.bytes(wd / "misc/binary.png").length ==> 711
         }
       }
       test("chunks") {
@@ -92,9 +92,9 @@ object ReadingWritingTests extends TestSuite {
           os.read(wd / "File.txt") ==>
             "I am cow, hear me moo,\nI weigh twice as much as you"
 
-          os.read.bytes(wd / "misc" / "binary.png").length ==> 711
-          os.write.append(wd / "misc" / "binary.png", Array[Byte](1, 2, 3))
-          os.read.bytes(wd / "misc" / "binary.png").length ==> 714
+          os.read.bytes(wd / "misc/binary.png").length ==> 711
+          os.write.append(wd / "misc/binary.png", Array[Byte](1, 2, 3))
+          os.read.bytes(wd / "misc/binary.png").length ==> 714
         }
       }
       test("over") {

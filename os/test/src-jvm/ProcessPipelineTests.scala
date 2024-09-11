@@ -9,7 +9,7 @@ import TestUtil.prep
 import scala.util.Try
 
 object ProcessPipelineTests extends TestSuite {
-  val scriptFolder = pwd / "os" / "test" / "resources" / "scripts"
+  val scriptFolder = pwd / "os/test/resources/scripts"
 
   lazy val scalaHome = sys.env("SCALA_HOME")
 
