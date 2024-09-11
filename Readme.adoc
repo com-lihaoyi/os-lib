@@ -1831,6 +1831,16 @@ wd / os.up
 wd / os.up / os.up
 ----
 
+When constructing `os.Path`s, the right-hand-side of the `/` operator must be either a non-literal
+a string expression containing a single path segment or a literal string containing one-or-more
+path segments. If a non-literal string expression on the RHS contains multiple segments, you need
+to wrap the RHS in an explicit `os.RelPath(...)` or `os.SubPath(...)` constructor to tell OS-Lib
+how to interpret it. The single-segment limitation is intended to avoid the developer accidentally
+introducing https://en.wikipedia.org/wiki/Directory_traversal_attack[Directory Traversal Attacks]
+or other related bugs when naively constructing paths out of dynamic and potentially untrusted
+inputs, which is not an issue for literal string since the string value is directly written in
+the source code and immediately visible.
+
 `os.pwd` can be modified in certain scopes via the `os.dynamicPwd` dynamic variable, but
 best practice is not to change it. Instead simply define a new path, e.g.
 
@@ -1948,8 +1958,8 @@ val sub3 = rel3.asSubPath
 
 ``os.SubPath``s are useful for representing paths within a particular
 folder or directory. You can combine them with absolute ``os.Path``s to
-resolve paths within them, without needing to worry about https://en.wikipedia.org/wiki/Directory_traversal_attack[Directory
-Traversal Attacks]
+resolve paths within them, without needing to worry about
+https://en.wikipedia.org/wiki/Directory_traversal_attack[Directory Traversal Attacks]
 du to accidentally accessing paths outside the destination folder.
 
 [source,scala]
