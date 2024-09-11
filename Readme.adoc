@@ -1812,8 +1812,8 @@ Absolute paths can be created in a few ways:
 // from the pwd) is called `wd`
 val wd = os.pwd
 
-// A path nested inside `wd`
-wd / "folder/file"
+// A path nested inside `wd` in multiple segments
+wd / "folder" / "file"
 
 // The RHS of `/` can have multiple segments if-and-only-if it is a literal string
 wd / "folder/file"
@@ -1866,8 +1866,8 @@ before the relative path is applied. They can be created in the following ways:
 
 [source,scala]
 ----
-// The path "folder/file"
-val rel1 = os.rel / "folder/file"
+// The path "folder/file" in multiple segments
+val rel1 = os.rel / "folder" / "file"
 // RHS of `/` can have multiple segments if-and-only-if it is a literal string
 val rel2 = os.rel / "folder/file"
 
@@ -1932,8 +1932,8 @@ They can be created in the following ways:
 
 [source,scala]
 ----
-// The path "folder/file"
-val sub1 = os.sub / "folder/file"
+// The path "folder/file" in multiple segments
+val sub1 = os.sub / "folder" / "file"
 // RHS of `/` can have multiple segments if-and-only-if it is a literal string
 val sub2 = os.sub / "folder/file"
 
