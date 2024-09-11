@@ -9,7 +9,6 @@ on:
 jobs:
   publish-sonatype:
     if: github.repository == 'com-lihaoyi/os-lib'
-    needs: test
     runs-on: ubuntu-latest
     env:
       SONATYPE_PGP_PRIVATE_KEY: ${{ secrets.SONATYPE_PGP_PRIVATE_KEY }}
