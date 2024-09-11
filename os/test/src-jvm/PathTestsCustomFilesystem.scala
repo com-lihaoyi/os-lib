@@ -24,7 +24,7 @@ object PathTestsCustomFilesystem extends TestSuite {
     val p = os.root("/", fs)
     try {
       os.makeDir(p / "test")
-      os.makeDir(p / "test" / "dir")
+      os.makeDir(p / "test/dir")
       f(fs)
     } finally {
       cleanUpFs(fs, fsUri)
@@ -40,7 +40,7 @@ object PathTestsCustomFilesystem extends TestSuite {
     test("customFilesystem") {
       test("createPath") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"
+          val p = os.root("/", fileSystem) / "test/dir"
           assert(p.root == "/")
           assert(p.fileSystem == fileSystem)
         }
@@ -55,7 +55,7 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("removeDir") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir" / "dir2"
+          val p = os.root("/", fileSystem) / "test/dir/dir2"
           os.makeDir.all(p)
           assert(os.exists(p))
           os.remove.all(p)
@@ -64,7 +64,7 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("failTemp") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"
+          val p = os.root("/", fileSystem) / "test/dir"
           intercept[UnsupportedOperationException] {
             os.temp.dir(dir = p)
           }
@@ -72,7 +72,7 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("failProcCall") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"
+          val p = os.root("/", fileSystem) / "test/dir"
           intercept[UnsupportedOperationException] {
             os.proc("echo", "hello").call(cwd = p)
           }
@@ -80,30 +80,30 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("up") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"
+          val p = os.root("/", fileSystem) / "test/dir"
           assert((p / os.up) == os.root("/", fileSystem) / "test")
         }
       }
       test("withRelPath") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"
+          val p = os.root("/", fileSystem) / "test/dir"
           val rel = os.rel / os.up / "file.txt"
-          assert((p / rel) == os.root("/", fileSystem) / "test" / "file.txt")
+          assert((p / rel) == os.root("/", fileSystem) / "test/file.txt")
         }
       }
       test("withSubPath") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"
+          val p = os.root("/", fileSystem) / "test/dir"
           val sub = os.sub / "file.txt"
-          assert((p / sub) == os.root("/", fileSystem) / "test" / "dir" / "file.txt")
+          assert((p / sub) == os.root("/", fileSystem) / "test/dir/file.txt")
         }
       }
       test("differentFsCompare") {
         withCustomFs { fs1 =>
           withCustomFs(
             { fs2 =>
-              val p1 = os.root("/", fs1) / "test" / "dir"
-              val p2 = os.root("/", fs2) / "test" / "dir"
+              val p1 = os.root("/", fs1) / "test/dir"
+              val p2 = os.root("/", fs2) / "test/dir"
               assert(p1 != p2)
             },
             fsUri = customFsUri("bar.jar")
@@ -114,8 +114,8 @@ object PathTestsCustomFilesystem extends TestSuite {
         withCustomFs { fs1 =>
           withCustomFs(
             { fs2 =>
-              val p1 = os.root("/", fs1) / "test" / "dir"
-              val p2 = os.root("/", fs2) / "test" / "dir"
+              val p1 = os.root("/", fs1) / "test/dir"
+              val p2 = os.root("/", fs2) / "test/dir"
               intercept[IllegalArgumentException] {
                 p1.relativeTo(p2)
               }
@@ -128,8 +128,8 @@ object PathTestsCustomFilesystem extends TestSuite {
         withCustomFs { fs1 =>
           withCustomFs(
             { fs2 =>
-              val p1 = os.root("/", fs1) / "test" / "dir"
-              val p2 = os.root("/", fs2) / "test" / "dir"
+              val p1 = os.root("/", fs1) / "test/dir"
+              val p2 = os.root("/", fs2) / "test/dir"
               intercept[IllegalArgumentException] {
                 p1.subRelativeTo(p2)
               }
@@ -145,14 +145,14 @@ object PathTestsCustomFilesystem extends TestSuite {
     test("customFilesystem") {
       test("writeAndRead") {
         withCustomFs { fileSystem =>
-          val p = root("/", fileSystem) / "test" / "dir"
+          val p = root("/", fileSystem) / "test/dir"
           os.write(p / "file.txt", "Hello")
           assert(os.read(p / "file.txt") == "Hello")
         }
       }
       test("writeOver") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"
+          val p = os.root("/", fileSystem) / "test/dir"
           os.write(p / "file.txt", "Hello World")
           os.write.over(p / "file.txt", "Hello World2")
           assert(os.read(p / "file.txt") == "Hello World2")
@@ -160,7 +160,7 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("move") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"
+          val p = os.root("/", fileSystem) / "test/dir"
           os.write(p / "file.txt", "Hello World")
           os.move(p / "file.txt", p / "file2.txt")
           assert(os.read(p / "file2.txt") == "Hello World")
@@ -169,7 +169,7 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("copy") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"
+          val p = os.root("/", fileSystem) / "test/dir"
           os.write(p / "file.txt", "Hello World")
           os.copy(p / "file.txt", p / "file2.txt")
           assert(os.read(p / "file2.txt") == "Hello World")
@@ -179,9 +179,9 @@ object PathTestsCustomFilesystem extends TestSuite {
       test("copyAndMergeToRootDirectoryWithCreateFolders") {
         withCustomFs { fileSystem =>
           val root = os.root("/", fileSystem)
-          val file = root / "test" / "dir" / "file.txt"
+          val file = root / "test/dir/file.txt"
           os.write(file, "Hello World")
-          os.copy(root / "test" / "dir", root, createFolders = true, mergeFolders = true)
+          os.copy(root / "test/dir", root, createFolders = true, mergeFolders = true)
           assert(os.read(root / "file.txt") == "Hello World")
           assert(os.exists(root / "file.txt"))
         }
@@ -191,14 +191,14 @@ object PathTestsCustomFilesystem extends TestSuite {
           val root = os.root("/", fileSystem)
           // This should fail. Just test that it doesn't throw PathError.AbsolutePathOutsideRoot.
           intercept[FileAlreadyExistsException] {
-            os.move(root / "test" / "dir", root, createFolders = true)
+            os.move(root / "test/dir", root, createFolders = true)
           }
         }
       }
       test("copyMatchingAndMergeToRootDirectory") {
         withCustomFs { fileSystem =>
           val root = os.root("/", fileSystem)
-          val file = root / "test" / "dir" / "file.txt"
+          val file = root / "test/dir/file.txt"
           os.write(file, "Hello World")
           os.list(root / "test").collect(os.copy.matching(mergeFolders = true) {
             case p / "test" / _ => p
@@ -221,7 +221,7 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("remove") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"
+          val p = os.root("/", fileSystem) / "test/dir"
           os.write(p / "file.txt", "Hello World")
           assert(os.exists(p / "file.txt"))
           os.remove(p / "file.txt")
@@ -230,7 +230,7 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("removeAll") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"
+          val p = os.root("/", fileSystem) / "test/dir"
           os.write(p / "file.txt", "Hello World")
           os.write(p / "file2.txt", "Hello World")
           os.remove.all(p)
@@ -240,7 +240,7 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("failSymlink") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"
+          val p = os.root("/", fileSystem) / "test/dir"
           os.write(p / "file.txt", "Hello World")
           intercept[UnsupportedOperationException] {
             os.symlink(p / "link", p / "file.txt")
@@ -249,12 +249,12 @@ object PathTestsCustomFilesystem extends TestSuite {
       }
       test("walk") {
         withCustomFs { fileSystem =>
-          val p = os.root("/", fileSystem) / "test" / "dir"
+          val p = os.root("/", fileSystem) / "test/dir"
           os.write(p / "file.txt", "Hello World")
           os.write(p / "file2.txt", "Hello World")
           os.write(p / "file3.txt", "Hello World")
           os.makeDir(p / "dir2")
-          os.write(p / "dir2" / "file.txt", "Hello World")
+          os.write(p / "dir2/file.txt", "Hello World")
           assert(os.walk(p).map(_.relativeTo(p)).toSet ==
             Set(
               RelPath("file.txt"),

@@ -75,7 +75,7 @@ object WatchTests extends TestSuite with TestSuite.Retries {
         Set(os.sub / "my-new-folder")
       )
 
-      checkFileManglingChanges(wd / "my-new-folder" / "test")
+      checkFileManglingChanges(wd / "my-new-folder/test")
 
       locally {
         val expectedChanges = if (isWin) Set(
@@ -85,10 +85,10 @@ object WatchTests extends TestSuite with TestSuite.Retries {
         else Set(
           os.sub / "folder2",
           os.sub / "folder3",
-          os.sub / "folder3" / "nestedA",
-          os.sub / "folder3" / "nestedA" / "a.txt",
-          os.sub / "folder3" / "nestedB",
-          os.sub / "folder3" / "nestedB" / "b.txt"
+          os.sub / "folder3/nestedA",
+          os.sub / "folder3/nestedA/a.txt",
+          os.sub / "folder3/nestedB",
+          os.sub / "folder3/nestedB/b.txt"
         )
         checkChanges(
           os.move(wd / "folder2", wd / "folder3"),
@@ -100,10 +100,10 @@ object WatchTests extends TestSuite with TestSuite.Retries {
         os.copy(wd / "folder3", wd / "folder4"),
         Set(
           os.sub / "folder4",
-          os.sub / "folder4" / "nestedA",
-          os.sub / "folder4" / "nestedA" / "a.txt",
-          os.sub / "folder4" / "nestedB",
-          os.sub / "folder4" / "nestedB" / "b.txt"
+          os.sub / "folder4/nestedA",
+          os.sub / "folder4/nestedA/a.txt",
+          os.sub / "folder4/nestedB",
+          os.sub / "folder4/nestedB/b.txt"
         )
       )
 
@@ -111,15 +111,15 @@ object WatchTests extends TestSuite with TestSuite.Retries {
         os.remove.all(wd / "folder4"),
         Set(
           os.sub / "folder4",
-          os.sub / "folder4" / "nestedA",
-          os.sub / "folder4" / "nestedA" / "a.txt",
-          os.sub / "folder4" / "nestedB",
-          os.sub / "folder4" / "nestedB" / "b.txt"
+          os.sub / "folder4/nestedA",
+          os.sub / "folder4/nestedA/a.txt",
+          os.sub / "folder4/nestedB",
+          os.sub / "folder4/nestedB/b.txt"
         )
       )
 
-      checkFileManglingChanges(wd / "folder3" / "nestedA" / "double-nested-file")
-      checkFileManglingChanges(wd / "folder3" / "nestedB" / "double-nested-file")
+      checkFileManglingChanges(wd / "folder3/nestedA/double-nested-file")
+      checkFileManglingChanges(wd / "folder3/nestedB/double-nested-file")
 
       checkChanges(
         os.symlink(wd / "newlink", wd / "doesntexist"),
@@ -132,13 +132,13 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       )
 
       checkChanges(
-        os.hardlink(wd / "newlink3", wd / "folder3" / "nestedA" / "a.txt"),
+        os.hardlink(wd / "newlink3", wd / "folder3/nestedA/a.txt"),
         System.getProperty("os.name") match {
           case "Mac OS X" =>
             Set(
               os.sub / "newlink3",
-              os.sub / "folder3" / "nestedA",
-              os.sub / "folder3" / "nestedA" / "a.txt"
+              os.sub / "folder3/nestedA",
+              os.sub / "folder3/nestedA/a.txt"
             )
           case _ => Set(os.sub / "newlink3")
         }
