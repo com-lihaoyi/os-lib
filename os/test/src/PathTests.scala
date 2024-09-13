@@ -5,6 +5,7 @@ import java.io.File
 import os._
 import os.Path.driveRoot
 import utest.{assert => _, _}
+import com.eed3si9n.expecty.Expecty.expect
 
 import java.net.URI
 object PathTests extends TestSuite {
@@ -16,11 +17,22 @@ object PathTests extends TestSuite {
   val tests = Tests {
     test("Literals") {
       test("Basic") {
+        expect(rel / "src" / "Main/.scala" == rel / "src" / "Main" / ".scala")
+        expect(root / "core/src/test" == root / "core" / "src" / "test")
+        expect(root / "core/src/test" == root / "core" / "src/test")
+
         assert(rel / "src" / "Main/.scala" == rel / "src" / "Main" / ".scala")
         assert(root / "core/src/test" == root / "core" / "src" / "test")
         assert(root / "core/src/test" == root / "core" / "src/test")
       }
       test("literals with [..]") {
+        expect(rel / "src" / ".." == rel / "src" / os.up)
+        expect(root / "src/.." == root / "src" / os.up)
+        expect(root / "src" / ".." == root / "src" / os.up)
+        expect(root / "hello" / ".." / "world" == root / "hello" / os.up / "world")
+        expect(root / "hello" / "../world" == root / "hello" / os.up / "world")
+        expect(root / "hello/../world" == root / "hello" / os.up / "world")
+
         assert(rel / "src" / ".." == rel / "src" / os.up)
         assert(root / "src/.." == root / "src" / os.up)
         assert(root / "src" / ".." == root / "src" / os.up)

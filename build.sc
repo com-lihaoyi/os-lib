@@ -24,6 +24,7 @@ object Deps {
   val geny = ivy"com.lihaoyi::geny::1.1.1"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
   val utest = ivy"com.lihaoyi::utest::0.8.4"
+  val expecty = ivy"com.eed3si9n.expecty::expecty:0.16.0"
   def scalaReflect(scalaVersion: String) = ivy"org.scala-lang:scala-reflect:$scalaVersion"
   def scalaLibrary(version: String) = ivy"org.scala-lang:scala-library:${version}"
 }
@@ -96,7 +97,7 @@ trait OsLibModule
   )
 
   trait OsLibTestModule extends ScalaModule with TestModule.Utest with SafeDeps {
-    def ivyDeps = Agg(Deps.utest, Deps.sourcecode)
+    def ivyDeps = Agg(Deps.utest, Deps.sourcecode,Deps.expecty)
     // we check the textual output of system commands and expect it in english
     def forkEnv = super.forkEnv() ++ Map(
       "LC_ALL" -> "C",
