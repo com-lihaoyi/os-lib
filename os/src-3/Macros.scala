@@ -1,6 +1,6 @@
 package os
 
-import os.PathChunk.{RelPathChunk, StringPathChunk, segmentsFromStringLiteralValidation}
+import os.PathChunk.{RelPathChunk, StringPathChunk, segmentsFromString, segmentsFromStringLiteralValidation}
 import os.RelPath.fromStringSegments
 
 import scala.quoted.{Expr, Quotes}
@@ -20,11 +20,9 @@ object Macros {
 
     s.asTerm match {
       case Inlined(_, _, Literal(StringConstant(literal))) =>
-        val stringSegments = segmentsFromStringLiteralValidation(literal)
+        segmentsFromStringLiteralValidation(literal)
         '{
-          new RelPathChunk(fromStringSegments(${
-            Expr(stringSegments)
-          }))
+          new RelPathChunk(fromStringSegments(segmentsFromString($s)))
         }
       case _ =>
         '{
