@@ -19,7 +19,7 @@ val scalaVersions = Seq(
 ) ++ communityBuildDottyVersion
 
 object Deps {
-  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.12"
+  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.13"
   val jna = ivy"net.java.dev.jna:jna:5.14.0"
   val geny = ivy"com.lihaoyi::geny::1.1.1"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
@@ -53,7 +53,19 @@ trait SafeDeps extends ScalaModule {
 
 trait MiMaChecks extends Mima {
   def mimaPreviousVersions =
-    Seq("0.9.0", "0.9.1", "0.9.2", "0.9.3", "0.10.0", "0.10.1", "0.10.2", "0.10.3", "0.10.4", "0.10.5", "0.10.6")
+    Seq(
+      "0.9.0",
+      "0.9.1",
+      "0.9.2",
+      "0.9.3",
+      "0.10.0",
+      "0.10.1",
+      "0.10.2",
+      "0.10.3",
+      "0.10.4",
+      "0.10.5",
+      "0.10.6"
+    )
   override def mimaBinaryIssueFilters: T[Seq[ProblemFilter]] = Seq(
     ProblemFilter.exclude[ReversedMissingMethodProblem]("os.PathConvertible.isCustomFs"),
     // this is fine, because ProcessLike is sealed (and its subclasses should be final)
@@ -95,8 +107,8 @@ trait OsLibModule
 
 trait OsModule extends OsLibModule { outer =>
   def ivyDeps = Agg(Deps.geny)
-  override def compileIvyDeps = T{
-    val scalaReflectOpt = Option.when(!ZincWorkerUtil.isDottyOrScala3(scalaVersion())) (
+  override def compileIvyDeps = T {
+    val scalaReflectOpt = Option.when(!ZincWorkerUtil.isDottyOrScala3(scalaVersion()))(
       Deps.scalaReflect(scalaVersion())
     )
     super.compileIvyDeps() ++ scalaReflectOpt
@@ -120,8 +132,8 @@ trait OsModule extends OsLibModule { outer =>
 
   def scalaDocOptions = super.scalaDocOptions() ++ conditionalScalaDocOptions()
 
-  def generatedSources = T{
-    val conversions = for(i <- Range.inclusive(2, 22)) yield {
+  def generatedSources = T {
+    val conversions = for (i <- Range.inclusive(2, 22)) yield {
       val ts = Range.inclusive(1, i).map(n => s"T$n").mkString(", ")
       val fs = Range.inclusive(1, i).map(n => s"f$n: T$n => R").mkString(", ")
       val vs = Range.inclusive(1, i).map(n => s"f$n(t._$n)").mkString(", ")
