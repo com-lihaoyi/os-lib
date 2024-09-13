@@ -24,7 +24,6 @@ object Deps {
   val geny = ivy"com.lihaoyi::geny::1.1.1"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
   val utest = ivy"com.lihaoyi::utest::0.8.4"
-  def scalaReflect(scalaVersion: String) = ivy"org.scala-lang:scala-reflect:$scalaVersion"
   def scalaLibrary(version: String) = ivy"org.scala-lang:scala-library:${version}"
 }
 
@@ -107,12 +106,6 @@ trait OsLibModule
 
 trait OsModule extends OsLibModule { outer =>
   def ivyDeps = Agg(Deps.geny)
-  override def compileIvyDeps = T {
-    val scalaReflectOpt = Option.when(!ZincWorkerUtil.isDottyOrScala3(scalaVersion()))(
-      Deps.scalaReflect(scalaVersion())
-    )
-    super.compileIvyDeps() ++ scalaReflectOpt
-  }
 
   def artifactName = "os-lib"
 
