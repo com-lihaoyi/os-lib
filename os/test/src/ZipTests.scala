@@ -11,9 +11,9 @@ object ZipTests extends TestSuite {
   private val multilineSizes = Set[Long](81, 84)
 
   def tests = Tests {
-    
+
     test("zipOps") {
-      
+
       test - prep { wd =>
         val zipFile = os.zip(wd / "zip-test.zip")
         os.copy(wd / "File.txt", zipFile / "File.txt")
@@ -35,5 +35,5 @@ object ZipTests extends TestSuite {
       }
     }
   }
-  
+
 }
