@@ -20,7 +20,7 @@ val scalaVersions = Seq(
 
 object Deps {
   val acyclic = ivy"com.lihaoyi:::acyclic:0.3.13"
-  val jna = ivy"net.java.dev.jna:jna:5.14.0"
+  val jna = ivy"net.java.dev.jna:jna:5.15.0"
   val geny = ivy"com.lihaoyi::geny::1.1.1"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
   val utest = ivy"com.lihaoyi::utest::0.8.4"
