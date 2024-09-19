@@ -21,6 +21,7 @@ object PathTests extends TestSuite {
         assert(root / "core/src/test" == root / "core" / "src/test")
       }
       test("literals with [..]") {
+
         assert(rel / "src" / ".." == rel / "src" / os.up)
         assert(root / "src/.." == root / "src" / os.up)
         assert(root / "src" / ".." == root / "src" / os.up)

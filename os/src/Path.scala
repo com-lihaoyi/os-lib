@@ -20,14 +20,14 @@ trait StringPathChunkConversion {
 }
 
 object PathChunk extends PathChunkMacros {
-  private[os] def segmentsFromString(s: String): Array[String] = {
+  def segmentsFromString(s: String): Array[String] = {
     val trailingSeparatorsCount = s.reverseIterator.takeWhile(_ == '/').length
     val strNoTrailingSeps = s.dropRight(trailingSeparatorsCount)
     val splitted = strNoTrailingSeps.split('/')
     splitted ++ Array.fill(trailingSeparatorsCount)("")
   }
 
-  private[os] def segmentsFromStringLiteralValidation(literal: String) = {
+  private[os] def segmentsFromStringLiteralValidation(literal: String): Array[String] = {
     val stringSegments = segmentsFromString(literal)
     val validSegmnts = validLiteralSegments(stringSegments)
     val sanitizedLiteral = validSegmnts.mkString("/")

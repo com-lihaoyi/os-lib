@@ -24,6 +24,7 @@ object Deps {
   val geny = ivy"com.lihaoyi::geny::1.1.1"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
   val utest = ivy"com.lihaoyi::utest::0.8.4"
+  val expecty = ivy"com.eed3si9n.expecty::expecty::0.16.0"
   def scalaReflect(scalaVersion: String) = ivy"org.scala-lang:scala-reflect:$scalaVersion"
   def scalaLibrary(version: String) = ivy"org.scala-lang:scala-library:${version}"
 }
@@ -164,6 +165,7 @@ object os extends Module {
   object jvm extends Cross[OsJvmModule](scalaVersions)
   trait OsJvmModule extends OsModule with MiMaChecks {
     object test extends ScalaTests with OsLibTestModule {
+      override def ivyDeps = T{super.ivyDeps() ++ Agg(Deps.expecty)}
 
       // we check the textual output of system commands and expect it in english
       def forkEnv = super.forkEnv() ++ Map(
