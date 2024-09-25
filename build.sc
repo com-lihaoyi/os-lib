@@ -19,7 +19,7 @@ val scalaVersions = Seq(
 ) ++ communityBuildDottyVersion
 
 object Deps {
-  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.13"
+  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.15"
   val jna = ivy"net.java.dev.jna:jna:5.15.0"
   val geny = ivy"com.lihaoyi::geny::1.1.1"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
@@ -165,7 +165,7 @@ object os extends Module {
   object jvm extends Cross[OsJvmModule](scalaVersions)
   trait OsJvmModule extends OsModule with MiMaChecks {
     object test extends ScalaTests with OsLibTestModule {
-      override def ivyDeps = T{super.ivyDeps() ++ Agg(Deps.expecty)}
+      override def ivyDeps = T { super.ivyDeps() ++ Agg(Deps.expecty) }
 
       // we check the textual output of system commands and expect it in english
       def forkEnv = super.forkEnv() ++ Map(
