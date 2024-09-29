@@ -28,14 +28,14 @@ object zip {
 
     if (Files.exists(zipFilePath) && deletePatterns.nonEmpty) {
       deleteFilesFromZip(zipFilePath, deleteRegexPatterns)
-    }
-
-    if (appendToExisting && Files.exists(zipFilePath)) {
-      appendToExistingZip(zipFilePath, pathsToBeZipped, excludeRegexPatterns, includeRegexPatterns)
     } else {
-      createNewZip(zipFilePath, pathsToBeZipped, excludeRegexPatterns, includeRegexPatterns)
-    }
+      if (appendToExisting && Files.exists(zipFilePath)) {
+        appendToExistingZip(zipFilePath, pathsToBeZipped, excludeRegexPatterns, includeRegexPatterns)
+      } else {
+        createNewZip(zipFilePath, pathsToBeZipped, excludeRegexPatterns, includeRegexPatterns)
+      }
 
+    }
     os.Path(zipFilePath)
   }
 

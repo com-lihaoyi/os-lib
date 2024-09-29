@@ -101,37 +101,37 @@ object ZipOpTests extends TestSuite {
       }
     }
 
-//    test("zipByDeletingCertainFiles") {
-//
-//      test - prep { wd =>
-//
-//        val amxFile = "File.amx"
-//        os.copy(wd / "File.txt", wd / amxFile)
-//
-//        // Zipping files and folders in a new zip file
-//        val zipFileName = "zipByDeletingCertainFiles.zip"
-//        val zipFile1: os.Path = os.zip(
-//          destination = wd / zipFileName,
-//          listOfPaths = List(
-//            wd / "File.txt",
-//            wd / amxFile,
-//            wd / "Multi Line.txt"
-//          )
-//        )
-//
-//        os.zip(
-//          destination = zipFile1,
-//          deletePatterns = List(amxFile)
-//        )
-//
-//        // Unzip file to check for contents
-//        val outputZipFilePath = os.unzip(zipFile1, destination = Some(wd / "zipByDeletingCertainFiles"))
-//        val paths = os.walk(outputZipFilePath)
-//        assert(paths.length == 2)
-//        assert(paths.contains(outputZipFilePath / "File.txt"))
-//        assert(paths.contains(outputZipFilePath / "Multi Line.txt"))
-//      }
-//    }
+    test("zipByDeletingCertainFiles") {
+
+      test - prep { wd =>
+
+        val amxFile = "File.amx"
+        os.copy(wd / "File.txt", wd / amxFile)
+
+        // Zipping files and folders in a new zip file
+        val zipFileName = "zipByDeletingCertainFiles.zip"
+        val zipFile1: os.Path = os.zip(
+          destination = wd / zipFileName,
+          listOfPaths = List(
+            wd / "File.txt",
+            wd / amxFile,
+            wd / "Multi Line.txt"
+          )
+        )
+
+        os.zip(
+          destination = zipFile1,
+          deletePatterns = List(amxFile)
+        )
+
+        // Unzip file to check for contents
+        val outputZipFilePath = os.unzip(zipFile1, destination = Some(wd / "zipByDeletingCertainFiles"))
+        val paths = os.walk(outputZipFilePath)
+        assert(paths.length == 2)
+        assert(paths.contains(outputZipFilePath / "File.txt"))
+        assert(paths.contains(outputZipFilePath / "Multi Line.txt"))
+      }
+    }
   }
 
 }
