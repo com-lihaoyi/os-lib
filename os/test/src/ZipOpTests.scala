@@ -13,8 +13,9 @@ object ZipOpTests extends TestSuite {
 
       test - prep { wd =>
         // Zipping files and folders in a new zip file
+        val zipFileName = "zip-file-test.zip"
         val zipFile1: os.Path = os.zipIn(
-          destination = wd / "zip-file-test.zip",
+          destination = wd / zipFileName,
           listOfPaths = List(
             wd / "File.txt",
             wd / "folder1"
@@ -23,7 +24,7 @@ object ZipOpTests extends TestSuite {
 
         // Adding files and folders to an existing zip file
         val zipFile2: os.Path = os.zipIn(
-          destination = wd / "zip-file-test.zip",
+          destination = wd / zipFileName,
           listOfPaths = List(
             wd / "folder2",
             wd / "Multi Line.txt"
@@ -31,8 +32,18 @@ object ZipOpTests extends TestSuite {
           options = List("-u")
         )
 
-        // Unzip
-        print("Test Done")
+        // Unzip file to a destination folder
+        val unzippedFolder = os.unzip(
+          source = wd / zipFileName,
+          destination = Some(wd / "unzipped folder")
+        )
+
+        val paths = os.walk(unzippedFolder)
+        assert(paths.length == 9)
+        assert(paths.contains(unzippedFolder / "File.txt"))
+        assert(paths.contains(unzippedFolder / "Multi Line.txt"))
+        assert(paths.contains(unzippedFolder / "folder1" / "one.txt"))
+        assert(paths.contains(unzippedFolder / "folder2" / "nestedB" / "b.txt"))
       }
     }
   }
