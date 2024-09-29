@@ -1,9 +1,8 @@
 package os
 
-import java.io.{FileInputStream, FileOutputStream}
-import java.net.URI
+import java.io.{FileInputStream, FileOutputStream, ByteArrayInputStream, ByteArrayOutputStream}
 import java.nio.file.{Files, Path, StandardCopyOption}
-import java.util.zip.{ZipEntry, ZipOutputStream}
+import java.util.zip.{ZipEntry, ZipFile, ZipOutputStream}
 
 object zipIn {
 
@@ -17,25 +16,71 @@ object zipIn {
 
     val zipFilePath: java.nio.file.Path = resolveDestinationZipFile(javaNIODestination)
 
-    // Create a zip output stream
-    val zipOut = new ZipOutputStream(new FileOutputStream(zipFilePath.toFile))
+    // Determine if we need to append to the existing zip file
+    if (options.contains("-u") && Files.exists(zipFilePath)) {
+      // Append mode: Read existing entries, then add new entries
+      appendToExistingZip(zipFilePath, pathsToBeZipped)
+    } else {
+      // Create a new zip file
+      createNewZip(zipFilePath, pathsToBeZipped)
+    }
 
+    os.Path(zipFilePath) // Return the path to the created or updated zip file
+  }
+
+  private def createNewZip(zipFilePath: java.nio.file.Path, pathsToBeZipped: List[java.nio.file.Path]): Unit = {
+    val zipOut = new ZipOutputStream(new FileOutputStream(zipFilePath.toFile))
     try {
       pathsToBeZipped.foreach { path =>
         val file = path.toFile
         if (file.isDirectory) {
-          // Zip the folder recursively
           zipFolder(file, file.getName, zipOut)
         } else {
-          // Zip the individual file
           zipFile(file, zipOut)
         }
       }
     } finally {
       zipOut.close()
     }
+  }
 
-    os.Path(zipFilePath) // Return the path to the created zip file
+  private def appendToExistingZip(zipFilePath: java.nio.file.Path, pathsToBeZipped: List[java.nio.file.Path]): Unit = {
+    // Temporary storage for the original zip entries
+    val tempOut = new ByteArrayOutputStream()
+    val zipOut = new ZipOutputStream(tempOut)
+
+    val existingZip = new ZipFile(zipFilePath.toFile)
+
+    // Copy existing entries
+    existingZip.entries().asIterator().forEachRemaining { entry =>
+      val inputStream = existingZip.getInputStream(entry)
+      zipOut.putNextEntry(new ZipEntry(entry.getName))
+
+      val buffer = new Array[Byte](1024)
+      var length = inputStream.read(buffer)
+      while (length > 0) {
+        zipOut.write(buffer, 0, length)
+        length = inputStream.read(buffer)
+      }
+      inputStream.close()
+      zipOut.closeEntry()
+    }
+
+    // Append new files and folders
+    pathsToBeZipped.foreach { path =>
+      val file = path.toFile
+      if (file.isDirectory) {
+        zipFolder(file, file.getName, zipOut)
+      } else {
+        zipFile(file, zipOut)
+      }
+    }
+
+    zipOut.close()
+
+    // Write the updated zip content back to the original zip file
+    val newZipContent = tempOut.toByteArray
+    Files.write(zipFilePath, newZipContent)
   }
 
   private def zipFile(file: java.io.File, zipOut: ZipOutputStream): Unit = {
@@ -43,7 +88,6 @@ object zipIn {
     val zipEntry = new ZipEntry(file.getName)
     zipOut.putNextEntry(zipEntry)
 
-    // Define a 1KB buffer for reading file content
     val buffer = new Array[Byte](1024)
     var length = fis.read(buffer)
     while (length >= 0) {
@@ -59,15 +103,12 @@ object zipIn {
     if (files != null) {
       files.foreach { file =>
         if (file.isDirectory) {
-          // Recursively zip subdirectory
           zipFolder(file, parentFolderName + "/" + file.getName, zipOut)
         } else {
-          // Add the file with its relative path
           val fis = new FileInputStream(file)
           val zipEntry = new ZipEntry(parentFolderName + "/" + file.getName)
           zipOut.putNextEntry(zipEntry)
 
-          // Write file content to zip
           val buffer = new Array[Byte](1024)
           var length = fis.read(buffer)
           while (length >= 0) {
