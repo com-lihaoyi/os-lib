@@ -14,7 +14,7 @@ object ZipOpTests extends TestSuite {
       test - prep { wd =>
         // Zipping files and folders in a new zip file
         val zipFileName = "zip-file-test.zip"
-        val zipFile1: os.Path = os.zipIn(
+        val zipFile1: os.Path = os.zip(
           destination = wd / zipFileName,
           listOfPaths = List(
             wd / "File.txt",
@@ -23,13 +23,13 @@ object ZipOpTests extends TestSuite {
         )
 
         // Adding files and folders to an existing zip file
-        val zipFile2: os.Path = os.zipIn(
+        val zipFile2: os.Path = os.zip(
           destination = wd / zipFileName,
           listOfPaths = List(
             wd / "folder2",
             wd / "Multi Line.txt"
           ),
-          options = List("-u")
+          appendToExisting = true
         )
 
         // Unzip file to a destination folder

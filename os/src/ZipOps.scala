@@ -4,12 +4,12 @@ import java.io._
 import java.nio.file.{Files, Path, StandardCopyOption}
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
 
-object zipIn {
+object zip {
 
   def apply(
              destination: os.Path,
              listOfPaths: List[os.Path],
-             options: List[String] = List.empty
+             appendToExisting: Boolean = false
            ): os.Path = {
     val javaNIODestination: java.nio.file.Path = destination.toNIO
     val pathsToBeZipped: List[java.nio.file.Path] = listOfPaths.map(_.toNIO)
@@ -17,7 +17,7 @@ object zipIn {
     val zipFilePath: java.nio.file.Path = resolveDestinationZipFile(javaNIODestination)
 
     // Determine if we need to append to the existing zip file
-    if (options.contains("-u") && Files.exists(zipFilePath)) {
+    if (appendToExisting && Files.exists(zipFilePath)) {
       // Append mode: Read existing entries, then add new entries
       appendToExistingZip(zipFilePath, pathsToBeZipped)
     } else {
