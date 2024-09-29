@@ -9,7 +9,7 @@ object ZipOpTests extends TestSuite {
 
   def tests = Tests {
 
-    test("zipOps") {
+    test("zipAndUnzipFolder") {
 
       test - prep { wd =>
         // Zipping files and folders in a new zip file
@@ -46,6 +46,92 @@ object ZipOpTests extends TestSuite {
         assert(paths.contains(unzippedFolder / "folder2" / "nestedB" / "b.txt"))
       }
     }
+
+    test("zipByExcludingCertainFiles") {
+
+      test - prep { wd =>
+
+        val amxFile = "File.amx"
+        os.copy(wd / "File.txt", wd / amxFile)
+
+        // Zipping files and folders in a new zip file
+        val zipFileName = "zipByExcludingCertainFiles.zip"
+        val zipFile1: os.Path = os.zip(
+          destination = wd / zipFileName,
+          listOfPaths = List(
+            wd / "File.txt",
+            wd / amxFile,
+            wd / "Multi Line.txt"
+          ),
+          excludePatterns = List(".*\\.txt")
+        )
+
+        // Unzip file to check for contents
+        val outputZipFilePath = os.unzip(zipFile1, destination = Some(wd / "zipByExcludingCertainFiles"))
+        val paths = os.walk(outputZipFilePath)
+        assert(paths.length == 1)
+        assert(paths.contains(outputZipFilePath / amxFile))
+      }
+    }
+
+    test("zipByIncludingCertainFiles") {
+
+      test - prep { wd =>
+
+        val amxFile = "File.amx"
+        os.copy(wd / "File.txt", wd / amxFile)
+
+        // Zipping files and folders in a new zip file
+        val zipFileName = "zipByIncludingCertainFiles.zip"
+        val zipFile1: os.Path = os.zip(
+          destination = wd / zipFileName,
+          listOfPaths = List(
+            wd / "File.txt",
+            wd / amxFile,
+            wd / "Multi Line.txt"
+          ),
+          includePatterns = List(".*\\.amx")
+        )
+
+        // Unzip file to check for contents
+        val outputZipFilePath = os.unzip(zipFile1, destination = Some(wd / "zipByIncludingCertainFiles"))
+        val paths = os.walk(outputZipFilePath)
+        assert(paths.length == 1)
+        assert(paths.contains(outputZipFilePath / amxFile))
+      }
+    }
+
+//    test("zipByDeletingCertainFiles") {
+//
+//      test - prep { wd =>
+//
+//        val amxFile = "File.amx"
+//        os.copy(wd / "File.txt", wd / amxFile)
+//
+//        // Zipping files and folders in a new zip file
+//        val zipFileName = "zipByDeletingCertainFiles.zip"
+//        val zipFile1: os.Path = os.zip(
+//          destination = wd / zipFileName,
+//          listOfPaths = List(
+//            wd / "File.txt",
+//            wd / amxFile,
+//            wd / "Multi Line.txt"
+//          )
+//        )
+//
+//        os.zip(
+//          destination = zipFile1,
+//          deletePatterns = List(amxFile)
+//        )
+//
+//        // Unzip file to check for contents
+//        val outputZipFilePath = os.unzip(zipFile1, destination = Some(wd / "zipByDeletingCertainFiles"))
+//        val paths = os.walk(outputZipFilePath)
+//        assert(paths.length == 2)
+//        assert(paths.contains(outputZipFilePath / "File.txt"))
+//        assert(paths.contains(outputZipFilePath / "Multi Line.txt"))
+//      }
+//    }
   }
 
 }
