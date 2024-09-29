@@ -985,9 +985,9 @@ os.remove(target: Path, checkExists: Boolean = false): Boolean
 ----
 
 Remove the target file or folder. Folders need to be empty to be removed; if you
-want to remove a folder tree recursively, use <<os-remove-all>>. 
+want to remove a folder tree recursively, use <<os-remove-all>>.
 Returns `true` if the file was present before.
-It will fail with an exception when the file is missing but `checkExists` is `true`, 
+It will fail with an exception when the file is missing but `checkExists` is `true`,
 or when the directory to remove is not empty.
 
 [source,scala]
@@ -1214,6 +1214,104 @@ os.list(tempDir) ==> Nil
 os.write(tempDir / "file", "Hello")
 os.list(tempDir) ==> Seq(tempDir / "file")
 ----
+
+=== Zip & Unzip Files
+
+==== `os.zip`
+
+[source,scala]
+----
+os.zip(destination: os.Path,
+       listOfPaths: List[os.Path] = List(),
+       appendToExisting: Boolean = false,
+       excludePatterns: List[String] = List(),
+       includePatterns: List[String] = List(),
+       deletePatterns: List[String] = List()): Path
+----
+
+The zip object provides functionality to create or modify zip archives. It supports:
+
+- Zipping Files and Directories: You can zip both individual files and entire directories.
+- Appending to Existing Archives: Files can be appended to an existing zip archive.
+- Exclude Patterns (-x): You can specify files or patterns to exclude while zipping.
+- Include Patterns (-i): You can include specific files or patterns while zipping.
+- Delete Patterns (-d): You can delete specific files from an existing zip archive.
+
+===== Zipping Files and Folders
+[source,scala]
+----
+val pathsToZip = List(
+  os.Path("/path/to/file1.txt"),
+  os.Path("/path/to/folder")
+)
+os.zip(os.Path("/path/to/destination.zip"), pathsToZip)
+----
+
+This will create a new zip archive at `/path/to/destination.zip` containing `file1.txt` and everything inside folder.
+
+===== Appending to an Existing Zip File
+[source,scala]
+----
+os.zip(
+  os.Path("/path/to/existing.zip"),
+  List(os.Path("/path/to/newfile.txt")),
+  appendToExisting = true
+)
+----
+
+This will append `newfile.txt` to the existing zip file existing.zip.
+
+===== Excluding/Including Files in Zip
+
+You can specify files or folders to be excluded or included when creating the zip:
+
+
+[source,scala]
+----
+os.zip(
+  os.Path("/path/to/destination.zip"),
+  List(os.Path("/path/to/folder")),
+  excludePatterns = List(".*\\.log", "temp/.*"),  // Exclude log files and "temp" folder
+  includePatterns = List(".*\\.txt")              // Include only .txt files
+)
+
+----
+
+This will include only `.txt` files, excluding any `.log` files and anything inside the `temp` folder.
+
+
+==== `os.unzip`
+
+===== Unzipping Files
+[source,scala]
+----
+os.unzip(os.Path("/path/to/archive.zip"), Some(os.Path("/path/to/destination")))
+----
+
+This extracts the contents of `archive.zip` to the specified destination.
+
+
+===== Excluding Files While Unzipping
+You can exclude certain files from being extracted using patterns:
+
+[source,scala]
+----
+os.unzip(
+  os.Path("/path/to/archive.zip"),
+  Some(os.Path("/path/to/destination")),
+  excludePatterns = List(".*\\.log", "temp/.*")  // Exclude log files and the "temp" folder
+)
+----
+
+===== Listing Archive Contents
+You can list the contents of the zip file without extracting them:
+
+[source,scala]
+----
+os.unzip(os.Path("/path/to/archive.zip"), listOnly = true)
+----
+
+This will print all the file paths contained in the zip archive.
 
 === Filesystem Metadata
 
@@ -1708,13 +1806,13 @@ val yes10 = os.proc("yes")
 ----
 
 This feature is implemented inside the library and will terminate any process reading the
-stdin of other process in pipeline on every IO error. This behavior can be disabled via the 
-`handleBrokenPipe` flag on `call` and `spawn` methods. Note that Windows does not support 
-broken pipe behaviour, so a command like`yes` would run forever. `handleBrokenPipe` is set 
+stdin of other process in pipeline on every IO error. This behavior can be disabled via the
+`handleBrokenPipe` flag on `call` and `spawn` methods. Note that Windows does not support
+broken pipe behaviour, so a command like`yes` would run forever. `handleBrokenPipe` is set
 to false by default on Windows.
 
 Both `call` and `spawn` correspond in their behavior to their counterparts in the `os.proc`,
-but `spawn` returns the `os.ProcessPipeline` instance instead. It offers the same 
+but `spawn` returns the `os.ProcessPipeline` instance instead. It offers the same
 `API` as `SubProcess`, but will operate on the set of processes instead of a single one.
 
 `Pipefail` is enabled by default, so if any of the processes in the pipeline fails, the whole
@@ -2105,8 +2203,8 @@ explicitly choose to convert relative paths to absolute using some base.
 
 ==== Roots and filesystems
 
-If you are using a system that supports different roots of paths, e.g. Windows, 
-you can use the argument of `os.root` to specify which root you want to use. 
+If you are using a system that supports different roots of paths, e.g. Windows,
+you can use the argument of `os.root` to specify which root you want to use.
 If not specified, the default root will be used (usually, C on Windows, / on Unix).
 
 [source,scala]
@@ -2128,11 +2226,11 @@ val fs = FileSystems.newFileSystem(uri, env);
 val path = os.root("/", fs) / "dir"
 ----
 
-Note that the jar file system operations suchs as writing to a file are supported 
-only on JVM 11+. Depending on the filesystem, some operations may not be supported - 
-for example, running an `os.proc` with pwd in a jar file won't work. You may also 
-meet limitations imposed by the implementations - in jar file system, the files are 
-created only after the file system is closed. Until that, the ones created in your 
+Note that the jar file system operations suchs as writing to a file are supported
+only on JVM 11+. Depending on the filesystem, some operations may not be supported -
+for example, running an `os.proc` with pwd in a jar file won't work. You may also
+meet limitations imposed by the implementations - in jar file system, the files are
+created only after the file system is closed. Until that, the ones created in your
 program are kept in memory.
 
 ==== `os.ResourcePath`
@@ -2199,9 +2297,9 @@ By default, the following types of values can be used where-ever ``os.Source``s
 are required:
 
 * Any `geny.Writable` data type:
- ** `Array[Byte]`
- ** `java.lang.String` (these are treated as UTF-8)
- ** `java.io.InputStream`
+** `Array[Byte]`
+** `java.lang.String` (these are treated as UTF-8)
+** `java.io.InputStream`
 * `java.nio.channels.SeekableByteChannel`
 * Any `TraversableOnce[T]` of the above: e.g. `Seq[String]`,
 `List[Array[Byte]]`, etc.
@@ -2266,9 +2364,9 @@ string, int or set representations of the `os.PermSet` via:
 === 0.10.7
 
 * Allow multi-segment paths segments for literals https://github.com/com-lihaoyi/os-lib/pull/297: You
-  can now write `os.pwd / "foo/bar/qux"` rather than `os.pwd / "foo" / "bar" / "qux"`. Note that this
-  is only allowed for string literals, and non-literal path segments still need to be wrapped e.g.
-  `def myString = "foo/bar/qux"; os.pwd / os.SubPath(myString)` for security and safety purposes
+can now write `os.pwd / "foo/bar/qux"` rather than `os.pwd / "foo" / "bar" / "qux"`. Note that this
+is only allowed for string literals, and non-literal path segments still need to be wrapped e.g.
+`def myString = "foo/bar/qux"; os.pwd / os.SubPath(myString)` for security and safety purposes
 
 [#0-10-6]
 === 0.10.6
@@ -2279,23 +2377,23 @@ string, int or set representations of the `os.PermSet` via:
 === 0.10.5
 
 * Introduce `os.SubProcess.env` `DynamicVariable` to override default `env`
-  (https://github.com/com-lihaoyi/os-lib/pull/295)
+(https://github.com/com-lihaoyi/os-lib/pull/295)
 
 
 [#0-10-4]
 === 0.10.4
 
 * Add a lightweight syntax for `os.call()` and `os.spawn` APIs
-  (https://github.com/com-lihaoyi/os-lib/pull/292)
+(https://github.com/com-lihaoyi/os-lib/pull/292)
 * Add a configurable grace period when subprocesses timeout and have to
-  be terminated to give a chance for shutdown logic to run
-  (https://github.com/com-lihaoyi/os-lib/pull/286)
+be terminated to give a chance for shutdown logic to run
+(https://github.com/com-lihaoyi/os-lib/pull/286)
 
 [#0-10-3]
 === 0.10.3
 
 * `os.Inherit` now can be redirected on a threadlocal basis via `os.Inherit.in`, `.out`, or `.err`.
-  `os.InheritRaw` is available if you do not want the redirects to take effect
+`os.InheritRaw` is available if you do not want the redirects to take effect
 
 
 [#0-10-2]
