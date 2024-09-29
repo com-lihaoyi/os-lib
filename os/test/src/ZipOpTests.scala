@@ -3,6 +3,7 @@ package test.os
 import test.os.TestUtil.prep
 import utest._
 
+import java.io.{ByteArrayOutputStream, PrintStream, PrintWriter, StringWriter}
 import scala.collection.immutable.Seq
 
 object ZipOpTests extends TestSuite {
@@ -132,6 +133,67 @@ object ZipOpTests extends TestSuite {
         assert(paths.contains(outputZipFilePath / "Multi Line.txt"))
       }
     }
-  }
 
+    test("listContentsOfZipFileWithoutExtracting") {
+
+      test - prep { wd =>
+        // Zipping files and folders in a new zip file
+        val zipFileName = "listContentsOfZipFileWithoutExtracting.zip"
+        val zipFile: os.Path = os.zip(
+          destination = wd / zipFileName,
+          listOfPaths = List(
+            wd / "File.txt",
+            wd / "folder1"
+          )
+        )
+        val originalOut = System.out
+        val outputStream = new ByteArrayOutputStream()
+        System.setOut(new PrintStream(outputStream))
+
+        // Unzip file to a destination folder
+        val unzippedFolder = os.unzip(
+          source = wd / zipFileName,
+          listOnly = true
+        )
+
+        // Then
+        val capturedOutput: Array[String] = outputStream.toString.split("\n")
+        assert(capturedOutput(0) == "File.txt")
+        assert(capturedOutput(1) == "folder1/one.txt")
+
+        // Restore the original output stream
+        System.setOut(originalOut)
+      }
+    }
+
+    test("unzipAllExceptExcludingCertainFiles") {
+
+      test - prep { wd =>
+        val amxFile = "File.amx"
+        os.copy(wd / "File.txt", wd / amxFile)
+
+        val zipFileName = "unzipAllExceptExcludingCertainFiles.zip"
+        val zipFile: os.Path = os.zip(
+          destination = wd / zipFileName,
+          listOfPaths = List(
+            wd / "File.txt",
+            wd / amxFile,
+            wd / "folder1"
+          )
+        )
+
+        // Unzip file to a destination folder
+        val unzippedFolder = os.unzip(
+          source = wd / zipFileName,
+          destination = Some(wd / "unzipAllExceptExcludingCertainFiles"),
+          excludePatterns = List(amxFile)
+        )
+
+        val paths = os.walk(unzippedFolder)
+        assert(paths.length == 3)
+        assert(paths.contains(unzippedFolder / "File.txt"))
+        assert(paths.contains(unzippedFolder / "folder1" / "one.txt"))
+      }
+    }
+  }
 }

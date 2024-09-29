@@ -208,12 +208,24 @@ object unzip {
 
   def apply(
              source: os.Path,
-             destination: Option[os.Path] = None
+             destination: Option[os.Path] = None,
+             excludePatterns: List[String] = List(), // Patterns to exclude
+             listOnly: Boolean = false // List contents without extracting
            ): os.Path = {
+
     val sourcePath: java.nio.file.Path = source.toNIO
 
     // Ensure the source file is a zip file
     validateZipFile(sourcePath)
+
+    // Convert the exclusion patterns to regex
+    val excludeRegexPatterns: List[Regex] = excludePatterns.map(_.r)
+
+    // If listOnly is true, list the contents and return the source path
+    if (listOnly) {
+      listContents(sourcePath, excludeRegexPatterns)
+      return source
+    }
 
     // Determine the destination directory
     val destPath = destination match {
@@ -222,7 +234,7 @@ object unzip {
     }
 
     // Perform the unzip operation
-    unzipFile(sourcePath, destPath)
+    unzipFile(sourcePath, destPath, excludeRegexPatterns)
     os.Path(destPath)
   }
 
@@ -246,25 +258,42 @@ object unzip {
   }
 
   /** Unzips the file to the destination directory */
-  private def unzipFile(sourcePath: java.nio.file.Path, destPath: java.nio.file.Path): Unit = {
+  private def unzipFile(
+                         sourcePath: java.nio.file.Path,
+                         destPath: java.nio.file.Path,
+                         excludePatterns: List[Regex]
+                       ): Unit = {
+
     val zipInputStream = new ZipInputStream(new FileInputStream(sourcePath.toFile))
 
     try {
       var zipEntry: ZipEntry = zipInputStream.getNextEntry
       while (zipEntry != null) {
-        val newFile = createFileForEntry(destPath, zipEntry)
-        if (zipEntry.isDirectory) {
-          // Create the directory
-          Files.createDirectories(newFile.toPath)
-        } else {
-          // Extract the file
-          extractFile(zipInputStream, newFile)
+        // Skip files that match the exclusion patterns
+        if (!shouldExclude(zipEntry.getName, excludePatterns)) {
+          val newFile = createFileForEntry(destPath, zipEntry)
+          if (zipEntry.isDirectory) {
+            Files.createDirectories(newFile.toPath)
+          } else {
+            extractFile(zipInputStream, newFile)
+          }
         }
         zipEntry = zipInputStream.getNextEntry
       }
     } finally {
       zipInputStream.closeEntry()
       zipInputStream.close()
+    }
+  }
+
+  /** Lists the contents of the zip file */
+  private def listContents(sourcePath: java.nio.file.Path, excludePatterns: List[Regex]): Unit = {
+    val zipFile = new ZipFile(sourcePath.toFile)
+
+    zipFile.entries().asIterator().forEachRemaining { entry =>
+      if (!shouldExclude(entry.getName, excludePatterns)) {
+        println(entry.getName)
+      }
     }
   }
 
@@ -296,5 +325,10 @@ object unzip {
       len = zipInputStream.read(buffer)
     }
     outputStream.close()
+  }
+
+  /** Determines if a file should be excluded based on the given patterns */
+  private def shouldExclude(fileName: String, excludePatterns: List[Regex]): Boolean = {
+    excludePatterns.exists(_.findFirstIn(fileName).isDefined)
   }
 }
