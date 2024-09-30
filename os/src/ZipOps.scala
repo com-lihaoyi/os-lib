@@ -8,6 +8,17 @@ import scala.collection.JavaConverters._
 
 object zip {
 
+  /**
+   * Zips the provided list of files and directories into a single ZIP archive.
+   *
+   * @param destination      The path to the destination ZIP file.
+   * @param listOfPaths      A list of paths to files and directories to be zipped. Defaults to an empty list.
+   * @param appendToExisting Whether to append the listed paths to an existing ZIP file (if it exists). Defaults to false.
+   * @param excludePatterns  A list of regular expression patterns to exclude files from the ZIP archive. Defaults to an empty list.
+   * @param includePatterns  A list of regular expression patterns to include files in the ZIP archive. Defaults to an empty list (includes all files).
+   * @param deletePatterns   A list of regular expression patterns to delete files from an existing ZIP archive before appending new ones. Defaults to an empty list.
+   * @return The path to the created ZIP archive.
+   */
   def apply(
       destination: os.Path,
       listOfPaths: List[os.Path] = List(),
@@ -219,6 +230,17 @@ object zip {
 
 object unzip {
 
+  /**
+   * Unzips the given ZIP file to a specified destination or the same directory as the source.
+   *
+   * @param source          The path to the ZIP file to unzip.
+   * @param destination     An optional path to the destination directory for the extracted files. If not provided, the source file's parent directory will be used.
+   * @param excludePatterns A list of regular expression patterns to exclude files during extraction. Files matching any pattern will be skipped.
+   * @param listOnly        If true, lists the contents of the ZIP file without extracting them and returns the source path.
+   * @return The path to the directory containing the extracted files, or the source path if `listOnly` is true.
+   * @throws os.PathNotFoundException If the source ZIP file does not exist.
+   * @throws os.OsException           If there's an error during extraction.
+   */
   def apply(
       source: os.Path,
       destination: Option[os.Path] = None,
