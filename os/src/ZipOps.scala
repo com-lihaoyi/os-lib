@@ -4,6 +4,7 @@ import java.io._
 import java.nio.file.{Files, Path, StandardCopyOption}
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
 import scala.util.matching.Regex
+import scala.collection.JavaConverters._
 
 object zip {
 
@@ -78,7 +79,7 @@ object zip {
 
     val existingZip = new ZipFile(zipFilePath.toFile)
 
-    existingZip.entries().asIterator().forEachRemaining { entry =>
+    existingZip.entries().asScala.foreach { entry =>
       if (shouldInclude(entry.getName, excludePatterns, includePatterns)) {
         val inputStream = existingZip.getInputStream(entry)
         zipOut.putNextEntry(new ZipEntry(entry.getName))
@@ -120,7 +121,7 @@ object zip {
 
     val existingZip = new ZipFile(zipFilePath.toFile)
 
-    existingZip.entries().asIterator().forEachRemaining { entry =>
+    existingZip.entries().asScala.foreach { entry =>
       if (!deletePatterns.exists(_.findFirstIn(entry.getName).isDefined)) {
         val inputStream = existingZip.getInputStream(entry)
         zipOut.putNextEntry(new ZipEntry(entry.getName))
@@ -302,7 +303,7 @@ object unzip {
   private def listContents(sourcePath: java.nio.file.Path, excludePatterns: List[Regex]): Unit = {
     val zipFile = new ZipFile(sourcePath.toFile)
 
-    zipFile.entries().asIterator().forEachRemaining { entry =>
+    zipFile.entries().asScala.foreach { entry =>
       if (!shouldExclude(entry.getName, excludePatterns)) {
         println(entry.getName)
       }
