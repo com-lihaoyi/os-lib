@@ -8,13 +8,13 @@ import scala.util.matching.Regex
 object zip {
 
   def apply(
-             destination: os.Path,
-             listOfPaths: List[os.Path] = List(),
-             appendToExisting: Boolean = false,
-             excludePatterns: List[String] = List(), // -x option
-             includePatterns: List[String] = List(), // -i option
-             deletePatterns: List[String] = List() // -d option
-           ): os.Path = {
+      destination: os.Path,
+      listOfPaths: List[os.Path] = List(),
+      appendToExisting: Boolean = false,
+      excludePatterns: List[String] = List(), // -x option
+      includePatterns: List[String] = List(), // -i option
+      deletePatterns: List[String] = List() // -d option
+  ): os.Path = {
 
     val javaNIODestination: java.nio.file.Path = destination.toNIO
     val pathsToBeZipped: List[java.nio.file.Path] = listOfPaths.map(_.toNIO)
@@ -30,7 +30,12 @@ object zip {
       deleteFilesFromZip(zipFilePath, deleteRegexPatterns)
     } else {
       if (appendToExisting && Files.exists(zipFilePath)) {
-        appendToExistingZip(zipFilePath, pathsToBeZipped, excludeRegexPatterns, includeRegexPatterns)
+        appendToExistingZip(
+          zipFilePath,
+          pathsToBeZipped,
+          excludeRegexPatterns,
+          includeRegexPatterns
+        )
       } else {
         createNewZip(zipFilePath, pathsToBeZipped, excludeRegexPatterns, includeRegexPatterns)
       }
@@ -40,11 +45,11 @@ object zip {
   }
 
   private def createNewZip(
-                            zipFilePath: java.nio.file.Path,
-                            pathsToBeZipped: List[java.nio.file.Path],
-                            excludePatterns: List[Regex],
-                            includePatterns: List[Regex]
-                          ): Unit = {
+      zipFilePath: java.nio.file.Path,
+      pathsToBeZipped: List[java.nio.file.Path],
+      excludePatterns: List[Regex],
+      includePatterns: List[Regex]
+  ): Unit = {
     val zipOut = new ZipOutputStream(new FileOutputStream(zipFilePath.toFile))
     try {
       pathsToBeZipped.foreach { path =>
@@ -63,11 +68,11 @@ object zip {
   }
 
   private def appendToExistingZip(
-                                   zipFilePath: java.nio.file.Path,
-                                   pathsToBeZipped: List[java.nio.file.Path],
-                                   excludePatterns: List[Regex],
-                                   includePatterns: List[Regex]
-                                 ): Unit = {
+      zipFilePath: java.nio.file.Path,
+      pathsToBeZipped: List[java.nio.file.Path],
+      excludePatterns: List[Regex],
+      includePatterns: List[Regex]
+  ): Unit = {
     val tempOut = new ByteArrayOutputStream()
     val zipOut = new ZipOutputStream(tempOut)
 
@@ -107,9 +112,9 @@ object zip {
   }
 
   private def deleteFilesFromZip(
-                                  zipFilePath: java.nio.file.Path,
-                                  deletePatterns: List[Regex]
-                                ): Unit = {
+      zipFilePath: java.nio.file.Path,
+      deletePatterns: List[Regex]
+  ): Unit = {
     val tempOut = new ByteArrayOutputStream()
     val zipOut = new ZipOutputStream(tempOut)
 
@@ -138,12 +143,13 @@ object zip {
   }
 
   private def shouldInclude(
-                             fileName: String,
-                             excludePatterns: List[Regex],
-                             includePatterns: List[Regex]
-                           ): Boolean = {
+      fileName: String,
+      excludePatterns: List[Regex],
+      includePatterns: List[Regex]
+  ): Boolean = {
     val isExcluded = excludePatterns.exists(_.findFirstIn(fileName).isDefined)
-    val isIncluded = includePatterns.isEmpty || includePatterns.exists(_.findFirstIn(fileName).isDefined)
+    val isIncluded =
+      includePatterns.isEmpty || includePatterns.exists(_.findFirstIn(fileName).isDefined)
     !isExcluded && isIncluded
   }
 
@@ -163,18 +169,24 @@ object zip {
   }
 
   private def zipFolder(
-                         folder: java.io.File,
-                         parentFolderName: String,
-                         zipOut: ZipOutputStream,
-                         excludePatterns: List[Regex],
-                         includePatterns: List[Regex]
-                       ): Unit = {
+      folder: java.io.File,
+      parentFolderName: String,
+      zipOut: ZipOutputStream,
+      excludePatterns: List[Regex],
+      includePatterns: List[Regex]
+  ): Unit = {
     val files = folder.listFiles()
     if (files != null) {
       files.foreach { file =>
         if (shouldInclude(file.getName, excludePatterns, includePatterns)) {
           if (file.isDirectory) {
-            zipFolder(file, parentFolderName + "/" + file.getName, zipOut, excludePatterns, includePatterns)
+            zipFolder(
+              file,
+              parentFolderName + "/" + file.getName,
+              zipOut,
+              excludePatterns,
+              includePatterns
+            )
           } else {
             val fis = new FileInputStream(file)
             val zipEntry = new ZipEntry(parentFolderName + "/" + file.getName)
@@ -207,11 +219,11 @@ object zip {
 object unzip {
 
   def apply(
-             source: os.Path,
-             destination: Option[os.Path] = None,
-             excludePatterns: List[String] = List(), // Patterns to exclude
-             listOnly: Boolean = false // List contents without extracting
-           ): os.Path = {
+      source: os.Path,
+      destination: Option[os.Path] = None,
+      excludePatterns: List[String] = List(), // Patterns to exclude
+      listOnly: Boolean = false // List contents without extracting
+  ): os.Path = {
 
     val sourcePath: java.nio.file.Path = source.toNIO
 
@@ -259,10 +271,10 @@ object unzip {
 
   /** Unzips the file to the destination directory */
   private def unzipFile(
-                         sourcePath: java.nio.file.Path,
-                         destPath: java.nio.file.Path,
-                         excludePatterns: List[Regex]
-                       ): Unit = {
+      sourcePath: java.nio.file.Path,
+      destPath: java.nio.file.Path,
+      excludePatterns: List[Regex]
+  ): Unit = {
 
     val zipInputStream = new ZipInputStream(new FileInputStream(sourcePath.toFile))
 

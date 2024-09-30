@@ -51,7 +51,6 @@ object ZipOpTests extends TestSuite {
     test("zipByExcludingCertainFiles") {
 
       test - prep { wd =>
-
         val amxFile = "File.amx"
         os.copy(wd / "File.txt", wd / amxFile)
 
@@ -68,7 +67,8 @@ object ZipOpTests extends TestSuite {
         )
 
         // Unzip file to check for contents
-        val outputZipFilePath = os.unzip(zipFile1, destination = Some(wd / "zipByExcludingCertainFiles"))
+        val outputZipFilePath =
+          os.unzip(zipFile1, destination = Some(wd / "zipByExcludingCertainFiles"))
         val paths = os.walk(outputZipFilePath)
         assert(paths.length == 1)
         assert(paths.contains(outputZipFilePath / amxFile))
@@ -78,7 +78,6 @@ object ZipOpTests extends TestSuite {
     test("zipByIncludingCertainFiles") {
 
       test - prep { wd =>
-
         val amxFile = "File.amx"
         os.copy(wd / "File.txt", wd / amxFile)
 
@@ -95,7 +94,8 @@ object ZipOpTests extends TestSuite {
         )
 
         // Unzip file to check for contents
-        val outputZipFilePath = os.unzip(zipFile1, destination = Some(wd / "zipByIncludingCertainFiles"))
+        val outputZipFilePath =
+          os.unzip(zipFile1, destination = Some(wd / "zipByIncludingCertainFiles"))
         val paths = os.walk(outputZipFilePath)
         assert(paths.length == 1)
         assert(paths.contains(outputZipFilePath / amxFile))
@@ -105,7 +105,6 @@ object ZipOpTests extends TestSuite {
     test("zipByDeletingCertainFiles") {
 
       test - prep { wd =>
-
         val amxFile = "File.amx"
         os.copy(wd / "File.txt", wd / amxFile)
 
@@ -126,7 +125,8 @@ object ZipOpTests extends TestSuite {
         )
 
         // Unzip file to check for contents
-        val outputZipFilePath = os.unzip(zipFile1, destination = Some(wd / "zipByDeletingCertainFiles"))
+        val outputZipFilePath =
+          os.unzip(zipFile1, destination = Some(wd / "zipByDeletingCertainFiles"))
         val paths = os.walk(outputZipFilePath)
         assert(paths.length == 2)
         assert(paths.contains(outputZipFilePath / "File.txt"))
