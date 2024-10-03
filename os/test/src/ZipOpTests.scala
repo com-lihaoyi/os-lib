@@ -1,9 +1,11 @@
 package test.os
 
+import os.zip
 import test.os.TestUtil.prep
 import utest._
 
-import java.io.{ByteArrayOutputStream, PrintStream, PrintWriter, StringWriter}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, PrintStream, PrintWriter, StringWriter}
+import java.util.zip.{ZipEntry, ZipInputStream, ZipOutputStream}
 import scala.collection.immutable.Seq
 
 object ZipOpTests extends TestSuite {
@@ -192,6 +194,80 @@ object ZipOpTests extends TestSuite {
         assert(paths.length == 3)
         assert(paths.contains(unzippedFolder / "File.txt"))
         assert(paths.contains(unzippedFolder / "folder1" / "one.txt"))
+      }
+    }
+
+    test("zipStreamFunction") {
+      test - prep { wd =>
+        val streamOutput = new ByteArrayOutputStream()
+        val zipFileName = "zipStreamFunction.zip"
+
+        // Create a stream to zip a folder
+        val writable = zip.stream(
+          source = wd / "File.txt",
+          destination = Some(wd / zipFileName),
+          excludePatterns = List(),
+          includePatterns = List(),
+          deletePatterns = List()
+        )
+
+        // Write the zipped data to the stream
+        writable.writeBytesTo(streamOutput)
+
+        val unzippedFolder = os.unzip(
+          source = wd / zipFileName,
+          destination = Some(wd / "zipStreamFunction")
+        )
+        val paths = os.walk(unzippedFolder)
+        assert(paths.length == 1)
+        assert(paths.contains(unzippedFolder / "File.txt"))
+      }
+    }
+
+    test("unzipStreamFunction") {
+      test - prep { wd =>
+        // Step 1: Create an in-memory ZIP file as a stream
+        val zipStreamOutput = new ByteArrayOutputStream()
+        val zipOutputStream = new ZipOutputStream(zipStreamOutput)
+
+        // Step 2: Add some files to the ZIP
+        val file1Name = "file1.txt"
+        val file2Name = "nested/folder/file2.txt"
+
+        // Add first file
+        zipOutputStream.putNextEntry(new ZipEntry(file1Name))
+        zipOutputStream.write("Content of file1".getBytes)
+        zipOutputStream.closeEntry()
+
+        // Add second file inside a nested folder
+        zipOutputStream.putNextEntry(new ZipEntry(file2Name))
+        zipOutputStream.write("Content of file2".getBytes)
+        zipOutputStream.closeEntry()
+
+        // Close the ZIP output stream
+        zipOutputStream.close()
+
+        // Step 3: Prepare the destination folder for unzipping
+        val unzippedFolder = wd / "unzipped-stream-folder"
+        val readableZipStream = geny.Readable.ByteArrayReadable(zipStreamOutput.toByteArray)
+
+        // Unzipping the stream to the destination folder
+        os.unzip.stream(
+          source = readableZipStream,
+          destination = unzippedFolder
+        )
+
+        // Step 5: Verify the unzipped files and contents
+        val paths = os.walk(unzippedFolder)
+        assert(paths.contains(unzippedFolder / file1Name))
+        assert(paths.contains(unzippedFolder / "nested" / "folder" / "file2.txt"))
+
+        // Check the contents of the files
+        val file1Content = os.read(unzippedFolder / file1Name)
+        val file2Content = os.read(unzippedFolder / "nested" / "folder" / "file2.txt")
+
+        assert(file1Content == "Content of file1")
+        assert(file2Content == "Content of file2")
       }
     }
   }

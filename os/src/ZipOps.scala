@@ -5,6 +5,7 @@ import java.nio.file.{Files, Path, StandardCopyOption}
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
 import scala.util.matching.Regex
 import scala.collection.JavaConverters._
+import geny.{Writable, Readable}
 
 object zip {
 
@@ -226,6 +227,74 @@ object zip {
     }
     zipFilePath
   }
+
+  /**
+   * Zips a folder recursively and returns a geny.Writable for streaming the ZIP data.
+   *
+   * @param source           The path to the folder to be zipped.
+   * @param destination      The path to the destination ZIP file (optional). If not provided, a temporary ZIP file will be created.
+   * @param appendToExisting Whether to append the listed paths to an existing ZIP file (if it exists). Defaults to false.
+   * @param excludePatterns  A list of regular expression patterns to exclude files during zipping. Defaults to an empty list.
+   * @param includePatterns  A list of regular expression patterns to include files in the ZIP archive. Defaults to an empty list (includes all files).
+   * @param deletePatterns   A list of regular expression patterns to delete files from an existing ZIP archive before appending new ones. Defaults to an empty list.
+   * @return A geny.Writable object for writing the ZIP data.
+   */
+  def stream(
+      source: os.Path,
+      destination: Option[os.Path] = None,
+      appendToExisting: Boolean = false,
+      excludePatterns: List[String] = List(),
+      includePatterns: List[String] = List(),
+      deletePatterns: List[String] = List()
+  ): geny.Writable = {
+
+    val zipOut = new ByteArrayOutputStream()
+    val zipOutputStream = new ZipOutputStream(zipOut)
+
+    try {
+      val zipFilePath = destination.getOrElse {
+        val tempFile = File.createTempFile(
+          "temp-archive",
+          ".zip",
+          new File(System.getProperty("java.io.tmpdir"))
+        )
+        os.Path(tempFile)
+      }
+      val javaNIODestination: java.nio.file.Path = zipFilePath.toNIO
+      val pathsToBeZipped = List(source.toNIO)
+
+      // Convert the string patterns into regex
+      val excludeRegexPatterns: List[Regex] = excludePatterns.map(_.r)
+      val includeRegexPatterns: List[Regex] = includePatterns.map(_.r)
+      val deleteRegexPatterns: List[Regex] = deletePatterns.map(_.r)
+
+      if (Files.exists(javaNIODestination) && deletePatterns.nonEmpty) {
+        deleteFilesFromZip(javaNIODestination, deleteRegexPatterns)
+      } else {
+        if (appendToExisting && Files.exists(javaNIODestination)) {
+          appendToExistingZip(
+            javaNIODestination,
+            pathsToBeZipped,
+            excludeRegexPatterns,
+            includeRegexPatterns
+          )
+        } else {
+          createNewZip(
+            javaNIODestination,
+            pathsToBeZipped,
+            excludeRegexPatterns,
+            includeRegexPatterns
+          )
+        }
+      }
+    } finally {
+      zipOutputStream.close()
+    }
+
+    (outputStream: OutputStream) => {
+      zipOut.writeTo(outputStream)
+    }
+  }
 }
 
 object unzip {
@@ -363,7 +432,42 @@ object unzip {
   }
 
   /** Determines if a file should be excluded based on the given patterns */
-  private def shouldExclude(fileName: String, excludePatterns: List[Regex]): Boolean = {
+  def shouldExclude(fileName: String, excludePatterns: List[Regex]): Boolean = {
     excludePatterns.exists(_.findFirstIn(fileName).isDefined)
+  }
+
+  /**
+   * Unzips a ZIP data stream represented by a geny.Readable and extracts it to a destination directory.
+   *
+   * @param source          A geny.Readable object representing the ZIP data stream.
+   * @param destination     The path to the destination directory for extracted files.
+   * @param excludePatterns A list of regular expression patterns to exclude files during extraction. (Optional)
+   */
+  def stream(
+      source: geny.Readable,
+      destination: os.Path,
+      excludePatterns: List[String] = List()
+  ): Unit = {
+    source.readBytesThrough { inputStream =>
+      val zipInputStream = new ZipInputStream(inputStream)
+      try {
+        var zipEntry: ZipEntry = zipInputStream.getNextEntry
+        while (zipEntry != null) {
+          // Skip files that match the exclusion patterns
+          if (!shouldExclude(zipEntry.getName, excludePatterns.map(_.r))) {
+            val newFile = createFileForEntry(destination.toNIO, zipEntry)
+            if (zipEntry.isDirectory) {
+              Files.createDirectories(newFile.toPath)
+            } else {
+              extractFile(zipInputStream, newFile)
+            }
+          }
+          zipEntry = zipInputStream.getNextEntry
+        }
+      } finally {
+        zipInputStream.closeEntry()
+        zipInputStream.close()
+      }
+    }
   }
 }
