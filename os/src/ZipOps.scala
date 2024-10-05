@@ -1,11 +1,18 @@
 package os
 
+import geny.{Readable, Writable}
+
 import java.io._
+import java.nio.file.attribute.{
+  BasicFileAttributeView,
+  FileTime,
+  PosixFileAttributeView,
+  PosixFilePermissions
+}
 import java.nio.file.{Files, Path, StandardCopyOption}
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
-import scala.util.matching.Regex
 import scala.collection.JavaConverters._
-import geny.{Writable, Readable}
+import scala.util.matching.Regex
 
 object zip {
 
@@ -18,6 +25,8 @@ object zip {
    * @param excludePatterns  A list of regular expression patterns to exclude files from the ZIP archive. Defaults to an empty list.
    * @param includePatterns  A list of regular expression patterns to include files in the ZIP archive. Defaults to an empty list (includes all files).
    * @param deletePatterns   A list of regular expression patterns to delete files from an existing ZIP archive before appending new ones. Defaults to an empty list.
+   * @param preserveMtimes Whether to preserve modification times (mtimes) of the files.
+   * @param preservePerms  Whether to preserve file permissions (POSIX).
    * @return The path to the created ZIP archive.
    */
   def apply(
@@ -26,7 +35,9 @@ object zip {
       appendToExisting: Boolean = false,
       excludePatterns: List[String] = List(), // -x option
       includePatterns: List[String] = List(), // -i option
-      deletePatterns: List[String] = List() // -d option
+      deletePatterns: List[String] = List(), // -d option
+      preserveMtimes: Boolean = true,
+      preservePermissions: Boolean = true
   ): os.Path = {
 
     val javaNIODestination: java.nio.file.Path = destination.toNIO
@@ -47,10 +58,19 @@ object zip {
           zipFilePath,
           pathsToBeZipped,
           excludeRegexPatterns,
-          includeRegexPatterns
+          includeRegexPatterns,
+          preserveMtimes,
+          preservePermissions
         )
       } else {
-        createNewZip(zipFilePath, pathsToBeZipped, excludeRegexPatterns, includeRegexPatterns)
+        createNewZip(
+          zipFilePath,
+          pathsToBeZipped,
+          excludeRegexPatterns,
+          includeRegexPatterns,
+          preserveMtimes,
+          preservePermissions
+        )
       }
 
     }
@@ -61,7 +81,9 @@ object zip {
       zipFilePath: java.nio.file.Path,
       pathsToBeZipped: List[java.nio.file.Path],
       excludePatterns: List[Regex],
-      includePatterns: List[Regex]
+      includePatterns: List[Regex],
+      preserveMtimes: Boolean,
+      preservePerms: Boolean
   ): Unit = {
     val zipOut = new ZipOutputStream(new FileOutputStream(zipFilePath.toFile))
     try {
@@ -69,9 +91,17 @@ object zip {
         val file = path.toFile
         if (shouldInclude(file.getName, excludePatterns, includePatterns)) {
           if (file.isDirectory) {
-            zipFolder(file, file.getName, zipOut, excludePatterns, includePatterns)
+            zipFolder(
+              file,
+              file.getName,
+              zipOut,
+              excludePatterns,
+              includePatterns,
+              preserveMtimes,
+              preservePerms
+            )
           } else {
-            zipFile(file, zipOut)
+            zipFile(file, zipOut, preserveMtimes, preservePerms)
           }
         }
       }
@@ -84,7 +114,9 @@ object zip {
       zipFilePath: java.nio.file.Path,
       pathsToBeZipped: List[java.nio.file.Path],
       excludePatterns: List[Regex],
-      includePatterns: List[Regex]
+      includePatterns: List[Regex],
+      preserveMtimes: Boolean,
+      preservePerms: Boolean
   ): Unit = {
     val tempOut = new ByteArrayOutputStream()
     val zipOut = new ZipOutputStream(tempOut)
@@ -111,9 +143,17 @@ object zip {
       val file = path.toFile
       if (shouldInclude(file.getName, excludePatterns, includePatterns)) {
         if (file.isDirectory) {
-          zipFolder(file, file.getName, zipOut, excludePatterns, includePatterns)
+          zipFolder(
+            file,
+            file.getName,
+            zipOut,
+            excludePatterns,
+            includePatterns,
+            preserveMtimes,
+            preservePerms
+          )
         } else {
-          zipFile(file, zipOut)
+          zipFile(file, zipOut, preserveMtimes, preservePerms)
         }
       }
     }
@@ -166,9 +206,28 @@ object zip {
     !isExcluded && isIncluded
   }
 
-  private def zipFile(file: java.io.File, zipOut: ZipOutputStream): Unit = {
+  private def zipFile(
+      file: java.io.File,
+      zipOut: ZipOutputStream,
+      preserveMtimes: Boolean,
+      preservePerms: Boolean
+  ): Unit = {
     val fis = new FileInputStream(file)
     val zipEntry = new ZipEntry(file.getName)
+
+    // Preserve modification time if requested
+    if (preserveMtimes) {
+      zipEntry.setTime(file.lastModified())
+    }
+
+    // Set permissions if requested and supported
+    val posixView = Files.getFileAttributeView(file.toPath, classOf[PosixFileAttributeView])
+    if (preservePerms && posixView != null) {
+      val attrs = posixView.readAttributes()
+      val perms = attrs.permissions()
+      zipEntry.setComment(PosixFilePermissions.toString(perms))
+    }
+
     zipOut.putNextEntry(zipEntry)
 
     val buffer = new Array[Byte](1024)
@@ -186,7 +245,9 @@ object zip {
       parentFolderName: String,
       zipOut: ZipOutputStream,
       excludePatterns: List[Regex],
-      includePatterns: List[Regex]
+      includePatterns: List[Regex],
+      preserveMtimes: Boolean,
+      preservePerms: Boolean
   ): Unit = {
     val files = folder.listFiles()
     if (files != null) {
@@ -198,11 +259,27 @@ object zip {
               parentFolderName + "/" + file.getName,
               zipOut,
               excludePatterns,
-              includePatterns
+              includePatterns,
+              preserveMtimes,
+              preservePerms
             )
           } else {
             val fis = new FileInputStream(file)
             val zipEntry = new ZipEntry(parentFolderName + "/" + file.getName)
+
+            // Preserve modification time if requested
+            if (preserveMtimes) {
+              zipEntry.setTime(file.lastModified())
+            }
+
+            // Set permissions if requested and supported
+            val posixView = Files.getFileAttributeView(file.toPath, classOf[PosixFileAttributeView])
+            if (preservePerms && posixView != null) {
+              val attrs = posixView.readAttributes()
+              val perms = attrs.permissions()
+              zipEntry.setComment(PosixFilePermissions.toString(perms))
+            }
+
             zipOut.putNextEntry(zipEntry)
 
             val buffer = new Array[Byte](1024)
@@ -237,6 +314,8 @@ object zip {
    * @param excludePatterns  A list of regular expression patterns to exclude files during zipping. Defaults to an empty list.
    * @param includePatterns  A list of regular expression patterns to include files in the ZIP archive. Defaults to an empty list (includes all files).
    * @param deletePatterns   A list of regular expression patterns to delete files from an existing ZIP archive before appending new ones. Defaults to an empty list.
+   * @param preserveMtimes   Whether to preserve modification times (mtimes) of the files.
+   * @param preservePerms    Whether to preserve file permissions (POSIX).
    * @return A geny.Writable object for writing the ZIP data.
    */
   def stream(
@@ -245,7 +324,9 @@ object zip {
       appendToExisting: Boolean = false,
       excludePatterns: List[String] = List(),
       includePatterns: List[String] = List(),
-      deletePatterns: List[String] = List()
+      deletePatterns: List[String] = List(),
+      preserveMtimes: Boolean = false, // Preserve modification times
+      preservePerms: Boolean = false // Preserve POSIX permissions
   ): geny.Writable = {
 
     val zipOut = new ByteArrayOutputStream()
@@ -276,14 +357,18 @@ object zip {
             javaNIODestination,
             pathsToBeZipped,
             excludeRegexPatterns,
-            includeRegexPatterns
+            includeRegexPatterns,
+            preserveMtimes,
+            preservePerms
           )
         } else {
           createNewZip(
             javaNIODestination,
             pathsToBeZipped,
             excludeRegexPatterns,
-            includeRegexPatterns
+            includeRegexPatterns,
+            preserveMtimes,
+            preservePerms
           )
         }
       }
@@ -299,17 +384,6 @@ object zip {
 
 object unzip {
 
-  /**
-   * Unzips the given ZIP file to a specified destination or the same directory as the source.
-   *
-   * @param source          The path to the ZIP file to unzip.
-   * @param destination     An optional path to the destination directory for the extracted files. If not provided, the source file's parent directory will be used.
-   * @param excludePatterns A list of regular expression patterns to exclude files during extraction. Files matching any pattern will be skipped.
-   * @param listOnly        If true, lists the contents of the ZIP file without extracting them and returns the source path.
-   * @return The path to the directory containing the extracted files, or the source path if `listOnly` is true.
-   * @throws os.PathNotFoundException If the source ZIP file does not exist.
-   * @throws os.OsException           If there's an error during extraction.
-   */
   def apply(
       source: os.Path,
       destination: Option[os.Path] = None,
@@ -361,7 +435,6 @@ object unzip {
     destPath
   }
 
-  /** Unzips the file to the destination directory */
   private def unzipFile(
       sourcePath: java.nio.file.Path,
       destPath: java.nio.file.Path,

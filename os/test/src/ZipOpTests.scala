@@ -5,8 +5,13 @@ import test.os.TestUtil.prep
 import utest._
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, PrintStream, PrintWriter, StringWriter}
-import java.util.zip.{ZipEntry, ZipInputStream, ZipOutputStream}
+import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
 import scala.collection.immutable.Seq
+import java.nio.file.{Files, Paths}
+import java.nio.file.attribute.FileTime
+import java.time.{Instant, ZoneId}
+import java.time.temporal.{ChronoUnit, TemporalUnit}
+import scala.collection.JavaConverters._
 
 object ZipOpTests extends TestSuite {
 
@@ -268,6 +273,33 @@ object ZipOpTests extends TestSuite {
 
         assert(file1Content == "Content of file1")
         assert(file2Content == "Content of file2")
+      }
+    }
+
+    test("zipAndUnzipPreserveMtimes") {
+      test - prep { wd =>
+        // Create a file and set its modification time
+        val testFile = wd / "FileWithMtime.txt"
+        os.write(testFile, "Test content")
+
+        // Use basic System.currentTimeMillis() for modification time
+        val originalMtime = System.currentTimeMillis() - (1 * 60 * 1000) // 1 minute ago
+        val path = Paths.get(testFile.toString)
+        Files.setLastModifiedTime(path, FileTime.fromMillis(originalMtime))
+
+        // Zipping the file with preserveMtimes = true
+        val zipFileName = "zipWithMtimePreservation.zip"
+        val zipFile: os.Path = os.zip(
+          destination = wd / zipFileName,
+          listOfPaths = List(testFile),
+          preserveMtimes = true
+        )
+
+        val existingZipFile = new ZipFile(zipFile.toNIO.toFile)
+        val actualMTime = existingZipFile.entries().asScala.toList.head.getTime
+
+        // Compare the original and actual modification times (in minutes)
+        assert((originalMtime / (1000 * 60)) == (actualMTime / (1000 * 60)))
       }
     }
   }
