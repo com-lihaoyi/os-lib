@@ -384,6 +384,24 @@ object zip {
 
 object unzip {
 
+  /**
+   * Unzips a ZIP archive to a specified destination directory.
+   *
+   * @param source The path to the ZIP archive.
+   * @param destination (Optional) The path to the destination directory for extracted files.
+   *                    If not provided, the source directory will be used.
+   * @param excludePatterns (Optional) A list of regular expression patterns to exclude files from extraction.
+   * @param listOnly (Optional) If `true`, lists the contents of the ZIP archive without extracting them.
+   * @return The path to the destination directory where files are extracted, or the source path if `listOnly` is `true`.
+   *
+   * This function extracts the contents of the specified ZIP archive (`source`) to the given destination directory (`destination`).
+   * It allows you to control which files are extracted by providing a list of regular expression patterns (`excludePatterns`)
+   * to exclude specific files or folders. You can also use the `listOnly` flag to get a listing of the ZIP contents without actually extracting them.
+   *
+   * If no `destination` is provided, the ZIP archive will be extracted to the same directory as the source file.
+   *
+   * @throws java.io.IOException If there's an error while accessing or extracting the ZIP archive.
+   */
   def apply(
       source: os.Path,
       destination: Option[os.Path] = None,

@@ -1226,7 +1226,9 @@ os.zip(destination: os.Path,
        appendToExisting: Boolean = false,
        excludePatterns: List[String] = List(),
        includePatterns: List[String] = List(),
-       deletePatterns: List[String] = List()): Path
+       deletePatterns: List[String] = List(),
+       preserveMtimes: Boolean = true,
+       preservePermissions: Boolean = true): Path
 ----
 
 The zip object provides functionality to create or modify zip archives. It supports:
@@ -1236,6 +1238,9 @@ The zip object provides functionality to create or modify zip archives. It suppo
 - Exclude Patterns (-x): You can specify files or patterns to exclude while zipping.
 - Include Patterns (-i): You can include specific files or patterns while zipping.
 - Delete Patterns (-d): You can delete specific files from an existing zip archive.
+- PreserveMtimes: Controls whether to preserve the last modification timestamps (mtimes) of files included in the archive.
+    1. true (default): Maintains the original mtimes.
+    2. false: Sets the mtime of all files in the archive to the current time during creation.
 
 ===== Zipping Files and Folders
 [source,scala]
@@ -1279,6 +1284,18 @@ os.zip(
 
 This will include only `.txt` files, excluding any `.log` files and anything inside the `temp` folder.
 
+===== Streaming Zip Operation
+
+The `os` library offers additional method, `os.zip.stream` that allows you to work with zip data in a streaming fashion. This is useful when dealing with large archives or when you need to write the zipped data to a specific output stream.
+
+----
+os.zip.stream(
+  os.Path("/path/to/destination.zip"),
+  List(os.Path("/path/to/folder")),
+  excludePatterns = List(".*\\.log", "temp/.*"),  // Exclude log files and "temp" folder
+  includePatterns = List(".*\\.txt")              // Include only .txt files
+)
+----
 
 ==== `os.unzip`
 
@@ -1312,6 +1329,18 @@ os.unzip(os.Path("/path/to/archive.zip"), listOnly = true)
 ----
 
 This will print all the file paths contained in the zip archive.
+
+===== Streaming UnZip Operation
+
+This function takes a `geny.Readable` object representing the zip data stream and a destination directory path. It extracts the contents of the zip to the specified destination while allowing you to exclude certain files based on patterns.
+
+----
+os.unzip.stream(
+  os.Path("/path/to/destination.zip"),
+  List(os.Path("/path/to/folder")),
+  excludePatterns = List(".*\\.log", "temp/.*")  // Exclude log files and "temp" folder
+)
+----
 
 === Filesystem Metadata
 
