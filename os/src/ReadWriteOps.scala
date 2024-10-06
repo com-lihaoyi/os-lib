@@ -34,6 +34,7 @@ object write {
         else Array(PosixFilePermissions.asFileAttribute(perms.toSet()))
       java.nio.file.Files.createFile(target.toNIO, permArray: _*)
     }
+
     java.nio.file.Files.newOutputStream(
       target.toNIO,
       openOptions.toArray: _*

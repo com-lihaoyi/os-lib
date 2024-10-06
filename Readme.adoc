@@ -1226,7 +1226,9 @@ os.zip(destination: os.Path,
        appendToExisting: Boolean = false,
        excludePatterns: List[String] = List(),
        includePatterns: List[String] = List(),
-       deletePatterns: List[String] = List()): Path
+       deletePatterns: List[String] = List(),
+       preserveMtimes: Boolean = false,
+       preservePermissions: Boolean = true): os.Path
 ----
 
 The zip object provides functionality to create or modify zip archives. It supports:
@@ -1236,6 +1238,7 @@ The zip object provides functionality to create or modify zip archives. It suppo
 - Exclude Patterns (-x): You can specify files or patterns to exclude while zipping.
 - Include Patterns (-i): You can include specific files or patterns while zipping.
 - Delete Patterns (-d): You can delete specific files from an existing zip archive.
+- Configuring whether or not to preserve filesyste mtimes and permissions
 
 ===== Zipping Files and Folders
 [source,scala]
@@ -1247,7 +1250,8 @@ val pathsToZip = List(
 os.zip(os.Path("/path/to/destination.zip"), pathsToZip)
 ----
 
-This will create a new zip archive at `/path/to/destination.zip` containing `file1.txt` and everything inside folder.
+This will create a new zip archive at `/path/to/destination.zip` containing `file1.txt`
+and everything inside folder.
 
 ===== Appending to an Existing Zip File
 [source,scala]
