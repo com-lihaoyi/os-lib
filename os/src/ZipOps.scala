@@ -25,6 +25,9 @@ object zip {
   /**
    * Zips the provided list of files and directories into a single ZIP archive.
    *
+   * If `dest` already exists and is a zip, performs modifications to `dest` in place
+   * rather than creating a new zip.
+   *
    * @param dest      The path to the destination ZIP file.
    * @param sources      A list of paths to files and directories to be zipped. Defaults to an empty list.
    * @param excludePatterns  A list of regular expression patterns to exclude files from the ZIP archive. Defaults to an empty list.
@@ -40,100 +43,85 @@ object zip {
             includePatterns: Seq[Regex] = List(),
             preserveMtimes: Boolean = false,
             preservePerms: Boolean = true,
-            appendToExisting: Option[os.Path] = None,
             deletePatterns: Seq[Regex] = List()): os.Path = {
 
-    val appendToExistingSafe = appendToExisting.map{ existing =>
-      if (existing != dest) existing
-      else {
-        val tmp = os.temp()
-        os.copy.over(dest, tmp)
-        tmp
-      }
-    }
-    val f = new java.io.FileOutputStream(dest.toIO)
-    try createNewZip(
-      sources,
-      excludePatterns,
-      includePatterns,
-      deletePatterns,
-      preserveMtimes,
-      preservePerms,
-      f,
-      appendToExistingSafe
-    ) finally f.close()
+    if (os.exists(dest)){
+      val opened = open(dest)
+      try{
+        for{
+          openedPath <- os.walk(opened)
+          if anyPatternsMatch(openedPath.relativeTo(opened).toString, deletePatterns)
+        } os.remove.all(openedPath)
 
+        createNewZip0(
+          sources,
+          excludePatterns,
+          includePatterns,
+          (path, sub) => os.copy(path, opened / sub, createFolders = true)
+        )
+      }
+      finally opened.close()
+    }else {
+      val f = new java.io.FileOutputStream(dest.toIO)
+      try createNewZip(
+        sources,
+        excludePatterns,
+        includePatterns,
+        preserveMtimes,
+        preservePerms,
+        f,
+      ) finally f.close()
+    }
     dest
   }
 
-  private def createNewZip(sourcesToBeZipped: Seq[ZipSource],
+  private def createNewZip0(sources: Seq[ZipSource],
+                    excludePatterns: Seq[Regex],
+                    includePatterns: Seq[Regex],
+                    makeZipEntry0: (os.Path, os.SubPath) => Unit): Unit = {
+    sources.foreach { source =>
+
+      if (os.isDir(source.src)){
+        for (path <- os.walk(source.src)) {
+          if (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) {
+            makeZipEntry0(path, source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src))
+          }
+        }
+      }else if (shouldInclude(source.src.last, excludePatterns, includePatterns)){
+        makeZipEntry0(source.src, source.dest.getOrElse(os.sub / source.src.last))
+      }
+    }
+  }
+  private def createNewZip(sources: Seq[ZipSource],
                            excludePatterns: Seq[Regex],
                            includePatterns: Seq[Regex],
-                           deletePatterns: Seq[Regex],
                            preserveMtimes: Boolean,
                            preservePerms: Boolean,
                            out: java.io.OutputStream,
-                           appendToExisting: Option[os.Path]
   ): Unit = {
     val zipOut = new ZipOutputStream(out)
     try {
-
-      for(existing <- appendToExisting) {
-        try {
-          val readable = os.read.stream(existing)
-          for{
-            (zipEntry, zipInputStream) <- os.unzip.streamRaw(readable)
-            _ = println(zipEntry.getName)
-            if !deletePatterns.exists(_.findFirstIn(zipEntry.getName).isDefined)
-          }{
-            makeZipEntry0(
-              os.SubPath(zipEntry.getName),
-              Option.when(!zipEntry.isDirectory){ zipInputStream },
-              Option.when(preserveMtimes){zipEntry.getLastModifiedTime.toMillis},
-              Option.when(preservePerms){zipEntry.getComment},
-              zipOut
-            )
-          }
-        }
-      }
-
-      sourcesToBeZipped.foreach { source =>
-
-        if (os.isDir(source.src)){
-          for (path <- os.walk(source.src)) {
-            if (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) {
-              makeZipEntry(
-                path,
-                source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src),
-                preserveMtimes,
-                preservePerms,
-                zipOut
-              )
-            }
-          }
-        }else if (shouldInclude(source.src.last, excludePatterns, includePatterns)){
-          makeZipEntry(
-            source.src,
-            source.dest.getOrElse(os.sub / source.src.last),
-            preserveMtimes,
-            preservePerms,
-            zipOut
-          )
-        }
-      }
+      createNewZip0(
+        sources,
+        excludePatterns,
+        includePatterns,
+        (path, sub) => makeZipEntry(path, sub, preserveMtimes, preservePerms, zipOut)
+      )
     } finally {
       zipOut.close()
     }
   }
 
+  private[os] def anyPatternsMatch(fileName: String, patterns: Seq[Regex]) = {
+    patterns.exists(_.findFirstIn(fileName).isDefined)
+  }
   private[os] def shouldInclude(
       fileName: String,
       excludePatterns: Seq[Regex],
       includePatterns: Seq[Regex]
   ): Boolean = {
-    val isExcluded = excludePatterns.exists(_.findFirstIn(fileName).isDefined)
-    val isIncluded =
-      includePatterns.isEmpty || includePatterns.exists(_.findFirstIn(fileName).isDefined)
+    val isExcluded = anyPatternsMatch(fileName, excludePatterns)
+    val isIncluded = includePatterns.isEmpty || anyPatternsMatch(fileName, includePatterns)
     !isExcluded && isIncluded
   }
 
@@ -187,20 +175,16 @@ object zip {
       excludePatterns: Seq[Regex] = List(),
       includePatterns: Seq[Regex] = List(),
       preserveMtimes: Boolean = false,
-      preservePerms: Boolean = false,
-      appendToExisting: Option[os.Path] = None,
-      deletePatterns: Seq[Regex] = List(),
+      preservePerms: Boolean = false
   ): geny.Writable = {
     (outputStream: java.io.OutputStream) => {
       createNewZip(
         sources,
         excludePatterns,
         includePatterns,
-        deletePatterns,
         preserveMtimes,
         preservePerms,
-        outputStream,
-        appendToExisting
+        outputStream
       )
     }
   }

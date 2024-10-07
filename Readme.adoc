@@ -1227,7 +1227,6 @@ def apply(dest: os.Path,
           includePatterns: Seq[Regex] = List(),
           preserveMtimes: Boolean = false,
           preservePerms: Boolean = true,
-          appendToExisting: Option[os.Path] = None,
           deletePatterns: Seq[Regex] = List()): os.Path
 ----
 
@@ -1259,8 +1258,7 @@ os.zip(
   sourcePaths = Seq(
     wd / "folder2",
     wd / "Multi Line.txt"
-  ),
-  appendToExisting = Some(wd / zipFileName)
+  )
 )
 
 // Unzip file to a destination folder

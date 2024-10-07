@@ -27,8 +27,7 @@ object ZipOpTests extends TestSuite {
         sources = Seq(
           wd / "folder2",
           wd / "Multi Line.txt"
-        ),
-        appendToExisting = Some(wd / zipFileName)
+        )
       )
 
       // Unzip file to a destination folder
@@ -144,8 +143,7 @@ object ZipOpTests extends TestSuite {
 
       os.zip(
         dest = zipFile1,
-        deletePatterns = List(amxFile.r),
-        appendToExisting = Some(zipFile1)
+        deletePatterns = List(amxFile.r)
       )
 
       // Unzip file to check for contents

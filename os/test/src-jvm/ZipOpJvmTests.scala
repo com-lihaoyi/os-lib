@@ -57,6 +57,8 @@ object ZipOpJvmTests extends TestSuite {
         preserveMtimes = false
       )
 
+      // Even though the mtimes of the two included files are different, the two
+      // final zip files end up being byte-for-byte the same because the mtimes get wiped
       assert(mtime1 != mtime2)
       assert(
         java.util.Arrays.equals(
