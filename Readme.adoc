@@ -985,9 +985,9 @@ os.remove(target: Path, checkExists: Boolean = false): Boolean
 ----
 
 Remove the target file or folder. Folders need to be empty to be removed; if you
-want to remove a folder tree recursively, use <<os-remove-all>>. 
+want to remove a folder tree recursively, use <<os-remove-all>>.
 Returns `true` if the file was present before.
-It will fail with an exception when the file is missing but `checkExists` is `true`, 
+It will fail with an exception when the file is missing but `checkExists` is `true`,
 or when the directory to remove is not empty.
 
 [source,scala]
@@ -1214,6 +1214,249 @@ os.list(tempDir) ==> Nil
 os.write(tempDir / "file", "Hello")
 os.list(tempDir) ==> Seq(tempDir / "file")
 ----
+
+=== Zip & Unzip Files
+
+==== `os.zip`
+
+[source,scala]
+----
+def apply(dest: os.Path,
+          sources: Seq[ZipSource] = List(),
+          excludePatterns: Seq[Regex] = List(),
+          includePatterns: Seq[Regex] = List(),
+          preserveMtimes: Boolean = false,
+          deletePatterns: Seq[Regex] = List(),
+          compressionLevel: Int = -1 /* 0-9 */): os.Path
+----
+
+The zip object provides functionality to create or modify zip archives. It supports:
+
+- Zipping Files and Directories: You can zip both individual files and entire directories.
+- Appending to Existing Archives: Files can be appended to an existing zip archive.
+- Exclude Patterns (-x): You can specify files or patterns to exclude while zipping.
+- Include Patterns (-i): You can include specific files or patterns while zipping.
+- Delete Patterns (-d): You can delete specific files from an existing zip archive.
+- Configuring whether or not to preserve filesyste mtimes and permissions
+
+This will create a new zip archive at `dest` containing `file1.txt` and everything
+inside `sources`. If `dest` already exists as a zip, the files will be appended to the
+existing zip, and any existing zip entries matching `deletePatterns` will be removed.
+
+Note that `os.zip` doesn't support creating/unpacking symlinks or filesystem permissions
+in Zip files, because the underlying `java.util.zip.Zip*Stream` doesn't support them.
+
+===== Zipping Files and Folders
+
+The example below demonstrates the core workflows: creating a zip, appending to it, and
+unzipping it:
+
+[source,scala]
+----
+// Zipping files and folders in a new zip file
+val zipFileName = "zip-file-test.zip"
+val zipFile1: os.Path = os.zip(
+  destination = wd / zipFileName,
+  sourcePaths = Seq(
+    wd / "File.txt",
+    wd / "folder1"
+  )
+)
+
+// Adding files and folders to an existing zip file
+os.zip(
+  destination = zipFile1,
+  sourcePaths = Seq(
+    wd / "folder2",
+    wd / "Multi Line.txt"
+  )
+)
+
+// Unzip file to a destination folder
+val unzippedFolder = os.unzip(
+  source = wd / zipFileName,
+  destination = wd / "unzipped folder"
+)
+
+val paths = os.walk(unzippedFolder)
+val expected = Seq(
+  // Files get included in the zip root using their name
+  wd / "unzipped folder/File.txt",
+  wd / "unzipped folder/Multi Line.txt",
+  // Folder contents get included relative to the source root
+  wd / "unzipped folder/nestedA",
+  wd / "unzipped folder/nestedB",
+  wd / "unzipped folder/one.txt",
+  wd / "unzipped folder/nestedA/a.txt",
+  wd / "unzipped folder/nestedB/b.txt",
+)
+assert(paths.sorted == expected)
+----
+
+===== Renaming files in the zip
+
+You can also pass in a mapping to `os.zip` to specify exactly where in the zip each
+input source file or folder should go:
+
+```scala
+val zipFileName = "zip-file-test.zip"
+val zipFile1: os.Path = os.zip(
+  destination = wd / zipFileName,
+  sourcePaths = List(
+    // renaming files and folders
+    wd / "File.txt" -> os.sub / "renamed-file.txt",
+    wd / "folder1" -> os.sub / "renamed-folder"
+  )
+)
+
+val unzippedFolder = os.unzip(
+  source = zipFile1,
+  destination = wd / "unzipped folder"
+)
+
+val paths = os.walk(unzippedFolder)
+val expected = Seq(
+  wd / "unzipped folder/renamed-file.txt",
+  wd / "unzipped folder/renamed-folder",
+  wd / "unzipped folder/renamed-folder/one.txt",
+)
+assert(paths.sorted == expected)
+```
+
+===== Excluding/Including Files in Zip
+
+You can specify files or folders to be excluded or included when creating the zip:
+
+[source,scala]
+----
+os.zip(
+  os.Path("/path/to/destination.zip"),
+  List(os.Path("/path/to/folder")),
+  excludePatterns = List(".*\\.log".r, "temp/.*".r),  // Exclude log files and "temp" folder
+  includePatterns = List(".*\\.txt".r)              // Include only .txt files
+)
+
+----
+
+This will include only `.txt` files, excluding any `.log` files and anything inside
+the `temp` folder.
+
+==== `oz.zip.stream`
+
+You can use `os.zip.stream` to write the final zip to an `OutputStream` rather than a
+concrete `os.Path`. `os.zip.stream` returns a `geny.Writable`, which has a `writeBytesToStream`
+method:
+
+```scala
+val zipFileName = "zipStreamFunction.zip"
+
+val stream = os.write.outputStream(wd / "zipStreamFunction.zip")
+
+val writable = zip.stream(sources = Seq(wd / "File.txt"))
+
+writable.writeBytesTo(stream)
+stream.close()
+
+val unzippedFolder = os.unzip(
+  source = wd / zipFileName,
+  dest = wd / "zipStreamFunction"
+)
+
+val paths = os.walk(unzippedFolder)
+assert(paths == Seq(unzippedFolder / "File.txt"))
+```
+
+This can be useful for streaming the zipped data to places which are not files:
+over the network, over a pipe, etc.
+
+==== `os.unzip`
+
+===== Unzipping Files
+[source,scala]
+
+----
+os.unzip(os.Path("/path/to/archive.zip"), Some(os.Path("/path/to/destination")))
+----
+
+This extracts the contents of `archive.zip` to the specified destination.
+
+
+===== Excluding Files While Unzipping
+You can exclude certain files from being extracted using patterns:
+
+[source,scala]
+----
+os.unzip(
+  os.Path("/path/to/archive.zip"),
+  Some(os.Path("/path/to/destination")),
+  excludePatterns = List(".*\\.log".r, "temp/.*".r)  // Exclude log files and the "temp" folder
+)
+----
+
+===== `oz.unzip.list`
+You can list the contents of the zip file without extracting them:
+
+[source,scala]
+----
+os.unzip.list(os.Path("/path/to/archive.zip"))
+----
+
+This will print all the file paths contained in the zip archive.
+
+==== `oz.unzip.stream`
+
+You can unzip a zip file from any arbitrary `java.io.InputStream` containing its binary data
+using the `os.unzip.stream` method:
+
+```scala
+val readableZipStream: java.io.InputStream = ???
+
+// Unzipping the stream to the destination folder
+os.unzip.stream(
+  source = readableZipStream,
+  dest = unzippedFolder
+)
+```
+
+This can be useful if the zip file does not exist on disk, e.g. if it is received over the network
+or produced in-memory by application logic.
+
+OS-Lib also provides the `os.unzip.streamRaw` API, which is a lower level API used internally
+within `os.unzip.stream` but can also be used directly if lower-level control is necessary.
+
+==== `os.zip.open`
+
+```scala
+os.zip.open(path: Path): ZipRoot
+```
+
+`os.zip.open` allows you to treat zip files as filesystems, using normal `os.*` operations
+on them. This provides a move flexible way to manipulate the contents of the zip in a fine-grained
+manner when the normal `os.zip` or `os.unzip` operations do not suffice.
+
+```scala
+val zipFile = os.zip.open(wd / "zip-test.zip")
+try {
+  os.copy(wd / "File.txt", zipFile / "File.txt")
+  os.copy(wd / "folder1", zipFile / "folder1")
+  os.copy(wd / "folder2", zipFile / "folder2")
+}finally zipFile.close()
+
+val zipFile2 = os.zip.open(wd / "zip-test.zip")
+try{
+  os.list(zipFile2) ==> Vector(zipFile2 / "File.txt", zipFile2 / "folder1", zipFile2 / "folder2")
+  os.remove.all(zipFile2 / "folder2")
+  os.remove(zipFile2 / "File.txt")
+}finally zipFile2.close()
+
+val zipFile3 = os.zip.open(wd / "zip-test.zip")
+try os.list(zipFile3) ==> Vector(zipFile3 / "folder1")
+finally zipFile3.close()
+```
+
+`os.zip.open` returns a `ZipRoot`, which is identical to `os.Path` except it references the root
+of the zip file rather than a bare path on the filesystem. Note that you need to call `ZipRoot#close()`
+when you are done with it to avoid leaking filesystem resources.
 
 === Filesystem Metadata
 
@@ -1708,13 +1951,13 @@ val yes10 = os.proc("yes")
 ----
 
 This feature is implemented inside the library and will terminate any process reading the
-stdin of other process in pipeline on every IO error. This behavior can be disabled via the 
-`handleBrokenPipe` flag on `call` and `spawn` methods. Note that Windows does not support 
-broken pipe behaviour, so a command like`yes` would run forever. `handleBrokenPipe` is set 
+stdin of other process in pipeline on every IO error. This behavior can be disabled via the
+`handleBrokenPipe` flag on `call` and `spawn` methods. Note that Windows does not support
+broken pipe behaviour, so a command like`yes` would run forever. `handleBrokenPipe` is set
 to false by default on Windows.
 
 Both `call` and `spawn` correspond in their behavior to their counterparts in the `os.proc`,
-but `spawn` returns the `os.ProcessPipeline` instance instead. It offers the same 
+but `spawn` returns the `os.ProcessPipeline` instance instead. It offers the same
 `API` as `SubProcess`, but will operate on the set of processes instead of a single one.
 
 `Pipefail` is enabled by default, so if any of the processes in the pipeline fails, the whole
@@ -2105,14 +2348,14 @@ explicitly choose to convert relative paths to absolute using some base.
 
 ==== Roots and filesystems
 
-If you are using a system that supports different roots of paths, e.g. Windows, 
-you can use the argument of `os.root` to specify which root you want to use. 
+If you are using a system that supports different roots of paths, e.g. Windows,
+you can use the argument of `os.root` to specify which root you want to use.
 If not specified, the default root will be used (usually, C on Windows, / on Unix).
 
 [source,scala]
 ----
-val root = os.root('C:\') / "Users/me"
-assert(root == os.Path("C:\Users\me"))
+val root = os.root("C:\\") / "Users/me"
+assert(root == os.Path("C:\\Users\\me"))
 ----
 
 Additionally, custom filesystems can be specified by passing a `FileSystem` to
@@ -2128,11 +2371,11 @@ val fs = FileSystems.newFileSystem(uri, env);
 val path = os.root("/", fs) / "dir"
 ----
 
-Note that the jar file system operations suchs as writing to a file are supported 
-only on JVM 11+. Depending on the filesystem, some operations may not be supported - 
-for example, running an `os.proc` with pwd in a jar file won't work. You may also 
-meet limitations imposed by the implementations - in jar file system, the files are 
-created only after the file system is closed. Until that, the ones created in your 
+Note that the jar file system operations suchs as writing to a file are supported
+only on JVM 11+. Depending on the filesystem, some operations may not be supported -
+for example, running an `os.proc` with pwd in a jar file won't work. You may also
+meet limitations imposed by the implementations - in jar file system, the files are
+created only after the file system is closed. Until that, the ones created in your
 program are kept in memory.
 
 ==== `os.ResourcePath`
@@ -2199,9 +2442,9 @@ By default, the following types of values can be used where-ever ``os.Source``s
 are required:
 
 * Any `geny.Writable` data type:
- ** `Array[Byte]`
- ** `java.lang.String` (these are treated as UTF-8)
- ** `java.io.InputStream`
+** `Array[Byte]`
+** `java.lang.String` (these are treated as UTF-8)
+** `java.io.InputStream`
 * `java.nio.channels.SeekableByteChannel`
 * Any `TraversableOnce[T]` of the above: e.g. `Seq[String]`,
 `List[Array[Byte]]`, etc.
@@ -2266,9 +2509,9 @@ string, int or set representations of the `os.PermSet` via:
 === 0.10.7
 
 * Allow multi-segment paths segments for literals https://github.com/com-lihaoyi/os-lib/pull/297: You
-  can now write `os.pwd / "foo/bar/qux"` rather than `os.pwd / "foo" / "bar" / "qux"`. Note that this
-  is only allowed for string literals, and non-literal path segments still need to be wrapped e.g.
-  `def myString = "foo/bar/qux"; os.pwd / os.SubPath(myString)` for security and safety purposes
+can now write `os.pwd / "foo/bar/qux"` rather than `os.pwd / "foo" / "bar" / "qux"`. Note that this
+is only allowed for string literals, and non-literal path segments still need to be wrapped e.g.
+`def myString = "foo/bar/qux"; os.pwd / os.SubPath(myString)` for security and safety purposes
 
 [#0-10-6]
 === 0.10.6
@@ -2279,23 +2522,23 @@ string, int or set representations of the `os.PermSet` via:
 === 0.10.5
 
 * Introduce `os.SubProcess.env` `DynamicVariable` to override default `env`
-  (https://github.com/com-lihaoyi/os-lib/pull/295)
+(https://github.com/com-lihaoyi/os-lib/pull/295)
 
 
 [#0-10-4]
 === 0.10.4
 
 * Add a lightweight syntax for `os.call()` and `os.spawn` APIs
-  (https://github.com/com-lihaoyi/os-lib/pull/292)
+(https://github.com/com-lihaoyi/os-lib/pull/292)
 * Add a configurable grace period when subprocesses timeout and have to
-  be terminated to give a chance for shutdown logic to run
-  (https://github.com/com-lihaoyi/os-lib/pull/286)
+be terminated to give a chance for shutdown logic to run
+(https://github.com/com-lihaoyi/os-lib/pull/286)
 
 [#0-10-3]
 === 0.10.3
 
 * `os.Inherit` now can be redirected on a threadlocal basis via `os.Inherit.in`, `.out`, or `.err`.
-  `os.InheritRaw` is available if you do not want the redirects to take effect
+`os.InheritRaw` is available if you do not want the redirects to take effect
 
 
 [#0-10-2]
