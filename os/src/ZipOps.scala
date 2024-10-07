@@ -34,6 +34,7 @@ object zip {
    * @param preserveMtimes Whether to preserve modification times (mtimes) of the files.
    * @param preservePerms  Whether to preserve file permissions (POSIX).
    * @param deletePatterns A list of regular expression patterns to delete files from an existing ZIP archive before appending new ones.
+   * @param compressionLevel number from 0-9, where 0 is no compression and 9 is best compression. Defaults to -1 (default compression)
    * @return The path to the created ZIP archive.
    */
   def apply(
@@ -43,7 +44,8 @@ object zip {
       includePatterns: Seq[Regex] = List(),
       preserveMtimes: Boolean = false,
       preservePerms: Boolean = true,
-      deletePatterns: Seq[Regex] = List()
+      deletePatterns: Seq[Regex] = List(),
+      compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION
   ): os.Path = {
 
     if (os.exists(dest)) {
@@ -90,6 +92,7 @@ object zip {
           includePatterns,
           preserveMtimes,
           preservePerms,
+          compressionLevel,
           f
         )
       finally f.close()
@@ -121,9 +124,12 @@ object zip {
       includePatterns: Seq[Regex],
       preserveMtimes: Boolean,
       preservePerms: Boolean,
+      compressionLevel: Int,
       out: java.io.OutputStream
   ): Unit = {
     val zipOut = new ZipOutputStream(out)
+    zipOut.setLevel(compressionLevel)
+
     try {
       createNewZip0(
         sources,
@@ -204,7 +210,8 @@ object zip {
       excludePatterns: Seq[Regex] = List(),
       includePatterns: Seq[Regex] = List(),
       preserveMtimes: Boolean = false,
-      preservePerms: Boolean = false
+      preservePerms: Boolean = false,
+      compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION
   ): geny.Writable = {
     (outputStream: java.io.OutputStream) =>
       {
@@ -214,6 +221,7 @@ object zip {
           includePatterns,
           preserveMtimes,
           preservePerms,
+          compressionLevel,
           outputStream
         )
       }

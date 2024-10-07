@@ -10,6 +10,29 @@ import java.util.zip.{ZipEntry, ZipOutputStream}
 object ZipOpTests extends TestSuite {
 
   def tests = Tests {
+    test("level") - prep { wd =>
+      val zipsForLevel = for(i <- Range.inclusive(0, 9)) yield {
+        os.write.over(wd / "File.txt", Range(0, 1000).map(x => x.toString * x))
+        os.zip(
+          dest = wd / s"archive-$i.zip",
+          sources = Seq(
+            wd / "File.txt",
+            wd / "folder1"
+          ),
+          compressionLevel = i
+        )
+      }
+
+      // We can't compare every level because compression isn't fully monotonic,
+      // but we compare some arbitrary levels just to sanity check things
+
+      // Uncompressed zip is definitely bigger than first level of compression
+      assert(os.size(zipsForLevel(0)) > os.size(zipsForLevel(1)))
+      // First level of compression is bigger than middle compression
+      assert(os.size(zipsForLevel(1)) > os.size(zipsForLevel(5)))
+      // Middle compression is bigger than best compression
+      assert(os.size(zipsForLevel(5)) > os.size(zipsForLevel(9)))
+    }
     test("renaming") - prep { wd =>
       val zipFileName = "zip-file-test.zip"
       val zipFile1: os.Path = os.zip(
