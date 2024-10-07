@@ -1338,7 +1338,7 @@ os.zip(
 This will include only `.txt` files, excluding any `.log` files and anything inside
 the `temp` folder.
 
-===== `oz.zip.stream`
+==== `oz.zip.stream`
 
 You can use `os.zip.stream` to write the final zip to an `OutputStream` rather than a
 concrete `os.Path`. `os.zip.stream` returns a `geny.Writable`, which has a `writeBytesToStream`
@@ -1400,7 +1400,7 @@ os.unzip.list(os.Path("/path/to/archive.zip"))
 
 This will print all the file paths contained in the zip archive.
 
-===== `oz.unzip.stream`
+==== `oz.unzip.stream`
 
 You can unzip a zip file from any arbitrary `java.io.InputStream` containing its binary data
 using the `os.unzip.stream` method:
