@@ -16,7 +16,7 @@ object zip {
    */
   def open(path: Path): ZipRoot = {
     new ZipRoot(FileSystems.newFileSystem(
-      URI.create("jar:file:" + path.wrapped.toString.replace('\\', '/')),
+      new URI("jar", path.wrapped.toUri.toString, null),
       Map("create" -> "true").asJava
     ))
   }
