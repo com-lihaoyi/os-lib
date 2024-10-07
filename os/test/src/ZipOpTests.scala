@@ -11,7 +11,7 @@ object ZipOpTests extends TestSuite {
 
   def tests = Tests {
     test("level") - prep { wd =>
-      val zipsForLevel = for(i <- Range.inclusive(0, 9)) yield {
+      val zipsForLevel = for (i <- Range.inclusive(0, 9)) yield {
         os.write.over(wd / "File.txt", Range(0, 1000).map(x => x.toString * x))
         os.zip(
           dest = wd / s"archive-$i.zip",
