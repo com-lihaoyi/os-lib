@@ -1,12 +1,24 @@
 package os
 
 
+import java.net.URI
+import java.nio.file.{FileSystem, FileSystems}
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
 import scala.collection.JavaConverters._
 import scala.util.matching.Regex
 
 object zip {
+  class ZipRoot(fs: FileSystem) extends Path(fs.getRootDirectories.iterator().next()) with AutoCloseable{
+    def close(): Unit = fs.close()
+  }
+
+  def open(path: Path): ZipRoot = {
+    new ZipRoot(FileSystems.newFileSystem(
+      URI.create("jar:file:" + path.wrapped.toString),
+      Map("create" -> "true").asJava
+    ))
+  }
 
   /**
    * Zips the provided list of files and directories into a single ZIP archive.

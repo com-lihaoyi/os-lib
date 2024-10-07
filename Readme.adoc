@@ -1283,7 +1283,6 @@ os.zip(
 
 This will include only `.txt` files, excluding any `.log` files and anything inside the `temp` folder.
 
-
 ==== `os.unzip`
 
 ===== Unzipping Files
@@ -1312,10 +1311,44 @@ You can list the contents of the zip file without extracting them:
 
 [source,scala]
 ----
-os.unzip(os.Path("/path/to/archive.zip"), listOnly = true)
+os.unzip.list(os.Path("/path/to/archive.zip"))
 ----
 
 This will print all the file paths contained in the zip archive.
+
+==== `os.zip.open`
+
+```scala
+os.zip.open(path: Path): ZipRoot
+```
+
+`os.zip.open` allows you to treat zip files as filesystems, using normal `os.*` operations
+on them. This provides a move flexible way to manipulate the contents of the zip in a fine-grained
+manner when the normal `os.zip` or `os.unzip` operations do not suffice.
+
+```scala
+val zipFile = os.zip.open(wd / "zip-test.zip")
+try {
+  os.copy(wd / "File.txt", zipFile / "File.txt")
+  os.copy(wd / "folder1", zipFile / "folder1")
+  os.copy(wd / "folder2", zipFile / "folder2")
+}finally zipFile.close()
+
+val zipFile2 = os.zip.open(wd / "zip-test.zip")
+try{
+  os.list(zipFile2) ==> Vector(zipFile2 / "File.txt", zipFile2 / "folder1", zipFile2 / "folder2")
+  os.remove.all(zipFile2 / "folder2")
+  os.remove(zipFile2 / "File.txt")
+}finally zipFile2.close()
+
+val zipFile3 = os.zip.open(wd / "zip-test.zip")
+try os.list(zipFile3) ==> Vector(zipFile3 / "folder1")
+finally zipFile3.close()
+```
+
+`os.zip.open` returns a `ZipRoot`, which is identical to `os.Path` except it references the root
+of the zip file rather than a bare path on the filesystem. Note that you need to call `ZipRoot#close()`
+when you are done with it to avoid leaking filesystem resources.
 
 === Filesystem Metadata
 
@@ -2213,8 +2246,8 @@ If not specified, the default root will be used (usually, C on Windows, / on Uni
 
 [source,scala]
 ----
-val root = os.root('C:\') / "Users/me"
-assert(root == os.Path("C:\Users\me"))
+val root = os.root("C:\\") / "Users/me"
+assert(root == os.Path("C:\\Users\\me"))
 ----
 
 Additionally, custom filesystems can be specified by passing a `FileSystem` to

@@ -101,7 +101,7 @@ object ZipOpTests extends TestSuite {
       assert(paths == expected)
     }
 
-    test("listContentsOfZipFileWithoutExtracting") - prep { wd =>
+    test("list") - prep { wd =>
       // Zipping files and folders in a new zip file
       val zipFileName = "listContentsOfZipFileWithoutExtracting.zip"
       val zipFile: os.Path = os.zip(
@@ -119,7 +119,7 @@ object ZipOpTests extends TestSuite {
       assert(listedContents == expected)
     }
 
-    test("unzipAllExcludePatterns") - prep { wd =>
+    test("unzipExcludePatterns") - prep { wd =>
       val amxFile = "File.amx"
       os.copy(wd / "File.txt", wd / amxFile)
 
@@ -149,7 +149,7 @@ object ZipOpTests extends TestSuite {
       assert(paths == expected)
     }
 
-    test("zipStreamFunction") - prep { wd =>
+    test("zipStream") - prep { wd =>
       val zipFileName = "zipStreamFunction.zip"
 
       val stream = os.write.outputStream(wd / "zipStreamFunction.zip")
@@ -169,7 +169,7 @@ object ZipOpTests extends TestSuite {
       assert(paths.contains(unzippedFolder / "File.txt"))
     }
 
-    test("unzipStreamFunction") - prep { wd =>
+    test("unzipStream") - prep { wd =>
       // Step 1: Create an in-memory ZIP file as a stream
       val zipStreamOutput = new ByteArrayOutputStream()
       val zipOutputStream = new ZipOutputStream(zipStreamOutput)
@@ -212,6 +212,27 @@ object ZipOpTests extends TestSuite {
 
       assert(file1Content == "Content of file1")
       assert(file2Content == "Content of file2")
+    }
+
+    test("open") - prep { wd =>
+      val zipFile = os.zip.open(wd / "zip-test.zip")
+      try {
+        os.copy(wd / "File.txt", zipFile / "File.txt")
+        os.copy(wd / "folder1", zipFile / "folder1")
+        os.copy(wd / "folder2", zipFile / "folder2")
+      }finally zipFile.close()
+
+      val zipFile2 = os.zip.open(wd / "zip-test.zip")
+      try{
+        os.list(zipFile2) ==> Vector(zipFile2 / "File.txt", zipFile2 / "folder1", zipFile2 / "folder2")
+        os.remove.all(zipFile2 / "folder2")
+        os.remove(zipFile2 / "File.txt")
+      }finally zipFile2.close()
+
+      val zipFile3 = os.zip.open(wd / "zip-test.zip")
+      try os.list(zipFile3) ==> Vector(zipFile3 / "folder1")
+      finally zipFile3.close()
+
     }
   }
 }
