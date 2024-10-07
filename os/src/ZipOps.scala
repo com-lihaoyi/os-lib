@@ -1,7 +1,6 @@
 package os
 
 
-import java.io.InputStream
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
 import scala.collection.JavaConverters._
@@ -27,9 +26,17 @@ object zip {
              includePatterns: List[String] = List(), // -i option
              preserveMtimes: Boolean = false,
              preservePerms: Boolean = true,
-             appendToExisting: Boolean = false
+             appendToExisting: Option[os.Path] = None
   ): os.Path = {
 
+    val appendToExistingSafe = appendToExisting.map{ existing =>
+      if (existing != destination) existing
+      else {
+        val tmp = os.temp()
+        os.copy.over(destination, tmp)
+        tmp
+      }
+    }
     val f = new java.io.FileOutputStream(destination.toIO)
     try createNewZip(
       sourcePaths,
@@ -38,7 +45,7 @@ object zip {
       preserveMtimes,
       preservePerms,
       f,
-      Option.when(appendToExisting)(destination)
+      appendToExistingSafe
     ) finally f.close()
 
     destination
@@ -55,10 +62,11 @@ object zip {
   ): Unit = {
     val zipOut = new ZipOutputStream(out)
     try {
+
       for(existing <- appendToExisting) {
-        val is = os.read.inputStream(existing)
         try {
-          for(info <- os.unzip.streamRaw(is)){
+          val readable = os.read.stream(existing)
+          for(info <- os.unzip.streamRaw(readable)){
             makeZipEntry0(
               info.subpath,
               info.data,
@@ -67,14 +75,14 @@ object zip {
               zipOut
             )
           }
-        }finally is.close()
+        }
       }
 
       sourcesToBeZipped.foreach { source =>
         if (os.isDir(source)){
 
           for (path <- os.walk(source)) {
-            if (os.isFile(path) && shouldInclude(path.last, excludePatterns, includePatterns)) {
+            if (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) {
               makeZipEntry(
                 path,
                 path.subRelativeTo(source),
@@ -84,7 +92,7 @@ object zip {
               )
             }
           }
-        }else{
+        }else if (shouldInclude(source.last, excludePatterns, includePatterns)){
           makeZipEntry(
             source,
             os.sub / source.last,
@@ -260,6 +268,7 @@ object unzip {
           val zipInputStream = new ZipInputStream(inputStream)
           try {
             var zipEntry: ZipEntry = zipInputStream.getNextEntry
+            println("zipEntry " + zipEntry)
             while (lastAction == Generator.Continue && zipEntry != null) {
               // Skip files that match the exclusion patterns
               if (!shouldExclude(zipEntry.getName, excludePatterns.map(_.r))) {

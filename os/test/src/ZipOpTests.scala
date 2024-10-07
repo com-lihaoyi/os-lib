@@ -21,7 +21,6 @@ object ZipOpTests extends TestSuite {
           wd / "folder1"
         )
       )
-
       // Adding files and folders to an existing zip file
       val zipFile2: os.Path = os.zip(
         destination = wd / zipFileName,
@@ -29,7 +28,7 @@ object ZipOpTests extends TestSuite {
           wd / "folder2",
           wd / "Multi Line.txt"
         ),
-        appendToExisting = true
+        appendToExisting = Some(wd / zipFileName)
       )
 
       // Unzip file to a destination folder
@@ -39,15 +38,20 @@ object ZipOpTests extends TestSuite {
       )
 
       val paths = os.walk(unzippedFolder)
-      assert(paths.length == 9)
-      assert(paths.contains(unzippedFolder / "File.txt"))
-      assert(paths.contains(unzippedFolder / "Multi Line.txt"))
-      assert(paths.contains(unzippedFolder / "folder1" / "one.txt"))
-      assert(paths.contains(unzippedFolder / "folder2" / "nestedB" / "b.txt"))
+      val expected = Seq(
+        wd / "unzipped folder/File.txt",
+        wd / "unzipped folder/Multi Line.txt",
+        wd / "unzipped folder/nestedA",
+        wd / "unzipped folder/nestedB",
+        wd / "unzipped folder/one.txt",
+        wd / "unzipped folder/nestedA/a.txt",
+        wd / "unzipped folder/nestedB/b.txt",
+      )
+      assert(paths.sorted == expected)
     }
 
 
-    test("zipByExcludingCertainFiles") - prep { wd =>
+    test("excludePatterns") - prep { wd =>
       val amxFile = "File.amx"
       os.copy(wd / "File.txt", wd / amxFile)
 
@@ -64,14 +68,16 @@ object ZipOpTests extends TestSuite {
       )
 
       // Unzip file to check for contents
-      val outputZipFilePath =
-        os.unzip(zipFile1, destination = wd / "zipByExcludingCertainFiles")
-      val paths = os.walk(outputZipFilePath)
-      assert(paths.length == 1)
-      assert(paths.contains(outputZipFilePath / amxFile))
+      val outputZipFilePath = os.unzip(
+        zipFile1,
+        destination = wd / "zipByExcludingCertainFiles"
+      )
+      val paths = os.walk(outputZipFilePath).sorted
+      val expected = Seq(wd / "zipByExcludingCertainFiles/File.amx")
+      assert(paths == expected)
     }
 
-    test("zipByIncludingCertainFiles") - prep { wd =>
+    test("includePatterns") - prep { wd =>
       val amxFile = "File.amx"
       os.copy(wd / "File.txt", wd / amxFile)
 
@@ -91,8 +97,8 @@ object ZipOpTests extends TestSuite {
       val outputZipFilePath =
         os.unzip(zipFile1, destination = wd / "zipByIncludingCertainFiles")
       val paths = os.walk(outputZipFilePath)
-      assert(paths.length == 1)
-      assert(paths.contains(outputZipFilePath / amxFile))
+      val expected = Seq(wd / "zipByIncludingCertainFiles" / amxFile)
+      assert(paths == expected)
     }
 
     test("listContentsOfZipFileWithoutExtracting") - prep { wd =>
@@ -105,18 +111,15 @@ object ZipOpTests extends TestSuite {
           wd / "folder1"
         )
       )
-      val originalOut = System.out
-      val outputStream = new ByteArrayOutputStream()
-      System.setOut(new PrintStream(outputStream))
 
       // Unzip file to a destination folder
       val listedContents = os.unzip.list(source = wd / zipFileName).toSeq
 
-      val expected = Seq(os.sub / "File.txt", os.sub / "folder1/one.txt")
+      val expected = Seq(os.sub / "File.txt", os.sub / "one.txt")
       assert(listedContents == expected)
     }
 
-    test("unzipAllExceptExcludingCertainFiles") - prep { wd =>
+    test("unzipAllExcludePatterns") - prep { wd =>
       val amxFile = "File.amx"
       os.copy(wd / "File.txt", wd / amxFile)
 
@@ -138,9 +141,12 @@ object ZipOpTests extends TestSuite {
       )
 
       val paths = os.walk(unzippedFolder)
-      assert(paths.length == 3)
-      assert(paths.contains(unzippedFolder / "File.txt"))
-      assert(paths.contains(unzippedFolder / "folder1" / "one.txt"))
+      val expected = Seq(
+        wd / "unzipAllExceptExcludingCertainFiles/File.txt",
+        wd / "unzipAllExceptExcludingCertainFiles/one.txt"
+      )
+
+      assert(paths == expected)
     }
 
     test("zipStreamFunction") - prep { wd =>
