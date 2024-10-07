@@ -1226,7 +1226,6 @@ def apply(dest: os.Path,
           excludePatterns: Seq[Regex] = List(),
           includePatterns: Seq[Regex] = List(),
           preserveMtimes: Boolean = false,
-          preservePerms: Boolean = true,
           deletePatterns: Seq[Regex] = List(),
           compressionLevel: Int = -1 /* 0-9 */): os.Path
 ----

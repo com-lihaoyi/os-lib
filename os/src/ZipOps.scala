@@ -32,7 +32,6 @@ object zip {
    * @param excludePatterns  A list of regular expression patterns to exclude files from the ZIP archive. Defaults to an empty list.
    * @param includePatterns  A list of regular expression patterns to include files in the ZIP archive. Defaults to an empty list (includes all files).
    * @param preserveMtimes Whether to preserve modification times (mtimes) of the files.
-   * @param preservePerms  Whether to preserve file permissions (POSIX).
    * @param deletePatterns A list of regular expression patterns to delete files from an existing ZIP archive before appending new ones.
    * @param compressionLevel number from 0-9, where 0 is no compression and 9 is best compression. Defaults to -1 (default compression)
    * @return The path to the created ZIP archive.
@@ -43,7 +42,6 @@ object zip {
       excludePatterns: Seq[Regex] = List(),
       includePatterns: Seq[Regex] = List(),
       preserveMtimes: Boolean = false,
-      preservePerms: Boolean = true,
       deletePatterns: Seq[Regex] = List(),
       compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION
   ): os.Path = {
@@ -80,7 +78,6 @@ object zip {
           excludePatterns,
           includePatterns,
           preserveMtimes,
-          preservePerms,
           compressionLevel,
           f
         )
@@ -112,7 +109,6 @@ object zip {
       excludePatterns: Seq[Regex],
       includePatterns: Seq[Regex],
       preserveMtimes: Boolean,
-      preservePerms: Boolean,
       compressionLevel: Int,
       out: java.io.OutputStream
   ): Unit = {
@@ -124,7 +120,7 @@ object zip {
         sources,
         excludePatterns,
         includePatterns,
-        (path, sub) => makeZipEntry(path, sub, preserveMtimes, preservePerms, zipOut)
+        (path, sub) => makeZipEntry(path, sub, preserveMtimes, zipOut)
       )
     } finally {
       zipOut.close()
@@ -148,17 +144,13 @@ object zip {
       file: os.Path,
       sub: os.SubPath,
       preserveMtimes: Boolean,
-      preservePerms: Boolean,
       zipOut: ZipOutputStream
   ) = {
 
     val mtimeOpt = if (preserveMtimes) Some(os.mtime(file)) else None
-    val permsOpt =
-      for (perms <- PlatformShims.readPermissions(file.toNIO) if preservePerms)
-        yield PosixFilePermissions.toString(perms)
 
     val fis = if (os.isFile(file)) Some(os.read.inputStream(file)) else None
-    try makeZipEntry0(sub, fis, mtimeOpt, permsOpt, zipOut)
+    try makeZipEntry0(sub, fis, mtimeOpt, zipOut)
     finally fis.foreach(_.close())
   }
 
@@ -166,7 +158,6 @@ object zip {
       sub: os.SubPath,
       is: Option[java.io.InputStream],
       preserveMtimes: Option[Long],
-      preservePerms: Option[String],
       zipOut: ZipOutputStream
   ) = {
     val zipEntry = new ZipEntry(sub.toString)
@@ -175,8 +166,6 @@ object zip {
       case Some(mtime) => zipEntry.setTime(mtime)
       case None => zipEntry.setTime(0)
     }
-
-    for (perms <- preservePerms) zipEntry.setComment(perms)
 
     zipOut.putNextEntry(zipEntry)
     is.foreach(_.transferTo(zipOut))
@@ -191,7 +180,6 @@ object zip {
    * @param excludePatterns  A list of regular expression patterns to exclude files during zipping. Defaults to an empty list.
    * @param includePatterns  A list of regular expression patterns to include files in the ZIP archive. Defaults to an empty list (includes all files).
    * @param preserveMtimes   Whether to preserve modification times (mtimes) of the files.
-   * @param preservePerms    Whether to preserve file permissions (POSIX).
    * @return A geny.Writable object for writing the ZIP data.
    */
   def stream(
@@ -199,7 +187,6 @@ object zip {
       excludePatterns: Seq[Regex] = List(),
       includePatterns: Seq[Regex] = List(),
       preserveMtimes: Boolean = false,
-      preservePerms: Boolean = false,
       compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION
   ): geny.Writable = {
     (outputStream: java.io.OutputStream) =>
@@ -209,7 +196,6 @@ object zip {
           excludePatterns,
           includePatterns,
           preserveMtimes,
-          preservePerms,
           compressionLevel,
           outputStream
         )
