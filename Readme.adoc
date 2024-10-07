@@ -1239,7 +1239,15 @@ The zip object provides functionality to create or modify zip archives. It suppo
 - Delete Patterns (-d): You can delete specific files from an existing zip archive.
 - Configuring whether or not to preserve filesyste mtimes and permissions
 
+This will create a new zip archive at `dest` containing `file1.txt` and everything
+inside `sources`. If `dest` already exists as a zip, the files will be appended to the
+existing zip, and any existing zip entries matching `deletePatterns` will be removed.
+
 ===== Zipping Files and Folders
+
+The example below demonstrates the core workflows: creating a zip, appending to it, and
+unzipping it:
+
 [source,scala]
 ----
 // Zipping files and folders in a new zip file
@@ -1282,12 +1290,10 @@ val expected = Seq(
 assert(paths.sorted == expected)
 ----
 
-This will create a new zip archive at `/path/to/destination.zip` containing `file1.txt`
-and everything inside folder.
-
 ===== Renaming files in the zip
 
-You can also pass in a mapping to `os.zip`'s `sourcePaths`:
+You can also pass in a mapping to `os.zip` to specify exactly where in the zip each
+input source file or folder should go:
 
 ```scala
 val zipFileName = "zip-file-test.zip"
@@ -1318,7 +1324,6 @@ assert(paths.sorted == expected)
 
 You can specify files or folders to be excluded or included when creating the zip:
 
-
 [source,scala]
 ----
 os.zip(
@@ -1330,7 +1335,8 @@ os.zip(
 
 ----
 
-This will include only `.txt` files, excluding any `.log` files and anything inside the `temp` folder.
+This will include only `.txt` files, excluding any `.log` files and anything inside
+the `temp` folder.
 
 ===== Streaming Zip Creation
 
@@ -1364,6 +1370,7 @@ over the network, over a pipe, etc.
 
 ===== Unzipping Files
 [source,scala]
+
 ----
 os.unzip(os.Path("/path/to/archive.zip"), Some(os.Path("/path/to/destination")))
 ----
@@ -1410,6 +1417,9 @@ os.unzip.stream(
 
 This can be useful if the zip file does not exist on disk, e.g. if it is received over the network
 or produced in-memory by application logic.
+
+OS-Lib also provides the `os.unzip.streamRaw` API, which is a lower level API used internally
+within `os.unzip.stream` but can also be used directly if lower-level control is necessary.
 
 ==== `os.zip.open`
 

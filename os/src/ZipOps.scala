@@ -259,26 +259,13 @@ object unzip {
              excludePatterns: Seq[Regex] = List(),
              includePatterns: Seq[Regex] = List(),
   ): Unit = {
-    source.readBytesThrough { inputStream =>
-      val zipInputStream = new ZipInputStream(inputStream)
-      try {
-        var zipEntry: ZipEntry = zipInputStream.getNextEntry
-        while (zipEntry != null) {
-          // Skip files that match the exclusion patterns
-          if (zip.shouldInclude(zipEntry.getName, excludePatterns, includePatterns)) {
-            val newFile = dest / os.SubPath(zipEntry.getName)
-            if (zipEntry.isDirectory) os.makeDir.all(newFile)
-            else {
-              val outputStream = os.write.outputStream(newFile, createFolders = true)
-              zipInputStream.transferTo(outputStream)
-              outputStream.close()
-            }
-          }
-          zipEntry = zipInputStream.getNextEntry
-        }
-      } finally {
-        zipInputStream.closeEntry()
-        zipInputStream.close()
+    for((zipEntry, zipInputStream) <- streamRaw(source, excludePatterns, includePatterns)){
+      val newFile = dest / os.SubPath(zipEntry.getName)
+      if (zipEntry.isDirectory) os.makeDir.all(newFile)
+      else {
+        val outputStream = os.write.outputStream(newFile, createFolders = true)
+        zipInputStream.transferTo(outputStream)
+        outputStream.close()
       }
     }
   }
