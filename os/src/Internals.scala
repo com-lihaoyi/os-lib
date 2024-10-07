@@ -17,7 +17,7 @@ object Internals {
       r = src.read(buffer)
       if (r != -1) sink(buffer, r)
     }
-    if (close)src.close()
+    if (close) src.close()
   }
 
   def transfer(src: InputStream, dest: OutputStream) = transfer(src, dest, true)
