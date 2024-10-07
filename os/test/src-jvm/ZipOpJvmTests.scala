@@ -50,7 +50,7 @@ object ZipOpJvmTests extends TestSuite {
       )
       assert(paths.sorted == expected)
     }
-    
+
     test("zipAndUnzipPreserveMtimes") - prep { wd =>
       // Create a file and set its modification time
       val testFile = wd / "FileWithMtime.txt"
@@ -171,7 +171,6 @@ object ZipOpJvmTests extends TestSuite {
 
       assert(paths == expected)
     }
-
 
     test("open") - prep { wd =>
       val zipFile = os.zip.open(wd / "zip-test.zip")
