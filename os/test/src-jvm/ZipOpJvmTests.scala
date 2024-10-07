@@ -125,12 +125,7 @@ object ZipOpJvmTests extends TestSuite {
       // Even though the mtimes of the two included files are different, the two
       // final zip files end up being byte-for-byte the same because the mtimes get wiped
       assert(mtime1 != mtime2)
-      // This doesn't work for `exerciseAppend = true` yet, because somehow the
-      // java.nio.file.FileSystem used for appends sets the lastAccessTime, and I
-      // can't figure out how to properly zero it out (`Files.setAttribute` doesn't work)
-      if (!exerciseAppend) {
-        assert(java.util.Arrays.equals(os.read.bytes(zipFile1), os.read.bytes(zipFile2)))
-      }
+      assert(java.util.Arrays.equals(os.read.bytes(zipFile1), os.read.bytes(zipFile2)))
     }
 
     test("zipAndUnzipDontPreserveMtimes") {

@@ -1,8 +1,8 @@
 package os
 
 import java.net.URI
-import java.nio.file.{FileSystem, FileSystems}
-import java.nio.file.attribute.PosixFilePermissions
+import java.nio.file.{FileSystem, FileSystems, Files}
+import java.nio.file.attribute.{BasicFileAttributeView, FileTime, PosixFilePermissions}
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
 import scala.collection.JavaConverters._
 import scala.util.matching.Regex
@@ -64,22 +64,11 @@ object zip {
             os.copy(path, opened / sub, createFolders = true)
             if (!preserveMtimes) {
               os.mtime.set(opened / sub, 0)
-              // This doesn't seem to properly zero out the `ZipEntry`'s `getLastAccessTime`, not sure why
-              java.nio.file.Files.setAttribute(
-                path.toNIO,
-                "lastAccessTime",
-                java.nio.file.attribute.FileTime.fromMillis(0)
-              )
-              java.nio.file.Files.setAttribute(
-                path.toNIO,
-                "lastModifiedTime",
-                java.nio.file.attribute.FileTime.fromMillis(0)
-              )
-              java.nio.file.Files.setAttribute(
-                path.toNIO,
-                "creationTime",
-                java.nio.file.attribute.FileTime.fromMillis(0)
-              )
+              // This is the only way we can properly zero out filesystem metadata within the
+              // Zip file filesystem; `os.mtime.set` is not enough
+              val view =
+                Files.getFileAttributeView((opened / sub).toNIO, classOf[BasicFileAttributeView])
+              view.setTimes(FileTime.fromMillis(0), FileTime.fromMillis(0), FileTime.fromMillis(0))
             }
           }
         )
