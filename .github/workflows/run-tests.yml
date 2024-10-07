@@ -13,9 +13,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
-        java-version: [8, 17]
         include:
+          - os: ubuntu-latest
+            java-version: 17
+          - os: windows-latest
+            java-version: 11
+
+          - os: windows-latest
+            java-version: 17
+          - os: windows-latest
+            java-version: 11
+
           - os: macos-latest
             java-version: 17
           - os: macos-latest
