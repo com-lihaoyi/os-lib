@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.10.7
+:version: 0.11.0
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -2504,6 +2504,14 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+[#0-11-0]
+=== 0.11.0
+
+* Added APIs to <<Zip & Unzip Files>> via `os.zip`, `os.unzip`, `os.zip.stream`, `os.unzip.stream`,
+`os.unzip.list`, `os.unzip.streamRaw`, `os.zip.open` https://github.com/com-lihaoyi/os-lib/pull/317[#317]
+
+* Minimum officially supported Java version raised from 8 to 11
 
 [#0-10-7]
 === 0.10.7
