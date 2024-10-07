@@ -47,6 +47,7 @@ object ZipOpJvmTests extends TestSuite {
         sources = List(testFile),
         preserveMtimes = false
       )
+      Thread.sleep(1000) // Sleep a bit to make sure the mtime has time to change
       os.write.over(testFile, "Test content")
 
       val mtime2 = os.mtime(testFile)
