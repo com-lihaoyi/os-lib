@@ -168,7 +168,7 @@ object zip {
     }
 
     zipOut.putNextEntry(zipEntry)
-    is.foreach(_.transferTo(zipOut))
+    is.foreach(os.Internals.transfer(_, zipOut))
   }
 
   /**
@@ -273,7 +273,7 @@ object unzip {
       if (zipEntry.isDirectory) os.makeDir.all(newFile)
       else {
         val outputStream = os.write.outputStream(newFile, createFolders = true)
-        zipInputStream.transferTo(outputStream)
+        os.Internals.transfer(zipInputStream, outputStream)
         outputStream.close()
       }
     }
