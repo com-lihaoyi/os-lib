@@ -37,7 +37,6 @@ object ZipOpJvmTests extends TestSuite {
 
     def zipAndUnzipDontPreserveMtimes(wd: os.Path, exerciseAppend: Boolean) = {
 
-
       val testFile = wd / "FileWithMtime.txt"
       os.write.over(testFile, "Test content")
       val testFile2 = wd / "FileWithMtime2.txt"
@@ -50,7 +49,7 @@ object ZipOpJvmTests extends TestSuite {
         preserveMtimes = false
       )
 
-      if (exerciseAppend){
+      if (exerciseAppend) {
 
         os.write.over(testFile2, "Test content2")
         os.zip(
@@ -74,7 +73,7 @@ object ZipOpJvmTests extends TestSuite {
         preserveMtimes = false
       )
 
-      if (exerciseAppend){
+      if (exerciseAppend) {
         os.write.over(testFile2, "Test content2")
         os.zip(
           dest = wd / "zipWithoutMtimes2.zip",
@@ -100,4 +99,3 @@ object ZipOpJvmTests extends TestSuite {
     }
   }
 }
-

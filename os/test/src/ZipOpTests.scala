@@ -46,7 +46,7 @@ object ZipOpTests extends TestSuite {
         wd / "unzipped folder/nestedB",
         wd / "unzipped folder/one.txt",
         wd / "unzipped folder/nestedA/a.txt",
-        wd / "unzipped folder/nestedB/b.txt",
+        wd / "unzipped folder/nestedB/b.txt"
       )
       assert(paths.sorted == expected)
     }
@@ -71,7 +71,7 @@ object ZipOpTests extends TestSuite {
       val expected = Seq(
         wd / "unzipped folder/renamed-file.txt",
         wd / "unzipped folder/renamed-folder",
-        wd / "unzipped folder/renamed-folder/one.txt",
+        wd / "unzipped folder/renamed-folder/one.txt"
       )
       assert(paths.sorted == expected)
     }
@@ -179,7 +179,6 @@ object ZipOpTests extends TestSuite {
       assert(paths == Seq(unzippedFolder / "File.txt"))
     }
 
-
     test("list") - prep { wd =>
       // Zipping files and folders in a new zip file
       val zipFileName = "listContentsOfZipFileWithoutExtracting.zip"
@@ -228,7 +227,6 @@ object ZipOpTests extends TestSuite {
       assert(paths == expected)
     }
 
-
     test("unzipStream") - prep { wd =>
       // Step 1: Create an in-memory ZIP file as a stream
       val zipStreamOutput = new ByteArrayOutputStream()
@@ -253,7 +251,8 @@ object ZipOpTests extends TestSuite {
 
       // Step 3: Prepare the destination folder for unzipping
       val unzippedFolder = wd / "unzipped-stream-folder"
-      val readableZipStream: java.io.InputStream = new ByteArrayInputStream(zipStreamOutput.toByteArray)
+      val readableZipStream: java.io.InputStream =
+        new ByteArrayInputStream(zipStreamOutput.toByteArray)
 
       // Unzipping the stream to the destination folder
       os.unzip.stream(
@@ -280,14 +279,18 @@ object ZipOpTests extends TestSuite {
         os.copy(wd / "File.txt", zipFile / "File.txt")
         os.copy(wd / "folder1", zipFile / "folder1")
         os.copy(wd / "folder2", zipFile / "folder2")
-      }finally zipFile.close()
+      } finally zipFile.close()
 
       val zipFile2 = os.zip.open(wd / "zip-test.zip")
-      try{
-        os.list(zipFile2) ==> Vector(zipFile2 / "File.txt", zipFile2 / "folder1", zipFile2 / "folder2")
+      try {
+        os.list(zipFile2) ==> Vector(
+          zipFile2 / "File.txt",
+          zipFile2 / "folder1",
+          zipFile2 / "folder2"
+        )
         os.remove.all(zipFile2 / "folder2")
         os.remove(zipFile2 / "File.txt")
-      }finally zipFile2.close()
+      } finally zipFile2.close()
 
       val zipFile3 = os.zip.open(wd / "zip-test.zip")
       try os.list(zipFile3) ==> Vector(zipFile3 / "folder1")

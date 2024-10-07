@@ -1,6 +1,5 @@
 package os
 
-
 import java.net.URI
 import java.nio.file.{FileSystem, FileSystems}
 import java.nio.file.attribute.PosixFilePermissions
@@ -37,18 +36,20 @@ object zip {
    * @param deletePatterns A list of regular expression patterns to delete files from an existing ZIP archive before appending new ones.
    * @return The path to the created ZIP archive.
    */
-  def apply(dest: os.Path,
-            sources: Seq[ZipSource] = List(),
-            excludePatterns: Seq[Regex] = List(),
-            includePatterns: Seq[Regex] = List(),
-            preserveMtimes: Boolean = false,
-            preservePerms: Boolean = true,
-            deletePatterns: Seq[Regex] = List()): os.Path = {
+  def apply(
+      dest: os.Path,
+      sources: Seq[ZipSource] = List(),
+      excludePatterns: Seq[Regex] = List(),
+      includePatterns: Seq[Regex] = List(),
+      preserveMtimes: Boolean = false,
+      preservePerms: Boolean = true,
+      deletePatterns: Seq[Regex] = List()
+  ): os.Path = {
 
-    if (os.exists(dest)){
+    if (os.exists(dest)) {
       val opened = open(dest)
-      try{
-        for{
+      try {
+        for {
           openedPath <- os.walk(opened)
           if anyPatternsMatch(openedPath.relativeTo(opened).toString, deletePatterns)
         } os.remove.all(openedPath)
@@ -62,51 +63,65 @@ object zip {
             if (!preserveMtimes) {
               os.mtime.set(opened / sub, 0)
               // This doesn't seem to properly zero out the `ZipEntry`'s `getLastAccessTime`, not sure why
-              java.nio.file.Files.setAttribute(path.toNIO, "lastAccessTime", java.nio.file.attribute.FileTime.fromMillis(0))
-              java.nio.file.Files.setAttribute(path.toNIO, "lastModifiedTime", java.nio.file.attribute.FileTime.fromMillis(0))
-              java.nio.file.Files.setAttribute(path.toNIO, "creationTime", java.nio.file.attribute.FileTime.fromMillis(0))
+              java.nio.file.Files.setAttribute(
+                path.toNIO,
+                "lastAccessTime",
+                java.nio.file.attribute.FileTime.fromMillis(0)
+              )
+              java.nio.file.Files.setAttribute(
+                path.toNIO,
+                "lastModifiedTime",
+                java.nio.file.attribute.FileTime.fromMillis(0)
+              )
+              java.nio.file.Files.setAttribute(
+                path.toNIO,
+                "creationTime",
+                java.nio.file.attribute.FileTime.fromMillis(0)
+              )
             }
           }
         )
-      }
-      finally opened.close()
-    }else {
+      } finally opened.close()
+    } else {
       val f = new java.io.FileOutputStream(dest.toIO)
       try createNewZip(
-        sources,
-        excludePatterns,
-        includePatterns,
-        preserveMtimes,
-        preservePerms,
-        f,
-      ) finally f.close()
+          sources,
+          excludePatterns,
+          includePatterns,
+          preserveMtimes,
+          preservePerms,
+          f
+        )
+      finally f.close()
     }
     dest
   }
 
-  private def createNewZip0(sources: Seq[ZipSource],
-                    excludePatterns: Seq[Regex],
-                    includePatterns: Seq[Regex],
-                    makeZipEntry0: (os.Path, os.SubPath) => Unit): Unit = {
+  private def createNewZip0(
+      sources: Seq[ZipSource],
+      excludePatterns: Seq[Regex],
+      includePatterns: Seq[Regex],
+      makeZipEntry0: (os.Path, os.SubPath) => Unit
+  ): Unit = {
     sources.foreach { source =>
-
-      if (os.isDir(source.src)){
+      if (os.isDir(source.src)) {
         for (path <- os.walk(source.src)) {
           if (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) {
             makeZipEntry0(path, source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src))
           }
         }
-      }else if (shouldInclude(source.src.last, excludePatterns, includePatterns)){
+      } else if (shouldInclude(source.src.last, excludePatterns, includePatterns)) {
         makeZipEntry0(source.src, source.dest.getOrElse(os.sub / source.src.last))
       }
     }
   }
-  private def createNewZip(sources: Seq[ZipSource],
-                           excludePatterns: Seq[Regex],
-                           includePatterns: Seq[Regex],
-                           preserveMtimes: Boolean,
-                           preservePerms: Boolean,
-                           out: java.io.OutputStream,
+  private def createNewZip(
+      sources: Seq[ZipSource],
+      excludePatterns: Seq[Regex],
+      includePatterns: Seq[Regex],
+      preserveMtimes: Boolean,
+      preservePerms: Boolean,
+      out: java.io.OutputStream
   ): Unit = {
     val zipOut = new ZipOutputStream(out)
     try {
@@ -134,35 +149,39 @@ object zip {
     !isExcluded && isIncluded
   }
 
-  private def makeZipEntry(file: os.Path,
-                           sub: os.SubPath,
-                           preserveMtimes: Boolean,
-                           preservePerms: Boolean,
-                           zipOut: ZipOutputStream) = {
+  private def makeZipEntry(
+      file: os.Path,
+      sub: os.SubPath,
+      preserveMtimes: Boolean,
+      preservePerms: Boolean,
+      zipOut: ZipOutputStream
+  ) = {
 
     val mtimeOpt = if (preserveMtimes) Some(os.mtime(file)) else None
     val permsOpt =
       for (perms <- PlatformShims.readPermissions(file.toNIO) if preservePerms)
-      yield PosixFilePermissions.toString(perms)
+        yield PosixFilePermissions.toString(perms)
 
-    val fis = if(os.isFile(file)) Some(os.read.inputStream(file)) else None
+    val fis = if (os.isFile(file)) Some(os.read.inputStream(file)) else None
     try makeZipEntry0(sub, fis, mtimeOpt, permsOpt, zipOut)
     finally fis.foreach(_.close())
   }
 
-  private def makeZipEntry0(sub: os.SubPath,
-                    is: Option[java.io.InputStream],
-                    preserveMtimes: Option[Long],
-                    preservePerms: Option[String],
-                    zipOut: ZipOutputStream) = {
+  private def makeZipEntry0(
+      sub: os.SubPath,
+      is: Option[java.io.InputStream],
+      preserveMtimes: Option[Long],
+      preservePerms: Option[String],
+      zipOut: ZipOutputStream
+  ) = {
     val zipEntry = new ZipEntry(sub.toString)
 
-    preserveMtimes match{
+    preserveMtimes match {
       case Some(mtime) => zipEntry.setTime(mtime)
       case None => zipEntry.setTime(0)
     }
 
-    for(perms <- preservePerms) zipEntry.setComment(perms)
+    for (perms <- preservePerms) zipEntry.setComment(perms)
 
     zipOut.putNextEntry(zipEntry)
     is.foreach(_.transferTo(zipOut))
@@ -187,22 +206,24 @@ object zip {
       preserveMtimes: Boolean = false,
       preservePerms: Boolean = false
   ): geny.Writable = {
-    (outputStream: java.io.OutputStream) => {
-      createNewZip(
-        sources,
-        excludePatterns,
-        includePatterns,
-        preserveMtimes,
-        preservePerms,
-        outputStream
-      )
-    }
+    (outputStream: java.io.OutputStream) =>
+      {
+        createNewZip(
+          sources,
+          excludePatterns,
+          includePatterns,
+          preserveMtimes,
+          preservePerms,
+          outputStream
+        )
+      }
   }
 
   /**
    * A filesystem root representing a zip file
    */
-  class ZipRoot private[os] (fs: FileSystem) extends Path(fs.getRootDirectories.iterator().next()) with AutoCloseable{
+  class ZipRoot private[os] (fs: FileSystem) extends Path(fs.getRootDirectories.iterator().next())
+      with AutoCloseable {
     def close(): Unit = fs.close()
   }
 
@@ -210,22 +231,26 @@ object zip {
    * A file or folder you want to include in a zip file.
    */
   class ZipSource private[os] (val src: os.Path, val dest: Option[os.SubPath])
-  object ZipSource{
+  object ZipSource {
     implicit def fromPath(src: os.Path): ZipSource = new ZipSource(src, None)
-    implicit def fromPathTuple(tuple: (os.Path, os.SubPath)): ZipSource = new ZipSource(tuple._1, Some(tuple._2))
+    implicit def fromPathTuple(tuple: (os.Path, os.SubPath)): ZipSource =
+      new ZipSource(tuple._1, Some(tuple._2))
   }
 
 }
 
 object unzip {
+
   /**
    * Lists the contents of the given zip file without extracting it
    */
-  def list(source: os.Path,
-           excludePatterns: Seq[Regex] = List(),
-           includePatterns: Seq[Regex] = List()): Iterator[os.SubPath] = {
+  def list(
+      source: os.Path,
+      excludePatterns: Seq[Regex] = List(),
+      includePatterns: Seq[Regex] = List()
+  ): Iterator[os.SubPath] = {
     val zipFile = new ZipFile(source.toIO)
-    for{
+    for {
       entry <- zipFile.entries().asScala
       if zip.shouldInclude(entry.getName, excludePatterns, includePatterns)
     } yield os.SubPath(entry.getName)
@@ -238,10 +263,11 @@ object unzip {
    * @param dest     The path to the destination directory for extracted files.
    * @param excludePatterns A list of regular expression patterns to exclude files during extraction. (Optional)
    */
-  def apply(source: os.Path,
-            dest: os.Path,
-            excludePatterns: Seq[Regex] = List(),
-            includePatterns: Seq[Regex] = List(),
+  def apply(
+      source: os.Path,
+      dest: os.Path,
+      excludePatterns: Seq[Regex] = List(),
+      includePatterns: Seq[Regex] = List()
   ): os.Path = {
     stream(os.read.stream(source), dest, excludePatterns, includePatterns)
     dest
@@ -254,12 +280,13 @@ object unzip {
    * @param dest     The path to the destination directory for extracted files.
    * @param excludePatterns A list of regular expression patterns to exclude files during extraction. (Optional)
    */
-  def stream(source: geny.Readable,
-             dest: os.Path,
-             excludePatterns: Seq[Regex] = List(),
-             includePatterns: Seq[Regex] = List(),
+  def stream(
+      source: geny.Readable,
+      dest: os.Path,
+      excludePatterns: Seq[Regex] = List(),
+      includePatterns: Seq[Regex] = List()
   ): Unit = {
-    for((zipEntry, zipInputStream) <- streamRaw(source, excludePatterns, includePatterns)){
+    for ((zipEntry, zipInputStream) <- streamRaw(source, excludePatterns, includePatterns)) {
       val newFile = dest / os.SubPath(zipEntry.getName)
       if (zipEntry.isDirectory) os.makeDir.all(newFile)
       else {
@@ -275,11 +302,14 @@ object unzip {
    * providing the bytes of the zip file, and returns a `geny.Generator` containing `ZipEntry`s
    * and the underlying `ZipInputStream` representing the entries in the zip file.
    */
-  def streamRaw(source: geny.Readable,
-                excludePatterns: Seq[Regex] = List(),
-                includePatterns: Seq[Regex] = List()): geny.Generator[(ZipEntry, java.io.InputStream)] = {
+  def streamRaw(
+      source: geny.Readable,
+      excludePatterns: Seq[Regex] = List(),
+      includePatterns: Seq[Regex] = List()
+  ): geny.Generator[(ZipEntry, java.io.InputStream)] = {
     new Generator[(ZipEntry, java.io.InputStream)] {
-      override def generate(handleItem: ((ZipEntry, java.io.InputStream)) => Generator.Action): Generator.Action = {
+      override def generate(handleItem: ((ZipEntry, java.io.InputStream)) => Generator.Action)
+          : Generator.Action = {
         var lastAction: Generator.Action = Generator.Continue
         source.readBytesThrough { inputStream =>
           val zipInputStream = new ZipInputStream(inputStream)
