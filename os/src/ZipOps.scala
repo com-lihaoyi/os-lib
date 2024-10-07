@@ -57,7 +57,16 @@ object zip {
           sources,
           excludePatterns,
           includePatterns,
-          (path, sub) => os.copy(path, opened / sub, createFolders = true)
+          (path, sub) => {
+            os.copy(path, opened / sub, createFolders = true)
+            if (!preserveMtimes) {
+              os.mtime.set(opened / sub, 0)
+              // This doesn't seem to properly zero out the `ZipEntry`'s `getLastAccessTime`, not sure why
+              java.nio.file.Files.setAttribute(path.toNIO, "lastAccessTime", java.nio.file.attribute.FileTime.fromMillis(0))
+              java.nio.file.Files.setAttribute(path.toNIO, "lastModifiedTime", java.nio.file.attribute.FileTime.fromMillis(0))
+              java.nio.file.Files.setAttribute(path.toNIO, "creationTime", java.nio.file.attribute.FileTime.fromMillis(0))
+            }
+          }
         )
       }
       finally opened.close()
@@ -148,7 +157,10 @@ object zip {
                     zipOut: ZipOutputStream) = {
     val zipEntry = new ZipEntry(sub.toString)
 
-    for(mtime <- preserveMtimes) zipEntry.setTime(mtime)
+    preserveMtimes match{
+      case Some(mtime) => zipEntry.setTime(mtime)
+      case None => zipEntry.setTime(0)
+    }
 
     for(perms <- preservePerms) zipEntry.setComment(perms)
 
