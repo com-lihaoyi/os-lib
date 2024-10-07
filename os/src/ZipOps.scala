@@ -248,12 +248,11 @@ object unzip {
       source: os.Path,
       excludePatterns: Seq[Regex] = List(),
       includePatterns: Seq[Regex] = List()
-  ): Iterator[os.SubPath] = {
-    val zipFile = new ZipFile(source.toIO)
+  ): Generator[os.SubPath] = {
     for {
-      entry <- zipFile.entries().asScala
-      if zip.shouldInclude(entry.getName, excludePatterns, includePatterns)
-    } yield os.SubPath(entry.getName)
+      (zipEntry, zipInputStream) <-
+        streamRaw(os.read.stream(source), excludePatterns, includePatterns)
+    } yield os.SubPath(zipEntry.getName)
   }
 
   /**
