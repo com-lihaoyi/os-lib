@@ -1227,7 +1227,8 @@ def apply(dest: os.Path,
           includePatterns: Seq[Regex] = List(),
           preserveMtimes: Boolean = false,
           preservePerms: Boolean = true,
-          deletePatterns: Seq[Regex] = List()): os.Path
+          deletePatterns: Seq[Regex] = List(),
+          compressionLevel: Int = -1 /* 0-9 */): os.Path
 ----
 
 The zip object provides functionality to create or modify zip archives. It supports:
