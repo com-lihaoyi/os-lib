@@ -130,12 +130,13 @@ object zip {
                            preserveMtimes: Boolean,
                            preservePerms: Boolean,
                            zipOut: ZipOutputStream) = {
-    val fis = Option.when(os.isFile(file)){os.read.inputStream(file)}
+
     val mtimeOpt = Option.when(preserveMtimes){ os.mtime(file) }
     val permsOpt =
       for (perms <- PlatformShims.readPermissions(file.toNIO) if preservePerms)
       yield PosixFilePermissions.toString(perms)
 
+    val fis = Option.when(os.isFile(file)){os.read.inputStream(file)}
     try makeZipEntry0(sub, fis, mtimeOpt, permsOpt, zipOut)
     finally fis.foreach(_.close())
   }
