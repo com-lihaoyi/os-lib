@@ -27,7 +27,7 @@ jobs:
           - os: macos-latest
             java-version: 17
           - os: macos-latest
-            java-version: 8
+            java-version: 11
 
     runs-on: ${{ matrix.os }}
 
