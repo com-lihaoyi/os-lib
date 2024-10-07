@@ -1221,14 +1221,14 @@ os.list(tempDir) ==> Seq(tempDir / "file")
 
 [source,scala]
 ----
-os.zip(destination: os.Path,
-       listOfPaths: List[os.Path] = List(),
-       appendToExisting: Boolean = false,
-       excludePatterns: List[String] = List(),
-       includePatterns: List[String] = List(),
-       deletePatterns: List[String] = List(),
-       preserveMtimes: Boolean = false,
-       preservePermissions: Boolean = true): os.Path
+def apply(dest: os.Path,
+          sources: Seq[ZipSource] = List(),
+          excludePatterns: Seq[Regex] = List(),
+          includePatterns: Seq[Regex] = List(),
+          preserveMtimes: Boolean = false,
+          preservePerms: Boolean = true,
+          appendToExisting: Option[os.Path] = None,
+          deletePatterns: Seq[Regex] = List()): os.Path
 ----
 
 The zip object provides functionality to create or modify zip archives. It supports:
@@ -1243,27 +1243,78 @@ The zip object provides functionality to create or modify zip archives. It suppo
 ===== Zipping Files and Folders
 [source,scala]
 ----
-val pathsToZip = List(
-  os.Path("/path/to/file1.txt"),
-  os.Path("/path/to/folder")
+// Zipping files and folders in a new zip file
+val zipFileName = "zip-file-test.zip"
+val zipFile1: os.Path = os.zip(
+  destination = wd / zipFileName,
+  sourcePaths = Seq(
+    wd / "File.txt",
+    wd / "folder1"
+  )
 )
-os.zip(os.Path("/path/to/destination.zip"), pathsToZip)
+
+// Adding files and folders to an existing zip file
+os.zip(
+  destination = zipFile1,
+  sourcePaths = Seq(
+    wd / "folder2",
+    wd / "Multi Line.txt"
+  ),
+  appendToExisting = Some(wd / zipFileName)
+)
+
+// Unzip file to a destination folder
+val unzippedFolder = os.unzip(
+  source = wd / zipFileName,
+  destination = wd / "unzipped folder"
+)
+
+val paths = os.walk(unzippedFolder)
+val expected = Seq(
+  // Files get included in the zip root using their name
+  wd / "unzipped folder/File.txt",
+  wd / "unzipped folder/Multi Line.txt",
+  // Folder contents get included relative to the source root
+  wd / "unzipped folder/nestedA",
+  wd / "unzipped folder/nestedB",
+  wd / "unzipped folder/one.txt",
+  wd / "unzipped folder/nestedA/a.txt",
+  wd / "unzipped folder/nestedB/b.txt",
+)
+assert(paths.sorted == expected)
 ----
 
 This will create a new zip archive at `/path/to/destination.zip` containing `file1.txt`
 and everything inside folder.
 
-===== Appending to an Existing Zip File
-[source,scala]
-----
-os.zip(
-  os.Path("/path/to/existing.zip"),
-  List(os.Path("/path/to/newfile.txt")),
-  appendToExisting = true
-)
-----
+===== Renaming files in the zip
 
-This will append `newfile.txt` to the existing zip file existing.zip.
+You can also pass in a mapping to `os.zip`'s `sourcePaths`:
+
+```scala
+val zipFileName = "zip-file-test.zip"
+val zipFile1: os.Path = os.zip(
+  destination = wd / zipFileName,
+  sourcePaths = List(
+    // renaming files and folders
+    wd / "File.txt" -> os.sub / "renamed-file.txt",
+    wd / "folder1" -> os.sub / "renamed-folder"
+  )
+)
+
+val unzippedFolder = os.unzip(
+  source = zipFile1,
+  destination = wd / "unzipped folder"
+)
+
+val paths = os.walk(unzippedFolder)
+val expected = Seq(
+  wd / "unzipped folder/renamed-file.txt",
+  wd / "unzipped folder/renamed-folder",
+  wd / "unzipped folder/renamed-folder/one.txt",
+)
+assert(paths.sorted == expected)
+```
 
 ===== Excluding/Including Files in Zip
 
@@ -1275,13 +1326,41 @@ You can specify files or folders to be excluded or included when creating the zi
 os.zip(
   os.Path("/path/to/destination.zip"),
   List(os.Path("/path/to/folder")),
-  excludePatterns = List(".*\\.log", "temp/.*"),  // Exclude log files and "temp" folder
-  includePatterns = List(".*\\.txt")              // Include only .txt files
+  excludePatterns = List(".*\\.log".r, "temp/.*".r),  // Exclude log files and "temp" folder
+  includePatterns = List(".*\\.txt".r)              // Include only .txt files
 )
 
 ----
 
 This will include only `.txt` files, excluding any `.log` files and anything inside the `temp` folder.
+
+===== Streaming Zip Creation
+
+You can use `os.zip.stream` to write the final zip to an `OutputStream` rather than a
+concrete `os.Path`. `os.zip.stream` returns a `geny.Writable`, which has a `writeBytesToStream`
+method:
+
+```scala
+val zipFileName = "zipStreamFunction.zip"
+
+val stream = os.write.outputStream(wd / "zipStreamFunction.zip")
+
+val writable = zip.stream(sources = Seq(wd / "File.txt"))
+
+writable.writeBytesTo(stream)
+stream.close()
+
+val unzippedFolder = os.unzip(
+  source = wd / zipFileName,
+  dest = wd / "zipStreamFunction"
+)
+
+val paths = os.walk(unzippedFolder)
+assert(paths == Seq(unzippedFolder / "File.txt"))
+```
+
+This can be useful for streaming the zipped data to places which are not files:
+over the network, over a pipe, etc.
 
 ==== `os.unzip`
 
@@ -1302,7 +1381,7 @@ You can exclude certain files from being extracted using patterns:
 os.unzip(
   os.Path("/path/to/archive.zip"),
   Some(os.Path("/path/to/destination")),
-  excludePatterns = List(".*\\.log", "temp/.*")  // Exclude log files and the "temp" folder
+  excludePatterns = List(".*\\.log".r, "temp/.*".r)  // Exclude log files and the "temp" folder
 )
 ----
 
@@ -1315,6 +1394,24 @@ os.unzip.list(os.Path("/path/to/archive.zip"))
 ----
 
 This will print all the file paths contained in the zip archive.
+
+===== Streaming Unzipping
+
+You can unzip a zip file from any arbitrary `java.io.InputStream` containing its binary data
+using the `os.unzip.stream` method:
+
+```scala
+val readableZipStream: java.io.InputStream = ???
+
+// Unzipping the stream to the destination folder
+os.unzip.stream(
+  source = readableZipStream,
+  dest = unzippedFolder
+)
+```
+
+This can be useful if the zip file does not exist on disk, e.g. if it is received over the network
+or produced in-memory by application logic.
 
 ==== `os.zip.open`
 

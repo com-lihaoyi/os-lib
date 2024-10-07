@@ -23,8 +23,8 @@ object ZipOpJvmTests extends TestSuite {
 
       // Zipping the file with preserveMtimes = true
       val zipFile = os.zip(
-        destination = wd / "zipWithMtimePreservation.zip",
-        sourcePaths = List(testFile),
+        dest = wd / "zipWithMtimePreservation.zip",
+        sources = List(testFile),
         preserveMtimes = true
       )
 
@@ -43,8 +43,8 @@ object ZipOpJvmTests extends TestSuite {
       val mtime1 = os.mtime(testFile)
 
       val zipFile1 = os.zip(
-        destination = wd / "zipWithoutMtimes1.zip",
-        sourcePaths = List(testFile),
+        dest = wd / "zipWithoutMtimes1.zip",
+        sources = List(testFile),
         preserveMtimes = false
       )
       os.write.over(testFile, "Test content")
@@ -52,8 +52,8 @@ object ZipOpJvmTests extends TestSuite {
       val mtime2 = os.mtime(testFile)
 
       val zipFile2 = os.zip(
-        destination = wd / "zipWithoutMtimes2.zip",
-        sourcePaths = List(testFile),
+        dest = wd / "zipWithoutMtimes2.zip",
+        sources = List(testFile),
         preserveMtimes = false
       )
 
