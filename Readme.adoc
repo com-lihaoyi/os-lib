@@ -1243,8 +1243,8 @@ This will create a new zip archive at `dest` containing `file1.txt` and everythi
 inside `sources`. If `dest` already exists as a zip, the files will be appended to the
 existing zip, and any existing zip entries matching `deletePatterns` will be removed.
 
-Note that `os.zip` doesn't support creating/unpacking symlinks in Zip files because
-the underlying `java.util.zip.Zip*Stream` doesn't support them.
+Note that `os.zip` doesn't support creating/unpacking symlinks or filesystem permissions
+in Zip files, because the underlying `java.util.zip.Zip*Stream` doesn't support them.
 
 ===== Zipping Files and Folders
 
