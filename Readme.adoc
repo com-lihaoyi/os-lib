@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.11.0
+:version: 0.11.1
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -2504,6 +2504,12 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+[#0-11-1]
+=== 0.11.1
+
+* Propagate content length from filesystem through `geny.Writable` and `os.Source`
+https://github.com/com-lihaoyi/os-lib/pull/320[#320]
 
 [#0-11-0]
 === 0.11.0
