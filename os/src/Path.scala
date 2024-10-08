@@ -534,8 +534,10 @@ trait ReadablePath {
  */
 class Path private[os] (val wrapped: java.nio.file.Path)
     extends FilePath with ReadablePath with BasePathImpl {
-  def toSource: SeekableSource =
-    new SeekableSource.ChannelSource(java.nio.file.Files.newByteChannel(wrapped))
+  def toSource: SeekableSource = new SeekableSource.ChannelLengthSource(
+    java.nio.file.Files.newByteChannel(wrapped),
+    java.nio.file.Files.size(wrapped)
+  )
 
   require(wrapped.isAbsolute || Path.driveRelative(wrapped), s"$wrapped is not an absolute path")
   def root = Option(wrapped.getRoot).map(_.toString).getOrElse("")

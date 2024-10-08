@@ -115,4 +115,9 @@ object SeekableSource {
   implicit class ChannelSource(cn: SeekableByteChannel) extends SeekableSource {
     def getHandle() = Right(cn)
   }
+  class ChannelLengthSource(cn: SeekableByteChannel, length: Long) extends SeekableSource {
+    def getHandle() = Right(cn)
+
+    override def contentLength: Option[Long] = Some(length)
+  }
 }
