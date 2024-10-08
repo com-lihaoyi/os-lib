@@ -66,6 +66,8 @@ object Source extends WritableLowPri {
 
   implicit class WritableSource[T](s: T)(implicit f: T => geny.Writable) extends Source {
     val writable = f(s)
+
+    override def contentLength: Option[Long] = writable.contentLength
     def getHandle() = Left(writable)
   }
 }

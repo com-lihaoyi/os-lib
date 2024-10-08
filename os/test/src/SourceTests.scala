@@ -11,6 +11,11 @@ object SourceTests extends TestSuite {
       // length is taken from the filesystem at the moment at which `.toSource` is called
       (wd / "folder1/one.txt").toSource.contentLength ==> Some(22)
       (wd / "File.txt").toSource.contentLength ==> Some(8)
+
+      // Make sure the `Writable` returned by `os.read.stream` propagates the content length
+      os.read.stream(wd / "folder1/one.txt").contentLength ==> Some(22)
+      // Even when converted to an `os.Source`
+      (os.read.stream(wd / "folder1/one.txt"): os.Source).contentLength ==> Some(22)
     }
   }
 }
