@@ -41,7 +41,7 @@ package object os {
    */
   def pwd: Path = dynamicPwdFunction.value()
 
-  private val pwd0 = os.Path(java.nio.file.Paths.get(".").toAbsolutePath)
+  private lazy val pwd0 = os.Path(java.nio.file.Paths.get(".").toAbsolutePath)
 
   /**
    * Used to override `pwd` within a certain scope with a generated value
@@ -51,7 +51,7 @@ package object os {
   /**
    * Used to override `pwd` within a certain scope with a fixed value
    */
-  val dynamicPwd: DynamicVariable[Path] = new DynamicVariable(pwd0)
+  lazy val dynamicPwd: DynamicVariable[Path] = new DynamicVariable(pwd0)
 
   val up: RelPath = RelPath.up
 
