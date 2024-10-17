@@ -72,7 +72,7 @@ object zip {
         )
       } finally opened.close()
     } else {
-      val f = new java.io.FileOutputStream(dest.toIO)
+      val f = Files.newOutputStream(dest.toNIO)
       try createNewZip(
           sources,
           excludePatterns,
