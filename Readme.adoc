@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.11.1
+:version: 0.11.2
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -2504,6 +2504,12 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+[#0-11-2]
+=== 0.11.2
+
+* Use `java.nio.files.Files.newOutputStream` instead of `java.io.FileOutputStream` to
+  try and avoid problems with windows open file deletion https://github.com/com-lihaoyi/os-lib/pull/323[#323]
 
 [#0-11-1]
 === 0.11.1
