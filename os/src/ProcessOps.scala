@@ -55,7 +55,7 @@ object call {
       timeout: Long,
       check: Boolean,
       propagateEnv: Boolean,
-      timeoutGracePeriod: Long,
+      timeoutGracePeriod: Long
   ): CommandResult = {
     call(
       cmd = cmd,
@@ -248,17 +248,17 @@ case class proc(command: Shellable*) {
   )
 
   private[os] def call(
-                        cwd: Path,
-                        env: Map[String, String],
-                        stdin: ProcessInput,
-                        stdout: ProcessOutput,
-                        stderr: ProcessOutput,
-                        mergeErrIntoOut: Boolean,
-                        timeout: Long,
-                        check: Boolean,
-                        propagateEnv: Boolean,
-                        timeoutGracePeriod: Long
-                      ): CommandResult = call(
+      cwd: Path,
+      env: Map[String, String],
+      stdin: ProcessInput,
+      stdout: ProcessOutput,
+      stderr: ProcessOutput,
+      mergeErrIntoOut: Boolean,
+      timeout: Long,
+      check: Boolean,
+      propagateEnv: Boolean,
+      timeoutGracePeriod: Long
+  ): CommandResult = call(
     cwd,
     env,
     stdin,
@@ -271,7 +271,6 @@ case class proc(command: Shellable*) {
     timeoutGracePeriod,
     shutdownHook = false
   )
-
 
   /**
    * The most flexible of the [[os.proc]] calls, `os.proc.spawn` simply configures
@@ -323,7 +322,7 @@ case class proc(command: Shellable*) {
     lazy val shutdownHookMonitorThread = shutdownHookThread.map(t =>
       new Thread("subprocess-shutdown-hook-monitor") {
         override def run(): Unit = {
-          while(proc.wrapped.isAlive) Thread.sleep(1)
+          while (proc.wrapped.isAlive) Thread.sleep(1)
           Runtime.getRuntime().removeShutdownHook(t)
         }
       }
@@ -349,19 +348,25 @@ case class proc(command: Shellable*) {
   }
 
   def spawn(
-             cwd: Path,
-             env: Map[String, String],
-             stdin: ProcessInput,
-             stdout: ProcessOutput,
-             stderr: ProcessOutput,
-             mergeErrIntoOut: Boolean,
-             propagateEnv: Boolean
-           ): SubProcess = spawn(
-    cwd = cwd, env = env, stdin = stdin, stdout = stdout, stderr = stderr,
+      cwd: Path,
+      env: Map[String, String],
+      stdin: ProcessInput,
+      stdout: ProcessOutput,
+      stderr: ProcessOutput,
+      mergeErrIntoOut: Boolean,
+      propagateEnv: Boolean
+  ): SubProcess = spawn(
+    cwd = cwd,
+    env = env,
+    stdin = stdin,
+    stdout = stdout,
+    stderr = stderr,
     mergeErrIntoOut = mergeErrIntoOut,
     propagateEnv = propagateEnv,
-    shutdownGracePeriod = 100, shutdownHook = false
+    shutdownGracePeriod = 100,
+    shutdownHook = false
   )
+
   /**
    * Pipes the output of this process into the input of the [[next]] process. Returns a
    * [[ProcGroup]] containing both processes, which you can then either execute or
