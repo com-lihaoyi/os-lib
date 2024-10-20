@@ -157,7 +157,10 @@ class SubProcess(
    *                            (i.e. force exit immediately) or Long.MaxValue (i.e. never force exit)
    *                            or anything in between. Typically defaults to 100 milliseconds
    */
-  def destroy(shutdownGracePeriod: Long = this.shutdownGracePeriod, async: Boolean = false): Unit = {
+  def destroy(
+      shutdownGracePeriod: Long = this.shutdownGracePeriod,
+      async: Boolean = false
+  ): Unit = {
     wrapped.destroy()
     if (!async) {
       val now = System.currentTimeMillis()

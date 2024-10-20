@@ -147,23 +147,23 @@ object SpawningSubprocessesTests extends TestSuite {
       }
     }
     test("spawn callback") {
-        test - prep { wd =>
-          if (TestUtil.isInstalled("echo") && Unix()) {
-            val output: mutable.Buffer[String] = mutable.Buffer()
-            val sub = os.proc("echo", "output")
-              .spawn(stdout =
-                ProcessOutput((bytes, count) => output += new String(bytes, 0, count))
-              )
-            val finished = sub.join(5000)
-            sub.wrapped.getOutputStream().flush()
-            assert(finished)
-            assert(sub.exitCode() == 0)
-            val expectedOutput = "output\n"
-            val actualOutput = output.mkString("")
-            assert(actualOutput == expectedOutput)
-            sub.destroy()
-          }
+      test - prep { wd =>
+        if (TestUtil.isInstalled("echo") && Unix()) {
+          val output: mutable.Buffer[String] = mutable.Buffer()
+          val sub = os.proc("echo", "output")
+            .spawn(stdout =
+              ProcessOutput((bytes, count) => output += new String(bytes, 0, count))
+            )
+          val finished = sub.join(5000)
+          sub.wrapped.getOutputStream().flush()
+          assert(finished)
+          assert(sub.exitCode() == 0)
+          val expectedOutput = "output\n"
+          val actualOutput = output.mkString("")
+          assert(actualOutput == expectedOutput)
+          sub.destroy()
         }
       }
+    }
   }
 }

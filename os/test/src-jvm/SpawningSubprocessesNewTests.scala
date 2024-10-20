@@ -153,7 +153,7 @@ object SpawningSubprocessesNewTests extends TestSuite {
         sha.stdout.trim() ==> s"${ExampleResourcess.RemoteReadme.gzip6ShaSum256}  -"
       }
     }
-    test("spawn callback")  - prep { wd =>
+    test("spawn callback") - prep { wd =>
       if (TestUtil.isInstalled("echo") && Unix()) {
         val output: mutable.Buffer[String] = mutable.Buffer()
         val sub = os.spawn(
@@ -174,16 +174,16 @@ object SpawningSubprocessesNewTests extends TestSuite {
       .open(p.toNIO, util.EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE))
       .tryLock()
     def waitForLockTaken(p: os.Path) = {
-      while({
+      while ({
         val waitLock = tryLock(p)
         if (waitLock != null) {
           waitLock.release()
           true
-        }else false
+        } else false
       }) Thread.sleep(1)
     }
 
-    test("destroy"){
+    test("destroy") {
       val temp1 = os.temp()
       val sub1 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp1))
       waitForLockTaken(temp1)
@@ -197,8 +197,7 @@ object SpawningSubprocessesNewTests extends TestSuite {
       assert(sub2.isAlive())
     }
 
-    test("spawnExitHook"){
-
+    test("spawnExitHook") {
 
       val temp = os.temp()
       val lock0 = tryLock(temp)

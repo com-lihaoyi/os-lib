@@ -13,20 +13,20 @@ object call {
    * @see [[os.proc.call]]
    */
   def apply(
-             cmd: Shellable,
-             env: Map[String, String] = null,
-             // Make sure `cwd` only comes after `env`, so `os.call("foo", path)` is a compile error
-             // since the correct syntax is `os.call(("foo", path))`
-             cwd: Path = null,
-             stdin: ProcessInput = Pipe,
-             stdout: ProcessOutput = Pipe,
-             stderr: ProcessOutput = os.Inherit,
-             mergeErrIntoOut: Boolean = false,
-             timeout: Long = -1,
-             check: Boolean = true,
-             propagateEnv: Boolean = true,
-             shutdownGracePeriod: Long = 100,
-             shutdownHook: Boolean = false
+      cmd: Shellable,
+      env: Map[String, String] = null,
+      // Make sure `cwd` only comes after `env`, so `os.call("foo", path)` is a compile error
+      // since the correct syntax is `os.call(("foo", path))`
+      cwd: Path = null,
+      stdin: ProcessInput = Pipe,
+      stdout: ProcessOutput = Pipe,
+      stderr: ProcessOutput = os.Inherit,
+      mergeErrIntoOut: Boolean = false,
+      timeout: Long = -1,
+      check: Boolean = true,
+      propagateEnv: Boolean = true,
+      shutdownGracePeriod: Long = 100,
+      shutdownHook: Boolean = false
   ): CommandResult = {
     os.proc(cmd).call(
       cwd = cwd,
@@ -186,18 +186,18 @@ case class proc(command: Shellable*) {
    *       issued. Check the documentation for your JDK's `Process.destroy`.
    */
   def call(
-            cwd: Path = null,
-            env: Map[String, String] = null,
-            stdin: ProcessInput = Pipe,
-            stdout: ProcessOutput = Pipe,
-            stderr: ProcessOutput = os.Inherit,
-            mergeErrIntoOut: Boolean = false,
-            timeout: Long = -1,
-            check: Boolean = true,
-            propagateEnv: Boolean = true,
-            // this cannot be next to `timeout` as this will introduce a bin-compat break (default arguments are numbered in the bytecode)
-            shutdownGracePeriod: Long = 100,
-            shutdownHook: Boolean = false
+      cwd: Path = null,
+      env: Map[String, String] = null,
+      stdin: ProcessInput = Pipe,
+      stdout: ProcessOutput = Pipe,
+      stderr: ProcessOutput = os.Inherit,
+      mergeErrIntoOut: Boolean = false,
+      timeout: Long = -1,
+      check: Boolean = true,
+      propagateEnv: Boolean = true,
+      // this cannot be next to `timeout` as this will introduce a bin-compat break (default arguments are numbered in the bytecode)
+      shutdownGracePeriod: Long = 100,
+      shutdownHook: Boolean = false
   ): CommandResult = {
 
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
@@ -327,7 +327,7 @@ case class proc(command: Shellable*) {
         override def run(): Unit = {
           while (proc.wrapped.isAlive) Thread.sleep(1)
           try Runtime.getRuntime().removeShutdownHook(t)
-          catch{case e: Throwable => /*do nothing*/}
+          catch { case e: Throwable => /*do nothing*/ }
         }
       }
     )
