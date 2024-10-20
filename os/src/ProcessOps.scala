@@ -26,7 +26,7 @@ object call {
       check: Boolean = true,
       propagateEnv: Boolean = true,
       shutdownGracePeriod: Long = 100,
-      shutdownHook: Boolean = true
+      destroyOnExit: Boolean = true
   ): CommandResult = {
     os.proc(cmd).call(
       cwd = cwd,
@@ -39,7 +39,7 @@ object call {
       check = check,
       propagateEnv = propagateEnv,
       shutdownGracePeriod = shutdownGracePeriod,
-      shutdownHook = shutdownHook
+      destroyOnExit = destroyOnExit
     )
   }
   def apply(
@@ -69,7 +69,7 @@ object call {
       check = check,
       propagateEnv = propagateEnv,
       shutdownGracePeriod = timeoutGracePeriod,
-      shutdownHook = false
+      destroyOnExit = false
     )
   }
 }
@@ -90,7 +90,7 @@ object spawn {
       mergeErrIntoOut: Boolean = false,
       propagateEnv: Boolean = true,
       shutdownGracePeriod: Long = 100,
-      shutdownHook: Boolean = true
+      destroyOnExit: Boolean = true
   ): SubProcess = {
     os.proc(cmd).spawn(
       cwd = cwd,
@@ -101,7 +101,7 @@ object spawn {
       mergeErrIntoOut = mergeErrIntoOut,
       propagateEnv = propagateEnv,
       shutdownGracePeriod = shutdownGracePeriod,
-      shutdownHook = shutdownHook
+      destroyOnExit = destroyOnExit
     )
   }
   def apply(
@@ -126,7 +126,7 @@ object spawn {
       mergeErrIntoOut = mergeErrIntoOut,
       propagateEnv = propagateEnv,
       shutdownGracePeriod = 100,
-      shutdownHook = false
+      destroyOnExit = false
     )
   }
 }
@@ -197,7 +197,7 @@ case class proc(command: Shellable*) {
       propagateEnv: Boolean = true,
       // this cannot be next to `timeout` as this will introduce a bin-compat break (default arguments are numbered in the bytecode)
       shutdownGracePeriod: Long = 100,
-      shutdownHook: Boolean = true
+      destroyOnExit: Boolean = true
   ): CommandResult = {
 
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
@@ -272,7 +272,7 @@ case class proc(command: Shellable*) {
     check,
     propagateEnv,
     timeoutGracePeriod,
-    shutdownHook = false
+    destroyOnExit = false
   )
 
   /**
@@ -294,7 +294,7 @@ case class proc(command: Shellable*) {
       mergeErrIntoOut: Boolean = false,
       propagateEnv: Boolean = true,
       shutdownGracePeriod: Long = 100,
-      shutdownHook: Boolean = true
+      destroyOnExit: Boolean = true
   ): SubProcess = {
 
     val cmdChunks = commandChunks
@@ -317,7 +317,7 @@ case class proc(command: Shellable*) {
     )
 
     lazy val shutdownHookThread =
-      if (!shutdownHook) None
+      if (!destroyOnExit) None
       else Some(new Thread("subprocess-shutdown-hook") {
         override def run(): Unit = proc.destroy(shutdownGracePeriod)
       })
@@ -368,7 +368,7 @@ case class proc(command: Shellable*) {
     mergeErrIntoOut = mergeErrIntoOut,
     propagateEnv = propagateEnv,
     shutdownGracePeriod = 100,
-    shutdownHook = false
+    destroyOnExit = false
   )
 
   /**

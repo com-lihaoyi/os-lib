@@ -1727,7 +1727,7 @@ os.call(cmd: os.Shellable,
         check: Boolean = true,
         propagateEnv: Boolean = true,
         shutdownGracePeriod: Long = 100,
-        shutdownHook: Boolean = true): os.CommandResult
+        destroyOnExit: Boolean = true): os.CommandResult
 ----
 
 _Also callable via `os.proc(cmd).call(...)`_
@@ -1857,7 +1857,7 @@ os.spawn(cmd: os.Shellable,
          mergeErrIntoOut: Boolean = false,
          propagateEnv: Boolean = true,
          shutdownGracePeriod: Long = 100,
-         shutdownHook: Boolean = true): os.SubProcess
+         destroyOnExit: Boolean = true): os.SubProcess
 ----
 
 _Also callable via `os.proc(cmd).spawn(...)`_
