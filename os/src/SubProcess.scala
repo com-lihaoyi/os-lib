@@ -143,22 +143,34 @@ class SubProcess(
   /**
    * Attempt to destroy the subprocess (gently), via the underlying JVM APIs
    */
-  def destroy(): Unit = wrapped.destroy()
+  def destroy(): Unit = destroy(shutdownGracePeriod = Long.MaxValue)
 
   /**
-   * Force-destroys the subprocess, via the underlying JVM APIs
+   * Destroys the subprocess, via the underlying JVM APIs, with configurable levels of
+   * aggressiveness:
+   *
+   * @param async set this to `true` if you do not want to wait on the subprocess exiting
+   * @param shutdownGracePeriod use this to override the default wait time for the subprocess
+   *                            to gracefully exit before destroying it forcibly. Defaults to the `shutdownGracePeriod`
+   *                            that was used to spawned the process, but can be set to 0
+   *                            (i.e. force exit immediately) or Long.MaxValue (i.e. never force exit)
+   *                            or anything in between. Typically defaults to 100 milliseconds
    */
-  def destroyForcibly(shutdownGracePeriod: Long = this.shutdownGracePeriod): Unit = {
-    val now = System.currentTimeMillis()
+  def destroy(shutdownGracePeriod: Long = this.shutdownGracePeriod, async: Boolean = false): Unit = {
+    wrapped.destroy()
+    if (!async) {
+      val now = System.currentTimeMillis()
 
-    while (wrapped.isAlive && System.currentTimeMillis() - now < shutdownGracePeriod) {
-      Thread.sleep(1)
+      while (wrapped.isAlive && System.currentTimeMillis() - now < shutdownGracePeriod) {
+        Thread.sleep(1)
+      }
+
+      if (wrapped.isAlive) wrapped.destroyForcibly()
     }
-
-    if (wrapped.isAlive) wrapped.destroyForcibly()
   }
 
-  def destroyForcibly(): Unit = destroyForcibly(shutdownGracePeriod = this.shutdownGracePeriod)
+  @deprecated("Use destroy(shutdownGracePeriod = 0)")
+  def destroyForcibly(): Unit = destroy(shutdownGracePeriod = 0)
 
   /**
    * Alias for [[destroy]]

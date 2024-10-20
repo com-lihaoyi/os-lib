@@ -4,172 +4,226 @@ import java.io.{BufferedReader, InputStreamReader}
 import os.ProcessOutput
 
 import scala.collection.mutable
-
 import test.os.TestUtil.prep
 import utest._
+
+import java.nio.channels.FileChannel
+import java.nio.file.StandardOpenOption
+import java.util
 
 object SpawningSubprocessesNewTests extends TestSuite {
 
   def tests = Tests {
-    test("proc") {
-      test("call") {
-        test - prep { wd =>
-          if (Unix()) {
-            val res = os.call(cmd = ("ls", wd / "folder2"))
+    test("call") {
+      test - prep { wd =>
+        if (Unix()) {
+          val res = os.call(cmd = ("ls", wd / "folder2"))
 
-            res.exitCode ==> 0
+          res.exitCode ==> 0
 
-            res.out.text() ==>
-              """nestedA
-                |nestedB
-                |""".stripMargin
+          res.out.text() ==>
+            """nestedA
+              |nestedB
+              |""".stripMargin
 
-            res.out.trim() ==>
-              """nestedA
-                |nestedB""".stripMargin
+          res.out.trim() ==>
+            """nestedA
+              |nestedB""".stripMargin
 
-            res.out.lines() ==> Seq(
-              "nestedA",
-              "nestedB"
-            )
+          res.out.lines() ==> Seq(
+            "nestedA",
+            "nestedB"
+          )
 
-            res.out.bytes
+          res.out.bytes
 
-            val thrown = intercept[os.SubprocessException] {
-              os.call(cmd = ("ls", "doesnt-exist"), cwd = wd)
-            }
-
-            assert(thrown.result.exitCode != 0)
-
-            val fail =
-              os.call(cmd = ("ls", "doesnt-exist"), cwd = wd, check = false, stderr = os.Pipe)
-
-            assert(fail.exitCode != 0)
-
-            fail.out.text() ==> ""
-
-            assert(fail.err.text().contains("No such file or directory"))
-
-            // You can pass in data to a subprocess' stdin
-            val hash = os.call(cmd = ("shasum", "-a", "256"), stdin = "Hello World")
-            hash.out.trim() ==> "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e  -"
-
-            // Taking input from a file and directing output to another file
-            os.call(cmd = ("base64"), stdin = wd / "File.txt", stdout = wd / "File.txt.b64")
-
-            os.read(wd / "File.txt.b64") ==> "SSBhbSBjb3c=\n"
-
-            if (false) {
-              os.call(cmd = ("vim"), stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit)
-            }
+          val thrown = intercept[os.SubprocessException] {
+            os.call(cmd = ("ls", "doesnt-exist"), cwd = wd)
           }
-        }
-        test - prep { wd =>
-          if (Unix()) {
-            val ex = intercept[os.SubprocessException] {
-              os.call(cmd = ("bash", "-c", "echo 123; sleep 10; echo 456"), timeout = 2000)
-            }
 
-            ex.result.out.trim() ==> "123"
+          assert(thrown.result.exitCode != 0)
+
+          val fail =
+            os.call(cmd = ("ls", "doesnt-exist"), cwd = wd, check = false, stderr = os.Pipe)
+
+          assert(fail.exitCode != 0)
+
+          fail.out.text() ==> ""
+
+          assert(fail.err.text().contains("No such file or directory"))
+
+          // You can pass in data to a subprocess' stdin
+          val hash = os.call(cmd = ("shasum", "-a", "256"), stdin = "Hello World")
+          hash.out.trim() ==> "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e  -"
+
+          // Taking input from a file and directing output to another file
+          os.call(cmd = ("base64"), stdin = wd / "File.txt", stdout = wd / "File.txt.b64")
+
+          os.read(wd / "File.txt.b64") ==> "SSBhbSBjb3c=\n"
+
+          if (false) {
+            os.call(cmd = ("vim"), stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit)
           }
         }
       }
-      test("stream") {
-        test - prep { wd =>
-          if (Unix()) {
-            var lineCount = 1
-            os.call(
-              cmd = ("find", "."),
-              cwd = wd,
-              stdout =
-                os.ProcessOutput((buf, len) => lineCount += buf.slice(0, len).count(_ == '\n'))
-            )
-            lineCount ==> 22
+      test - prep { wd =>
+        if (Unix()) {
+          val ex = intercept[os.SubprocessException] {
+            os.call(cmd = ("bash", "-c", "echo 123; sleep 10; echo 456"), timeout = 2000)
           }
-        }
-        test - prep { wd =>
-          if (Unix()) {
-            var lineCount = 1
-            os.call(
-              cmd = ("find", "."),
-              cwd = wd,
-              stdout = os.ProcessOutput.Readlines(line => lineCount += 1)
-            )
-            lineCount ==> 22
-          }
+
+          ex.result.out.trim() ==> "123"
         }
       }
-
-      test("spawn python") {
-        test - prep { wd =>
-          if (TestUtil.isInstalled("python") && Unix()) {
-            // Start a long-lived python process which you can communicate with
-            val sub = os.spawn(
-              cmd = (
-                "python",
-                "-u",
-                "-c",
-                if (TestUtil.isPython3()) "while True: print(eval(input()))"
-                else "while True: print(eval(raw_input()))"
-              ),
-              cwd = wd
-            )
-
-            // Sending some text to the subprocess
-            sub.stdin.write("1 + 2")
-            sub.stdin.writeLine("+ 4")
-            sub.stdin.flush()
-            sub.stdout.readLine() ==> "7"
-
-            sub.stdin.write("'1' + '2'")
-            sub.stdin.writeLine("+ '4'")
-            sub.stdin.flush()
-            sub.stdout.readLine() ==> "124"
-
-            // Sending some bytes to the subprocess
-            sub.stdin.write("1 * 2".getBytes)
-            sub.stdin.write("* 4\n".getBytes)
-            sub.stdin.flush()
-            sub.stdout.read() ==> '8'.toByte
-
-            sub.destroy()
-          }
+    }
+    test("stream") {
+      test - prep { wd =>
+        if (Unix()) {
+          var lineCount = 1
+          os.call(
+            cmd = ("find", "."),
+            cwd = wd,
+            stdout =
+              os.ProcessOutput((buf, len) => lineCount += buf.slice(0, len).count(_ == '\n'))
+          )
+          lineCount ==> 22
         }
       }
-      test("spawn curl") {
-        if (
-          Unix() && // shasum seems to not accept stdin on Windows
-          TestUtil.isInstalled("curl") &&
-          TestUtil.isInstalled("gzip") &&
-          TestUtil.isInstalled("shasum")
-        ) {
-          // You can chain multiple subprocess' stdin/stdout together
-          val curl =
-            os.spawn(cmd = ("curl", "-L", ExampleResourcess.RemoteReadme.url), stderr = os.Inherit)
-          val gzip = os.spawn(cmd = ("gzip", "-n", "-6"), stdin = curl.stdout)
-          val sha = os.spawn(cmd = ("shasum", "-a", "256"), stdin = gzip.stdout)
-          sha.stdout.trim() ==> s"${ExampleResourcess.RemoteReadme.gzip6ShaSum256}  -"
+      test - prep { wd =>
+        if (Unix()) {
+          var lineCount = 1
+          os.call(
+            cmd = ("find", "."),
+            cwd = wd,
+            stdout = os.ProcessOutput.Readlines(line => lineCount += 1)
+          )
+          lineCount ==> 22
         }
       }
-      test("spawn callback") {
-        test - prep { wd =>
-          if (TestUtil.isInstalled("echo") && Unix()) {
-            val output: mutable.Buffer[String] = mutable.Buffer()
-            val sub = os.spawn(
-              cmd = ("echo", "output"),
-              stdout = ProcessOutput((bytes, count) => output += new String(bytes, 0, count))
-            )
-            val finished = sub.join(5000)
-            sub.wrapped.getOutputStream().flush()
-            assert(finished)
-            assert(sub.exitCode() == 0)
-            val expectedOutput = "output\n"
-            val actualOutput = output.mkString("")
-            assert(actualOutput == expectedOutput)
-            sub.destroy()
-          }
+    }
+
+    test("spawn python") {
+      test - prep { wd =>
+        if (TestUtil.isInstalled("python") && Unix()) {
+          // Start a long-lived python process which you can communicate with
+          val sub = os.spawn(
+            cmd = (
+              "python",
+              "-u",
+              "-c",
+              if (TestUtil.isPython3()) "while True: print(eval(input()))"
+              else "while True: print(eval(raw_input()))"
+            ),
+            cwd = wd
+          )
+
+          // Sending some text to the subprocess
+          sub.stdin.write("1 + 2")
+          sub.stdin.writeLine("+ 4")
+          sub.stdin.flush()
+          sub.stdout.readLine() ==> "7"
+
+          sub.stdin.write("'1' + '2'")
+          sub.stdin.writeLine("+ '4'")
+          sub.stdin.flush()
+          sub.stdout.readLine() ==> "124"
+
+          // Sending some bytes to the subprocess
+          sub.stdin.write("1 * 2".getBytes)
+          sub.stdin.write("* 4\n".getBytes)
+          sub.stdin.flush()
+          sub.stdout.read() ==> '8'.toByte
+
+          sub.destroy()
         }
       }
+    }
+    test("spawn curl") {
+      if (
+        Unix() && // shasum seems to not accept stdin on Windows
+        TestUtil.isInstalled("curl") &&
+        TestUtil.isInstalled("gzip") &&
+        TestUtil.isInstalled("shasum")
+      ) {
+        // You can chain multiple subprocess' stdin/stdout together
+        val curl =
+          os.spawn(cmd = ("curl", "-L", ExampleResourcess.RemoteReadme.url), stderr = os.Inherit)
+        val gzip = os.spawn(cmd = ("gzip", "-n", "-6"), stdin = curl.stdout)
+        val sha = os.spawn(cmd = ("shasum", "-a", "256"), stdin = gzip.stdout)
+        sha.stdout.trim() ==> s"${ExampleResourcess.RemoteReadme.gzip6ShaSum256}  -"
+      }
+    }
+    test("spawn callback")  - prep { wd =>
+      if (TestUtil.isInstalled("echo") && Unix()) {
+        val output: mutable.Buffer[String] = mutable.Buffer()
+        val sub = os.spawn(
+          cmd = ("echo", "output"),
+          stdout = ProcessOutput((bytes, count) => output += new String(bytes, 0, count))
+        )
+        val finished = sub.join(5000)
+        sub.wrapped.getOutputStream().flush()
+        assert(finished)
+        assert(sub.exitCode() == 0)
+        val expectedOutput = "output\n"
+        val actualOutput = output.mkString("")
+        assert(actualOutput == expectedOutput)
+        sub.destroy()
+      }
+    }
+    def tryLock(p: os.Path) = FileChannel
+      .open(p.toNIO, util.EnumSet.of(StandardOpenOption.READ, StandardOpenOption.WRITE))
+      .tryLock()
+    def waitForLockTaken(p: os.Path) = {
+      while({
+        val waitLock = tryLock(p)
+        if (waitLock != null) {
+          waitLock.release()
+          true
+        }else false
+      }) Thread.sleep(1)
+    }
+
+    test("destroy"){
+      val temp1 = os.temp()
+      val sub1 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp1))
+      waitForLockTaken(temp1)
+      sub1.destroy()
+      assert(!sub1.isAlive())
+
+      val temp2 = os.temp()
+      val sub2 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp2))
+      waitForLockTaken(temp2)
+      sub2.destroy(async = true)
+      assert(sub2.isAlive())
+    }
+
+    test("spawnExitHook"){
+
+
+      val temp = os.temp()
+      val lock0 = tryLock(temp)
+      // file starts off not locked so can be taken and released
+      assert(lock0 != null)
+      lock0.release()
+
+      val subprocess = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp))
+      waitForLockTaken(temp)
+
+      subprocess.destroy()
+      // after calling destroy on the subprocess, the transitive subprocess
+      // should be killed by the exit hook, so the lock can now be taken
+      val lock = tryLock(temp)
+      assert(lock != null)
+
+      val temp2 = os.temp()
+      val subprocess2 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp2))
+      waitForLockTaken(temp2)
+
+      subprocess2.destroy(shutdownGracePeriod = 0)
+      // this should fail since the subprocess is shut down forcibly without grace period
+      // so there is no time for any exit hooks to run to shut down the transitive subprocess
+      val lock2 = tryLock(temp2)
+      assert(lock2 == null)
     }
   }
 }

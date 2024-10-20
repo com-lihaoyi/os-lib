@@ -13,20 +13,20 @@ object call {
    * @see [[os.proc.call]]
    */
   def apply(
-      cmd: Shellable,
-      env: Map[String, String] = null,
-      // Make sure `cwd` only comes after `env`, so `os.call("foo", path)` is a compile error
-      // since the correct syntax is `os.call(("foo", path))`
-      cwd: Path = null,
-      stdin: ProcessInput = Pipe,
-      stdout: ProcessOutput = Pipe,
-      stderr: ProcessOutput = os.Inherit,
-      mergeErrIntoOut: Boolean = false,
-      timeout: Long = -1,
-      check: Boolean = true,
-      propagateEnv: Boolean = true,
-      timeoutGracePeriod: Long = 100,
-      shutdownHook: Boolean = false
+             cmd: Shellable,
+             env: Map[String, String] = null,
+             // Make sure `cwd` only comes after `env`, so `os.call("foo", path)` is a compile error
+             // since the correct syntax is `os.call(("foo", path))`
+             cwd: Path = null,
+             stdin: ProcessInput = Pipe,
+             stdout: ProcessOutput = Pipe,
+             stderr: ProcessOutput = os.Inherit,
+             mergeErrIntoOut: Boolean = false,
+             timeout: Long = -1,
+             check: Boolean = true,
+             propagateEnv: Boolean = true,
+             shutdownGracePeriod: Long = 100,
+             shutdownHook: Boolean = false
   ): CommandResult = {
     os.proc(cmd).call(
       cwd = cwd,
@@ -38,7 +38,7 @@ object call {
       timeout = timeout,
       check = check,
       propagateEnv = propagateEnv,
-      timeoutGracePeriod = timeoutGracePeriod,
+      shutdownGracePeriod = shutdownGracePeriod,
       shutdownHook = shutdownHook
     )
   }
@@ -68,7 +68,7 @@ object call {
       timeout = timeout,
       check = check,
       propagateEnv = propagateEnv,
-      timeoutGracePeriod = timeoutGracePeriod,
+      shutdownGracePeriod = timeoutGracePeriod,
       shutdownHook = false
     )
   }
@@ -89,6 +89,7 @@ object spawn {
       stderr: ProcessOutput = os.Inherit,
       mergeErrIntoOut: Boolean = false,
       propagateEnv: Boolean = true,
+      shutdownGracePeriod: Long = 100,
       shutdownHook: Boolean = false
   ): SubProcess = {
     os.proc(cmd).spawn(
@@ -99,6 +100,7 @@ object spawn {
       stderr = stderr,
       mergeErrIntoOut = mergeErrIntoOut,
       propagateEnv = propagateEnv,
+      shutdownGracePeriod = shutdownGracePeriod,
       shutdownHook = shutdownHook
     )
   }
@@ -123,6 +125,7 @@ object spawn {
       stderr = stderr,
       mergeErrIntoOut = mergeErrIntoOut,
       propagateEnv = propagateEnv,
+      shutdownGracePeriod = 100,
       shutdownHook = false
     )
   }
@@ -174,7 +177,7 @@ case class proc(command: Shellable*) {
    *                           fails with a non-zero exit code
    * @param propagateEnv       disable this to avoid passing in this parent process's
    *                           environment variables to the subprocess
-   * @param timeoutGracePeriod if the timeout is enabled, how long in milliseconds for the
+   * @param shutdownGracePeriod if the timeout is enabled, how long in milliseconds for the
    *                           subprocess to gracefully terminate before attempting to
    *                           forcibly kill it
    *                           (-1 for no kill, 0 for always kill immediately)
@@ -183,18 +186,18 @@ case class proc(command: Shellable*) {
    *       issued. Check the documentation for your JDK's `Process.destroy`.
    */
   def call(
-      cwd: Path = null,
-      env: Map[String, String] = null,
-      stdin: ProcessInput = Pipe,
-      stdout: ProcessOutput = Pipe,
-      stderr: ProcessOutput = os.Inherit,
-      mergeErrIntoOut: Boolean = false,
-      timeout: Long = -1,
-      check: Boolean = true,
-      propagateEnv: Boolean = true,
-      // this cannot be next to `timeout` as this will introduce a bin-compat break (default arguments are numbered in the bytecode)
-      timeoutGracePeriod: Long = 100,
-      shutdownHook: Boolean = false
+            cwd: Path = null,
+            env: Map[String, String] = null,
+            stdin: ProcessInput = Pipe,
+            stdout: ProcessOutput = Pipe,
+            stderr: ProcessOutput = os.Inherit,
+            mergeErrIntoOut: Boolean = false,
+            timeout: Long = -1,
+            check: Boolean = true,
+            propagateEnv: Boolean = true,
+            // this cannot be next to `timeout` as this will introduce a bin-compat break (default arguments are numbered in the bytecode)
+            shutdownGracePeriod: Long = 100,
+            shutdownHook: Boolean = false
   ): CommandResult = {
 
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
@@ -215,7 +218,7 @@ case class proc(command: Shellable*) {
       propagateEnv
     )
 
-    sub.join(timeout, timeoutGracePeriod)
+    sub.join(timeout, shutdownGracePeriod)
 
     val chunksSeq = chunks.iterator.asScala.toIndexedSeq
     val res = CommandResult(commandChunks, sub.exitCode(), chunksSeq)
@@ -244,7 +247,7 @@ case class proc(command: Shellable*) {
     timeout,
     check,
     propagateEnv,
-    timeoutGracePeriod = 100
+    shutdownGracePeriod = 100
   )
 
   private[os] def call(
@@ -316,14 +319,15 @@ case class proc(command: Shellable*) {
     lazy val shutdownHookThread =
       if (!shutdownHook) None
       else Some(new Thread("subprocess-shutdown-hook") {
-        override def run(): Unit = proc.destroyForcibly(shutdownGracePeriod)
+        override def run(): Unit = proc.destroy(shutdownGracePeriod)
       })
 
     lazy val shutdownHookMonitorThread = shutdownHookThread.map(t =>
       new Thread("subprocess-shutdown-hook-monitor") {
         override def run(): Unit = {
           while (proc.wrapped.isAlive) Thread.sleep(1)
-          Runtime.getRuntime().removeShutdownHook(t)
+          try Runtime.getRuntime().removeShutdownHook(t)
+          catch{case e: Throwable => /*do nothing*/}
         }
       }
     )
@@ -419,7 +423,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
    *                           will be caught and handled by killing the writing process. This behaviour
    *                           is consistent with handlers of SIGPIPE signals in most programs
    *                           supporting interruptable piping. Disabled by default on Windows.
-   * @param timeoutGracePeriod if the timeout is enabled, how long in milliseconds for the
+   * @param shutdownGracePeriod if the timeout is enabled, how long in milliseconds for the
    *                           subprocess to gracefully terminate before attempting to
    *                           forcibly kill it
    *                           (-1 for no kill, 0 for always kill immediately)
@@ -440,7 +444,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
       pipefail: Boolean = true,
       handleBrokenPipe: Boolean = !isWindows,
       // this cannot be next to `timeout` as this will introduce a bin-compat break (default arguments are numbered in the bytecode)
-      timeoutGracePeriod: Long = 100
+      shutdownGracePeriod: Long = 100
   ): CommandResult = {
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
 
@@ -461,7 +465,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
       pipefail
     )
 
-    sub.join(timeout, timeoutGracePeriod)
+    sub.join(timeout, shutdownGracePeriod)
 
     val chunksSeq = chunks.iterator.asScala.toIndexedSeq
     val res =
@@ -494,7 +498,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
     propagateEnv,
     pipefail,
     handleBrokenPipe,
-    timeoutGracePeriod = 100
+    shutdownGracePeriod = 100
   )
 
   /**
