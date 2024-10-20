@@ -143,6 +143,7 @@ class SubProcess(
   /**
    * Attempt to destroy the subprocess (gently), via the underlying JVM APIs
    */
+  @deprecated("Use destroy(shutdownGracePeriod = Long.MaxValue)")
   def destroy(): Unit = destroy(shutdownGracePeriod = Long.MaxValue)
 
   /**
