@@ -1,14 +1,11 @@
 package os
 
-import java.util.concurrent.{ArrayBlockingQueue, Semaphore, TimeUnit}
 import collection.JavaConverters._
-import scala.annotation.tailrec
 import java.lang.ProcessBuilder.Redirect
 import os.SubProcess.InputStream
 import java.io.IOException
 import java.util.concurrent.LinkedBlockingQueue
 import ProcessOps._
-import scala.util.Try
 
 object call {
 
@@ -28,7 +25,8 @@ object call {
       timeout: Long = -1,
       check: Boolean = true,
       propagateEnv: Boolean = true,
-      timeoutGracePeriod: Long = 100
+      timeoutGracePeriod: Long = 100,
+      shutdownHook: Boolean = false
   ): CommandResult = {
     os.proc(cmd).call(
       cwd = cwd,
@@ -40,7 +38,38 @@ object call {
       timeout = timeout,
       check = check,
       propagateEnv = propagateEnv,
-      timeoutGracePeriod = timeoutGracePeriod
+      timeoutGracePeriod = timeoutGracePeriod,
+      shutdownHook = shutdownHook
+    )
+  }
+  def apply(
+      cmd: Shellable,
+      env: Map[String, String],
+      // Make sure `cwd` only comes after `env`, so `os.call("foo", path)` is a compile error
+      // since the correct syntax is `os.call(("foo", path))`
+      cwd: Path,
+      stdin: ProcessInput,
+      stdout: ProcessOutput,
+      stderr: ProcessOutput,
+      mergeErrIntoOut: Boolean,
+      timeout: Long,
+      check: Boolean,
+      propagateEnv: Boolean,
+      timeoutGracePeriod: Long,
+  ): CommandResult = {
+    call(
+      cmd = cmd,
+      cwd = cwd,
+      env = env,
+      stdin = stdin,
+      stdout = stdout,
+      stderr = stderr,
+      mergeErrIntoOut = mergeErrIntoOut,
+      timeout = timeout,
+      check = check,
+      propagateEnv = propagateEnv,
+      timeoutGracePeriod = timeoutGracePeriod,
+      shutdownHook = false
     )
   }
 }
@@ -59,7 +88,8 @@ object spawn {
       stdout: ProcessOutput = Pipe,
       stderr: ProcessOutput = os.Inherit,
       mergeErrIntoOut: Boolean = false,
-      propagateEnv: Boolean = true
+      propagateEnv: Boolean = true,
+      shutdownHook: Boolean = false
   ): SubProcess = {
     os.proc(cmd).spawn(
       cwd = cwd,
@@ -68,7 +98,32 @@ object spawn {
       stdout = stdout,
       stderr = stderr,
       mergeErrIntoOut = mergeErrIntoOut,
-      propagateEnv = propagateEnv
+      propagateEnv = propagateEnv,
+      shutdownHook = shutdownHook
+    )
+  }
+  def apply(
+      cmd: Shellable,
+      // Make sure `cwd` only comes after `env`, so `os.spawn("foo", path)` is a compile error
+      // since the correct syntax is `os.spawn(("foo", path))`
+      env: Map[String, String],
+      cwd: Path,
+      stdin: ProcessInput,
+      stdout: ProcessOutput,
+      stderr: ProcessOutput,
+      mergeErrIntoOut: Boolean,
+      propagateEnv: Boolean
+  ): SubProcess = {
+    spawn(
+      cmd = cmd,
+      cwd = cwd,
+      env = env,
+      stdin = stdin,
+      stdout = stdout,
+      stderr = stderr,
+      mergeErrIntoOut = mergeErrIntoOut,
+      propagateEnv = propagateEnv,
+      shutdownHook = false
     )
   }
 }
@@ -138,7 +193,8 @@ case class proc(command: Shellable*) {
       check: Boolean = true,
       propagateEnv: Boolean = true,
       // this cannot be next to `timeout` as this will introduce a bin-compat break (default arguments are numbered in the bytecode)
-      timeoutGracePeriod: Long = 100
+      timeoutGracePeriod: Long = 100,
+      shutdownHook: Boolean = false
   ): CommandResult = {
 
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
@@ -191,6 +247,32 @@ case class proc(command: Shellable*) {
     timeoutGracePeriod = 100
   )
 
+  private[os] def call(
+                        cwd: Path,
+                        env: Map[String, String],
+                        stdin: ProcessInput,
+                        stdout: ProcessOutput,
+                        stderr: ProcessOutput,
+                        mergeErrIntoOut: Boolean,
+                        timeout: Long,
+                        check: Boolean,
+                        propagateEnv: Boolean,
+                        timeoutGracePeriod: Long
+                      ): CommandResult = call(
+    cwd,
+    env,
+    stdin,
+    stdout,
+    stderr,
+    mergeErrIntoOut,
+    timeout,
+    check,
+    propagateEnv,
+    timeoutGracePeriod,
+    shutdownHook = false
+  )
+
+
   /**
    * The most flexible of the [[os.proc]] calls, `os.proc.spawn` simply configures
    * and starts a subprocess, and returns it as a `java.lang.Process` for you to
@@ -208,7 +290,9 @@ case class proc(command: Shellable*) {
       stdout: ProcessOutput = Pipe,
       stderr: ProcessOutput = os.Inherit,
       mergeErrIntoOut: Boolean = false,
-      propagateEnv: Boolean = true
+      propagateEnv: Boolean = true,
+      shutdownGracePeriod: Long = 100,
+      shutdownHook: Boolean = false
   ): SubProcess = {
 
     val cmdChunks = commandChunks
@@ -230,12 +314,33 @@ case class proc(command: Shellable*) {
       propagateEnv
     )
 
+    lazy val shutdownHookThread =
+      if (!shutdownHook) None
+      else Some(new Thread("subprocess-shutdown-hook") {
+        override def run(): Unit = proc.destroyForcibly(shutdownGracePeriod)
+      })
+
+    lazy val shutdownHookMonitorThread = shutdownHookThread.map(t =>
+      new Thread("subprocess-shutdown-hook-monitor") {
+        override def run(): Unit = {
+          while(proc.wrapped.isAlive) Thread.sleep(1)
+          Runtime.getRuntime().removeShutdownHook(t)
+        }
+      }
+    )
+
+    shutdownHookThread.foreach(Runtime.getRuntime().addShutdownHook)
+
     lazy val proc: SubProcess = new SubProcess(
       builder.start(),
       resolvedStdin.processInput(proc.stdin).map(new Thread(_, commandStr + " stdin thread")),
       resolvedStdout.processOutput(proc.stdout).map(new Thread(_, commandStr + " stdout thread")),
-      resolvedStderr.processOutput(proc.stderr).map(new Thread(_, commandStr + " stderr thread"))
+      resolvedStderr.processOutput(proc.stderr).map(new Thread(_, commandStr + " stderr thread")),
+      shutdownGracePeriod = shutdownGracePeriod,
+      shutdownHookMonitorThread = shutdownHookMonitorThread
     )
+
+    shutdownHookMonitorThread.foreach(_.start())
 
     proc.inputPumperThread.foreach(_.start())
     proc.outputPumperThread.foreach(_.start())
@@ -243,6 +348,20 @@ case class proc(command: Shellable*) {
     proc
   }
 
+  def spawn(
+             cwd: Path,
+             env: Map[String, String],
+             stdin: ProcessInput,
+             stdout: ProcessOutput,
+             stderr: ProcessOutput,
+             mergeErrIntoOut: Boolean,
+             propagateEnv: Boolean
+           ): SubProcess = spawn(
+    cwd = cwd, env = env, stdin = stdin, stdout = stdout, stderr = stderr,
+    mergeErrIntoOut = mergeErrIntoOut,
+    propagateEnv = propagateEnv,
+    shutdownGracePeriod = 100, shutdownHook = false
+  )
   /**
    * Pipes the output of this process into the input of the [[next]] process. Returns a
    * [[ProcGroup]] containing both processes, which you can then either execute or

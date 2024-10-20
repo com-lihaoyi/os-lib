@@ -106,8 +106,17 @@ class SubProcess(
     val wrapped: java.lang.Process,
     val inputPumperThread: Option[Thread],
     val outputPumperThread: Option[Thread],
-    val errorPumperThread: Option[Thread]
+    val errorPumperThread: Option[Thread],
+    val shutdownGracePeriod: Long,
+    val shutdownHookMonitorThread: Option[Thread]
 ) extends ProcessLike {
+  def this(
+                    wrapped: java.lang.Process,
+                    inputPumperThread: Option[Thread],
+                    outputPumperThread: Option[Thread],
+                    errorPumperThread: Option[Thread]) = this(
+    wrapped, inputPumperThread, outputPumperThread, errorPumperThread, 100, None
+  )
   val stdin: SubProcess.InputStream = new SubProcess.InputStream(wrapped.getOutputStream)
   val stdout: SubProcess.OutputStream = new SubProcess.OutputStream(wrapped.getInputStream)
   val stderr: SubProcess.OutputStream = new SubProcess.OutputStream(wrapped.getErrorStream)
@@ -133,7 +142,17 @@ class SubProcess(
   /**
    * Force-destroys the subprocess, via the underlying JVM APIs
    */
-  def destroyForcibly(): Unit = wrapped.destroyForcibly()
+  def destroyForcibly(shutdownGracePeriod: Long = this.shutdownGracePeriod): Unit = {
+    val now = System.currentTimeMillis()
+
+    while(wrapped.isAlive && System.currentTimeMillis() - now < shutdownGracePeriod){
+      Thread.sleep(1)
+    }
+
+    if (wrapped.isAlive) wrapped.destroyForcibly()
+  }
+
+  def destroyForcibly(): Unit = destroyForcibly(shutdownGracePeriod = this.shutdownGracePeriod)
 
   /**
    * Alias for [[destroy]]
