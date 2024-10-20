@@ -26,7 +26,7 @@ object call {
       check: Boolean = true,
       propagateEnv: Boolean = true,
       shutdownGracePeriod: Long = 100,
-      shutdownHook: Boolean = false
+      shutdownHook: Boolean = true
   ): CommandResult = {
     os.proc(cmd).call(
       cwd = cwd,
@@ -90,7 +90,7 @@ object spawn {
       mergeErrIntoOut: Boolean = false,
       propagateEnv: Boolean = true,
       shutdownGracePeriod: Long = 100,
-      shutdownHook: Boolean = false
+      shutdownHook: Boolean = true
   ): SubProcess = {
     os.proc(cmd).spawn(
       cwd = cwd,
@@ -197,7 +197,7 @@ case class proc(command: Shellable*) {
       propagateEnv: Boolean = true,
       // this cannot be next to `timeout` as this will introduce a bin-compat break (default arguments are numbered in the bytecode)
       shutdownGracePeriod: Long = 100,
-      shutdownHook: Boolean = false
+      shutdownHook: Boolean = true
   ): CommandResult = {
 
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
@@ -294,7 +294,7 @@ case class proc(command: Shellable*) {
       mergeErrIntoOut: Boolean = false,
       propagateEnv: Boolean = true,
       shutdownGracePeriod: Long = 100,
-      shutdownHook: Boolean = false
+      shutdownHook: Boolean = true
   ): SubProcess = {
 
     val cmdChunks = commandChunks

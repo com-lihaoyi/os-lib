@@ -184,45 +184,48 @@ object SpawningSubprocessesNewTests extends TestSuite {
     }
 
     test("destroy") {
-      val temp1 = os.temp()
-      val sub1 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp1))
-      waitForLockTaken(temp1)
-      sub1.destroy()
-      assert(!sub1.isAlive())
+      if (Unix()) {
+        val temp1 = os.temp()
+        val sub1 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp1))
+        waitForLockTaken(temp1)
+        sub1.destroy()
+        assert(!sub1.isAlive())
 
-      val temp2 = os.temp()
-      val sub2 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp2))
-      waitForLockTaken(temp2)
-      sub2.destroy(async = true)
-      assert(sub2.isAlive())
+        val temp2 = os.temp()
+        val sub2 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp2))
+        waitForLockTaken(temp2)
+        sub2.destroy(async = true)
+        assert(sub2.isAlive())
+      }
     }
 
     test("spawnExitHook") {
+      if (Unix()) {
+        val temp = os.temp()
+        val lock0 = tryLock(temp)
+        // file starts off not locked so can be taken and released
+        assert(lock0 != null)
+        lock0.release()
 
-      val temp = os.temp()
-      val lock0 = tryLock(temp)
-      // file starts off not locked so can be taken and released
-      assert(lock0 != null)
-      lock0.release()
+        val subprocess = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp))
+        waitForLockTaken(temp)
 
-      val subprocess = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp))
-      waitForLockTaken(temp)
+        subprocess.destroy()
+        // after calling destroy on the subprocess, the transitive subprocess
+        // should be killed by the exit hook, so the lock can now be taken
+        val lock = tryLock(temp)
+        assert(lock != null)
 
-      subprocess.destroy()
-      // after calling destroy on the subprocess, the transitive subprocess
-      // should be killed by the exit hook, so the lock can now be taken
-      val lock = tryLock(temp)
-      assert(lock != null)
+        val temp2 = os.temp()
+        val subprocess2 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp2))
+        waitForLockTaken(temp2)
 
-      val temp2 = os.temp()
-      val subprocess2 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp2))
-      waitForLockTaken(temp2)
-
-      subprocess2.destroy(shutdownGracePeriod = 0)
-      // this should fail since the subprocess is shut down forcibly without grace period
-      // so there is no time for any exit hooks to run to shut down the transitive subprocess
-      val lock2 = tryLock(temp2)
-      assert(lock2 == null)
+        subprocess2.destroy(shutdownGracePeriod = 0)
+        // this should fail since the subprocess is shut down forcibly without grace period
+        // so there is no time for any exit hooks to run to shut down the transitive subprocess
+        val lock2 = tryLock(temp2)
+        assert(lock2 == null)
+      }
     }
   }
 }
