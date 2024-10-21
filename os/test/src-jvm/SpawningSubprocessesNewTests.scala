@@ -200,31 +200,62 @@ object SpawningSubprocessesNewTests extends TestSuite {
     }
 
     test("spawnExitHook") {
-      if (Unix()) {
-        val temp = os.temp()
-        val lock0 = tryLock(temp)
-        // file starts off not locked so can be taken and released
-        assert(lock0 != null)
-        lock0.release()
+      test("destroyDefaultGrace") {
+        if (Unix()) {
+          val temp = os.temp()
+          val lock0 = tryLock(temp)
+          // file starts off not locked so can be taken and released
+          assert(lock0 != null)
+          lock0.release()
 
-        val subprocess = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp))
-        waitForLockTaken(temp)
+          val subprocess = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp))
+          waitForLockTaken(temp)
 
-        subprocess.destroy()
-        // after calling destroy on the subprocess, the transitive subprocess
-        // should be killed by the exit hook, so the lock can now be taken
-        val lock = tryLock(temp)
-        assert(lock != null)
+          subprocess.destroy()
+          // after calling destroy on the subprocess, the transitive subprocess
+          // should be killed by the exit hook, so the lock can now be taken
+          val lock = tryLock(temp)
+          assert(lock != null)
+          lock.release()
+        }
+      }
 
-        val temp2 = os.temp()
-        val subprocess2 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp2))
-        waitForLockTaken(temp2)
+      test("destroyNoGrace") {
+        if (Unix()) {
+          val temp = os.temp()
+          val subprocess = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp))
+          waitForLockTaken(temp)
 
-        subprocess2.destroy(shutdownGracePeriod = 0)
-        // this should fail since the subprocess is shut down forcibly without grace period
-        // so there is no time for any exit hooks to run to shut down the transitive subprocess
-        val lock2 = tryLock(temp2)
-        assert(lock2 == null)
+          subprocess.destroy(shutdownGracePeriod = 0)
+          // this should fail since the subprocess is shut down forcibly without grace period
+          // so there is no time for any exit hooks to run to shut down the transitive subprocess
+          val lock = tryLock(temp)
+          assert(lock == null)
+        }
+      }
+
+      test("infiniteGrace") {
+        if (Unix()) {
+          val temp = os.temp()
+          val lock0 = tryLock(temp)
+          // file starts off not locked so can be taken and released
+          assert(lock0 != null)
+          lock0.release()
+
+          // Force the subprocess exit to stall for 500ms
+          val subprocess = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp, 500))
+          waitForLockTaken(temp)
+
+          val start = System.currentTimeMillis()
+          subprocess.destroy(shutdownGracePeriod = -1)
+          val end = System.currentTimeMillis()
+          // Because we set the shutdownGracePeriod to -1, it takes more than 500ms to shutdown,
+          // even though the default shutdown grace period is 100. But the sub-sub-process will
+          // have been shut down by the time the sub-process exits, so the lock is available
+          assert(end - start > 500)
+          val lock = tryLock(temp)
+          assert(lock != null)
+        }
       }
     }
   }

@@ -42,6 +42,8 @@ object call {
       destroyOnExit = destroyOnExit
     )
   }
+
+  // Bincompat Forwarder
   def apply(
       cmd: Shellable,
       env: Map[String, String],
@@ -104,6 +106,8 @@ object spawn {
       destroyOnExit = destroyOnExit
     )
   }
+
+  // Bincompat Forwarder
   def apply(
       cmd: Shellable,
       // Make sure `cwd` only comes after `env`, so `os.spawn("foo", path)` is a compile error
@@ -250,6 +254,7 @@ case class proc(command: Shellable*) {
     shutdownGracePeriod = 100
   )
 
+  // Bincompat Forwarder
   private[os] def call(
       cwd: Path,
       env: Map[String, String],
@@ -351,6 +356,7 @@ case class proc(command: Shellable*) {
     proc
   }
 
+  // Bincompat Forwarder
   def spawn(
       cwd: Path,
       env: Map[String, String],
