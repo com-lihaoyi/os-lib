@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.11.2
+:version: 0.11.3
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -2508,6 +2508,14 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+[#0-11-3]
+=== 0.11.3
+
+* `SubProcess` spawning operations now take an `destroyOnExit = true` flag to try and shut them
+  down when the host JVM exits, and `SubProcess#destroy` now takes a configurable
+  `(shutdownGracePeriod: Long, async: Boolean)` flags to configure the behavior (superseding
+  the old `destroy()`/`destroyForcibly()` methods) https://github.com/com-lihaoyi/os-lib/pull/324[#324]
 
 [#0-11-2]
 === 0.11.2
