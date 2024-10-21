@@ -11,21 +11,21 @@ object ManipulatingFilesFoldersTests extends TestSuite {
         os.exists(wd / "folder1") ==> true
         os.exists(wd / "doesnt-exist") ==> false
 
-        os.exists(wd / "misc" / "file-symlink") ==> true
-        os.exists(wd / "misc" / "folder-symlink") ==> true
-        os.exists(wd / "misc" / "broken-symlink") ==> false
-        os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> true
+        os.exists(wd / "misc/file-symlink") ==> true
+        os.exists(wd / "misc/folder-symlink") ==> true
+        os.exists(wd / "misc/broken-symlink") ==> false
+        os.exists(wd / "misc/broken-symlink", followLinks = false) ==> true
       }
     }
     test("move") {
       test - prep { wd =>
-        os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
-        os.move(wd / "folder1" / "one.txt", wd / "folder1" / "first.txt")
-        os.list(wd / "folder1") ==> Seq(wd / "folder1" / "first.txt")
+        os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
+        os.move(wd / "folder1/one.txt", wd / "folder1/first.txt")
+        os.list(wd / "folder1") ==> Seq(wd / "folder1/first.txt")
 
-        os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
-        os.move(wd / "folder2" / "nestedA", wd / "folder2" / "nestedC")
-        os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedB", wd / "folder2" / "nestedC")
+        os.list(wd / "folder2") ==> Seq(wd / "folder2/nestedA", wd / "folder2/nestedB")
+        os.move(wd / "folder2/nestedA", wd / "folder2/nestedC")
+        os.list(wd / "folder2") ==> Seq(wd / "folder2/nestedB", wd / "folder2/nestedC")
 
         os.read(wd / "File.txt") ==> "I am cow"
         os.move(wd / "Multi Line.txt", wd / "File.txt", replaceExisting = true)
@@ -39,49 +39,49 @@ object ManipulatingFilesFoldersTests extends TestSuite {
         test - prep { wd =>
           import os.{GlobSyntax, /}
           os.walk(wd / "folder2").toSet ==> Set(
-            wd / "folder2" / "nestedA",
-            wd / "folder2" / "nestedA" / "a.txt",
-            wd / "folder2" / "nestedB",
-            wd / "folder2" / "nestedB" / "b.txt"
+            wd / "folder2/nestedA",
+            wd / "folder2/nestedA/a.txt",
+            wd / "folder2/nestedB",
+            wd / "folder2/nestedB/b.txt"
           )
 
           os.walk(wd / "folder2").collect(os.move.matching { case p / g"$x.txt" => p / g"$x.data" })
 
           os.walk(wd / "folder2").toSet ==> Set(
-            wd / "folder2" / "nestedA",
-            wd / "folder2" / "nestedA" / "a.data",
-            wd / "folder2" / "nestedB",
-            wd / "folder2" / "nestedB" / "b.data"
+            wd / "folder2/nestedA",
+            wd / "folder2/nestedA/a.data",
+            wd / "folder2/nestedB",
+            wd / "folder2/nestedB/b.data"
           )
         }
       }
       test("into") {
         test - prep { wd =>
-          os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+          os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
           os.move.into(wd / "File.txt", wd / "folder1")
-          os.list(wd / "folder1") ==> Seq(wd / "folder1" / "File.txt", wd / "folder1" / "one.txt")
+          os.list(wd / "folder1") ==> Seq(wd / "folder1/File.txt", wd / "folder1/one.txt")
         }
       }
       test("over") {
         test - prep { wd =>
-          os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+          os.list(wd / "folder2") ==> Seq(wd / "folder2/nestedA", wd / "folder2/nestedB")
           os.move.over(wd / "folder1", wd / "folder2")
-          os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
+          os.list(wd / "folder2") ==> Seq(wd / "folder2/one.txt")
         }
       }
     }
     test("copy") {
       test - prep { wd =>
-        os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
-        os.copy(wd / "folder1" / "one.txt", wd / "folder1" / "first.txt")
-        os.list(wd / "folder1") ==> Seq(wd / "folder1" / "first.txt", wd / "folder1" / "one.txt")
+        os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
+        os.copy(wd / "folder1/one.txt", wd / "folder1/first.txt")
+        os.list(wd / "folder1") ==> Seq(wd / "folder1/first.txt", wd / "folder1/one.txt")
 
-        os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
-        os.copy(wd / "folder2" / "nestedA", wd / "folder2" / "nestedC")
+        os.list(wd / "folder2") ==> Seq(wd / "folder2/nestedA", wd / "folder2/nestedB")
+        os.copy(wd / "folder2/nestedA", wd / "folder2/nestedC")
         os.list(wd / "folder2") ==> Seq(
-          wd / "folder2" / "nestedA",
-          wd / "folder2" / "nestedB",
-          wd / "folder2" / "nestedC"
+          wd / "folder2/nestedA",
+          wd / "folder2/nestedB",
+          wd / "folder2/nestedC"
         )
 
         os.read(wd / "File.txt") ==> "I am cow"
@@ -94,23 +94,23 @@ object ManipulatingFilesFoldersTests extends TestSuite {
       }
       test("into") {
         test - prep { wd =>
-          os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+          os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
           os.copy.into(wd / "File.txt", wd / "folder1")
-          os.list(wd / "folder1") ==> Seq(wd / "folder1" / "File.txt", wd / "folder1" / "one.txt")
+          os.list(wd / "folder1") ==> Seq(wd / "folder1/File.txt", wd / "folder1/one.txt")
         }
       }
       test("over") {
         test - prep { wd =>
-          os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+          os.list(wd / "folder2") ==> Seq(wd / "folder2/nestedA", wd / "folder2/nestedB")
           os.copy.over(wd / "folder1", wd / "folder2")
-          os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
+          os.list(wd / "folder2") ==> Seq(wd / "folder2/one.txt")
         }
       }
       test("symlinks") {
         val src = os.temp.dir(deleteOnExit = true)
 
         os.makeDir(src / "t0")
-        os.write(src / "t0" / "file", "hello")
+        os.write(src / "t0/file", "hello")
         os.symlink(src / "t1", os.rel / "t0")
 
         val dest = os.temp.dir(deleteOnExit = true)
@@ -158,8 +158,8 @@ object ManipulatingFilesFoldersTests extends TestSuite {
       test("all") {
         test - prep { wd =>
           os.exists(wd / "new_folder") ==> false
-          os.makeDir.all(wd / "new_folder" / "inner" / "deep")
-          os.exists(wd / "new_folder" / "inner" / "deep") ==> true
+          os.makeDir.all(wd / "new_folder/inner/deep")
+          os.exists(wd / "new_folder/inner/deep") ==> true
         }
       }
     }
@@ -169,47 +169,47 @@ object ManipulatingFilesFoldersTests extends TestSuite {
         os.remove(wd / "File.txt")
         os.exists(wd / "File.txt") ==> false
 
-        os.exists(wd / "folder1" / "one.txt") ==> true
-        os.remove(wd / "folder1" / "one.txt")
+        os.exists(wd / "folder1/one.txt") ==> true
+        os.remove(wd / "folder1/one.txt")
         os.remove(wd / "folder1")
-        os.exists(wd / "folder1" / "one.txt") ==> false
+        os.exists(wd / "folder1/one.txt") ==> false
         os.exists(wd / "folder1") ==> false
       }
       test("link") {
         test - prep { wd =>
-          os.remove(wd / "misc" / "file-symlink")
-          os.exists(wd / "misc" / "file-symlink", followLinks = false) ==> false
+          os.remove(wd / "misc/file-symlink")
+          os.exists(wd / "misc/file-symlink", followLinks = false) ==> false
           os.exists(wd / "File.txt", followLinks = false) ==> true
 
-          os.remove(wd / "misc" / "folder-symlink")
-          os.exists(wd / "misc" / "folder-symlink", followLinks = false) ==> false
+          os.remove(wd / "misc/folder-symlink")
+          os.exists(wd / "misc/folder-symlink", followLinks = false) ==> false
           os.exists(wd / "folder1", followLinks = false) ==> true
-          os.exists(wd / "folder1" / "one.txt", followLinks = false) ==> true
+          os.exists(wd / "folder1/one.txt", followLinks = false) ==> true
 
-          os.remove(wd / "misc" / "broken-symlink")
-          os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
+          os.remove(wd / "misc/broken-symlink")
+          os.exists(wd / "misc/broken-symlink", followLinks = false) ==> false
         }
       }
       test("all") {
         test - prep { wd =>
-          os.exists(wd / "folder1" / "one.txt") ==> true
+          os.exists(wd / "folder1/one.txt") ==> true
           os.remove.all(wd / "folder1")
-          os.exists(wd / "folder1" / "one.txt") ==> false
+          os.exists(wd / "folder1/one.txt") ==> false
           os.exists(wd / "folder1") ==> false
         }
         test("link") {
           test - prep { wd =>
-            os.remove.all(wd / "misc" / "file-symlink")
-            os.exists(wd / "misc" / "file-symlink", followLinks = false) ==> false
+            os.remove.all(wd / "misc/file-symlink")
+            os.exists(wd / "misc/file-symlink", followLinks = false) ==> false
             os.exists(wd / "File.txt", followLinks = false) ==> true
 
-            os.remove.all(wd / "misc" / "folder-symlink")
-            os.exists(wd / "misc" / "folder-symlink", followLinks = false) ==> false
+            os.remove.all(wd / "misc/folder-symlink")
+            os.exists(wd / "misc/folder-symlink", followLinks = false) ==> false
             os.exists(wd / "folder1", followLinks = false) ==> true
-            os.exists(wd / "folder1" / "one.txt", followLinks = false) ==> true
+            os.exists(wd / "folder1/one.txt", followLinks = false) ==> true
 
-            os.remove.all(wd / "misc" / "broken-symlink")
-            os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
+            os.remove.all(wd / "misc/broken-symlink")
+            os.exists(wd / "misc/broken-symlink", followLinks = false) ==> false
           }
         }
       }
@@ -237,23 +237,23 @@ object ManipulatingFilesFoldersTests extends TestSuite {
     }
     test("followLink") {
       test - prep { wd =>
-        os.followLink(wd / "misc" / "file-symlink") ==> Some(wd / "File.txt")
-        os.followLink(wd / "misc" / "folder-symlink") ==> Some(wd / "folder1")
-        os.followLink(wd / "misc" / "broken-symlink") ==> None
+        os.followLink(wd / "misc/file-symlink") ==> Some(wd / "File.txt")
+        os.followLink(wd / "misc/folder-symlink") ==> Some(wd / "folder1")
+        os.followLink(wd / "misc/broken-symlink") ==> None
       }
     }
     test("readLink") {
       test - prep { wd =>
         if (Unix()) {
-          os.readLink(wd / "misc" / "file-symlink") ==> os.up / "File.txt"
-          os.readLink(wd / "misc" / "folder-symlink") ==> os.up / "folder1"
-          os.readLink(wd / "misc" / "broken-symlink") ==> os.rel / "broken"
-          os.readLink(wd / "misc" / "broken-abs-symlink") ==> os.root / "doesnt" / "exist"
+          os.readLink(wd / "misc/file-symlink") ==> os.up / "File.txt"
+          os.readLink(wd / "misc/folder-symlink") ==> os.up / "folder1"
+          os.readLink(wd / "misc/broken-symlink") ==> os.rel / "broken"
+          os.readLink(wd / "misc/broken-abs-symlink") ==> os.root / "doesnt/exist"
 
-          os.readLink.absolute(wd / "misc" / "file-symlink") ==> wd / "File.txt"
-          os.readLink.absolute(wd / "misc" / "folder-symlink") ==> wd / "folder1"
-          os.readLink.absolute(wd / "misc" / "broken-symlink") ==> wd / "misc" / "broken"
-          os.readLink.absolute(wd / "misc" / "broken-abs-symlink") ==> os.root / "doesnt" / "exist"
+          os.readLink.absolute(wd / "misc/file-symlink") ==> wd / "File.txt"
+          os.readLink.absolute(wd / "misc/folder-symlink") ==> wd / "folder1"
+          os.readLink.absolute(wd / "misc/broken-symlink") ==> wd / "misc/broken"
+          os.readLink.absolute(wd / "misc/broken-abs-symlink") ==> os.root / "doesnt/exist"
         }
       }
     }

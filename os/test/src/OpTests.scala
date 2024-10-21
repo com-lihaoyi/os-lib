@@ -10,7 +10,7 @@ import java.nio.charset.Charset
 object OpTests extends TestSuite {
 
   val tests = Tests {
-    val res = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "test"
+    val res = os.pwd / "os/test/resources/test"
     test("ls") - assert(
       os.list(res).toSet == Set(
         res / "folder1",
@@ -21,38 +21,38 @@ object OpTests extends TestSuite {
         res / "Multi Line.txt"
       ),
       os.list(res / "folder2").toSet == Set(
-        res / "folder2" / "nestedA",
-        res / "folder2" / "nestedB"
+        res / "folder2/nestedA",
+        res / "folder2/nestedB"
       )
     )
     test("rm") {
       // shouldn't crash
-      os.remove.all(os.pwd / "out" / "scratch" / "nonexistent")
+      os.remove.all(os.pwd / "out/scratch/nonexistent")
       // shouldn't crash
-      os.remove(os.pwd / "out" / "scratch" / "nonexistent") ==> false
+      os.remove(os.pwd / "out/scratch/nonexistent") ==> false
 
       // should crash
       intercept[NoSuchFileException] {
-        os.remove(os.pwd / "out" / "scratch" / "nonexistent", checkExists = true)
+        os.remove(os.pwd / "out/scratch/nonexistent", checkExists = true)
       }
     }
     test("lsR") {
       os.walk(res).foreach(println)
       intercept[java.nio.file.NoSuchFileException](
-        os.walk(os.pwd / "out" / "scratch" / "nonexistent")
+        os.walk(os.pwd / "out/scratch/nonexistent")
       )
       assert(
-        os.walk(res / "folder2" / "nestedB") == Seq(res / "folder2" / "nestedB" / "b.txt"),
+        os.walk(res / "folder2/nestedB") == Seq(res / "folder2/nestedB/b.txt"),
         os.walk(res / "folder2").toSet == Set(
-          res / "folder2" / "nestedA",
-          res / "folder2" / "nestedA" / "a.txt",
-          res / "folder2" / "nestedB",
-          res / "folder2" / "nestedB" / "b.txt"
+          res / "folder2/nestedA",
+          res / "folder2/nestedA/a.txt",
+          res / "folder2/nestedB",
+          res / "folder2/nestedB/b.txt"
         )
       )
     }
     test("Mutating") {
-      val testFolder = os.pwd / "out" / "scratch" / "test"
+      val testFolder = os.pwd / "out/scratch/test"
       os.remove.all(testFolder)
       os.makeDir.all(testFolder)
       test("cp") {
@@ -82,17 +82,17 @@ object OpTests extends TestSuite {
           )
         }
         test("deep") {
-          os.write(d / "folderA" / "folderB" / "file", "Cow", createFolders = true)
+          os.write(d / "folderA/folderB/file", "Cow", createFolders = true)
           os.copy(d / "folderA", d / "folderC")
-          assert(os.read(d / "folderC" / "folderB" / "file") == "Cow")
+          assert(os.read(d / "folderC/folderB/file") == "Cow")
         }
         test("merging") {
           val mergeDir = d / "merge"
-          os.write(mergeDir / "folderA" / "folderB" / "file", "Cow", createFolders = true)
-          os.write(mergeDir / "folderC" / "file", "moo", createFolders = true)
+          os.write(mergeDir / "folderA/folderB/file", "Cow", createFolders = true)
+          os.write(mergeDir / "folderC/file", "moo", createFolders = true)
           os.copy(mergeDir / "folderA", mergeDir / "folderC", mergeFolders = true)
-          assert(os.read(mergeDir / "folderC" / "folderB" / "file") == "Cow")
-          assert(os.read(mergeDir / "folderC" / "file") == "moo")
+          assert(os.read(mergeDir / "folderC/folderB/file") == "Cow")
+          assert(os.read(mergeDir / "folderC/file") == "moo")
         }
       }
       test("mv") {
@@ -130,19 +130,19 @@ object OpTests extends TestSuite {
           val d = testFolder / "moving2"
           os.makeDir(d)
           os.makeDir(d / "scala")
-          os.write(d / "scala" / "A", "AScala")
-          os.write(d / "scala" / "B", "BScala")
+          os.write(d / "scala/A", "AScala")
+          os.write(d / "scala/B", "BScala")
           os.makeDir(d / "py")
-          os.write(d / "py" / "A", "APy")
-          os.write(d / "py" / "B", "BPy")
+          os.write(d / "py/A", "APy")
+          os.write(d / "py/B", "BPy")
           test("partialMoves") {
             os.walk(d).collect(os.move.matching { case d / "py" / x => d / x })
             assert(
               os.walk(d).toSet == Set(
                 d / "py",
                 d / "scala",
-                d / "scala" / "A",
-                d / "scala" / "B",
+                d / "scala/A",
+                d / "scala/B",
                 d / "A",
                 d / "B"
               )
@@ -153,8 +153,8 @@ object OpTests extends TestSuite {
             intercept[MatchError] { die }
 
             os.walk(d).filter(os.isFile).map(os.move.matching {
-              case d / "py" / x => d / "scala" / "py" / x
-              case d / "scala" / x => d / "py" / "scala" / x
+              case d / "py" / x => d / "scala/py" / x
+              case d / "scala" / x => d / "py/scala" / x
               case d => println("NOT FOUND " + d); d
             })
 
@@ -162,12 +162,12 @@ object OpTests extends TestSuite {
               os.walk(d).toSet == Set(
                 d / "py",
                 d / "scala",
-                d / "py" / "scala",
-                d / "scala" / "py",
-                d / "scala" / "py" / "A",
-                d / "scala" / "py" / "B",
-                d / "py" / "scala" / "A",
-                d / "py" / "scala" / "B"
+                d / "py/scala",
+                d / "scala/py",
+                d / "scala/py/A",
+                d / "scala/py/B",
+                d / "py/scala/A",
+                d / "py/scala/B"
               )
             )
           }
@@ -185,11 +185,11 @@ object OpTests extends TestSuite {
         }
         test("nestedFolders") {
           val nested = testFolder / "nested"
-          os.makeDir.all(nested / "inner" / "innerer" / "innerest")
+          os.makeDir.all(nested / "inner/innerer/innerest")
           assert(
             os.list(nested) == Seq(nested / "inner"),
-            os.list(nested / "inner") == Seq(nested / "inner" / "innerer"),
-            os.list(nested / "inner" / "innerer") == Seq(nested / "inner" / "innerer" / "innerest")
+            os.list(nested / "inner") == Seq(nested / "inner/innerer"),
+            os.list(nested / "inner/innerer") == Seq(nested / "inner/innerer/innerest")
           )
           os.remove.all(nested / "inner")
           assert(os.list(nested) == Seq())
@@ -204,8 +204,8 @@ object OpTests extends TestSuite {
           assert(os.read(d / "file") == "i am a cow")
         }
         test("autoMkdir") {
-          os.write(d / "folder" / "folder" / "file", "i am a cow", createFolders = true)
-          assert(os.read(d / "folder" / "folder" / "file") == "i am a cow")
+          os.write(d / "folder/folder/file", "i am a cow", createFolders = true)
+          assert(os.read(d / "folder/folder/file") == "i am a cow")
         }
         test("binary") {
           os.write(d / "file", Array[Byte](1, 2, 3, 4))

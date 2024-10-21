@@ -34,6 +34,7 @@ object write {
         else Array(PosixFilePermissions.asFileAttribute(perms.toSet()))
       java.nio.file.Files.createFile(target.toNIO, permArray: _*)
     }
+
     java.nio.file.Files.newOutputStream(
       target.toNIO,
       openOptions.toArray: _*
@@ -246,6 +247,7 @@ object read extends Function1[ReadablePath, String] {
 
   object stream extends Function1[ReadablePath, geny.Readable] {
     def apply(p: ReadablePath): geny.Readable = new geny.Readable {
+      override def contentLength: Option[Long] = p.toSource.contentLength
       def readBytesThrough[T](f: java.io.InputStream => T): T = {
         val is = p.getInputStream
         try f(is)

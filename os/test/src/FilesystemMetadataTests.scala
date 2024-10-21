@@ -28,9 +28,9 @@ object FilesystemMetadataTests extends TestSuite {
         os.isFile(wd / "File.txt") ==> true
         os.isFile(wd / "folder1") ==> false
 
-        os.isFile(wd / "misc" / "file-symlink") ==> true
-        os.isFile(wd / "misc" / "folder-symlink") ==> false
-        os.isFile(wd / "misc" / "file-symlink", followLinks = false) ==> false
+        os.isFile(wd / "misc/file-symlink") ==> true
+        os.isFile(wd / "misc/folder-symlink") ==> false
+        os.isFile(wd / "misc/file-symlink", followLinks = false) ==> false
       }
     }
     test("isDir") {
@@ -38,15 +38,15 @@ object FilesystemMetadataTests extends TestSuite {
         os.isDir(wd / "File.txt") ==> false
         os.isDir(wd / "folder1") ==> true
 
-        os.isDir(wd / "misc" / "file-symlink") ==> false
-        os.isDir(wd / "misc" / "folder-symlink") ==> true
-        os.isDir(wd / "misc" / "folder-symlink", followLinks = false) ==> false
+        os.isDir(wd / "misc/file-symlink") ==> false
+        os.isDir(wd / "misc/folder-symlink") ==> true
+        os.isDir(wd / "misc/folder-symlink", followLinks = false) ==> false
       }
     }
     test("isLink") {
       test - prep { wd =>
-        os.isLink(wd / "misc" / "file-symlink") ==> true
-        os.isLink(wd / "misc" / "folder-symlink") ==> true
+        os.isLink(wd / "misc/file-symlink") ==> true
+        os.isLink(wd / "misc/folder-symlink") ==> true
         os.isLink(wd / "folder1") ==> false
       }
     }
@@ -63,12 +63,12 @@ object FilesystemMetadataTests extends TestSuite {
 
         os.mtime.set(wd / "File.txt", 90000)
         os.mtime(wd / "File.txt") ==> 90000
-        os.mtime(wd / "misc" / "file-symlink") ==> 90000
+        os.mtime(wd / "misc/file-symlink") ==> 90000
 
-        os.mtime.set(wd / "misc" / "file-symlink", 70000)
+        os.mtime.set(wd / "misc/file-symlink", 70000)
         os.mtime(wd / "File.txt") ==> 70000
-        os.mtime(wd / "misc" / "file-symlink") ==> 70000
-        assert(os.mtime(wd / "misc" / "file-symlink", followLinks = false) != 40000)
+        os.mtime(wd / "misc/file-symlink") ==> 70000
+        assert(os.mtime(wd / "misc/file-symlink", followLinks = false) != 40000)
 
       }
     }

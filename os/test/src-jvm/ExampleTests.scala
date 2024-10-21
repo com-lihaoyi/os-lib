@@ -9,7 +9,7 @@ object ExampleTests extends TestSuite {
     test("splash") - TestUtil.prep { wd =>
       if (Unix()) {
         // Make sure working directory exists and is empty
-        val wd = os.pwd / "out" / "splash"
+        val wd = os.pwd / "out/splash"
         os.remove.all(wd)
         os.makeDir.all(wd)
 
@@ -95,8 +95,8 @@ object ExampleTests extends TestSuite {
 
       // ignore multiline (second file) because its size varies
       largestThree.filterNot(_._2.last == "Multi Line.txt") ==> Seq(
-        (711, wd / "misc" / "binary.png"),
-        (22, wd / "folder1" / "one.txt")
+        (711, wd / "misc/binary.png"),
+        (22, wd / "folder1/one.txt")
       )
     }
 
@@ -115,9 +115,9 @@ object ExampleTests extends TestSuite {
     }
     test("comparison") {
 
-      os.remove.all(os.pwd / "out" / "scratch" / "folder" / "thing" / "file")
+      os.remove.all(os.pwd / "out/scratch/folder/thing/file")
       os.write(
-        os.pwd / "out" / "scratch" / "folder" / "thing" / "file",
+        os.pwd / "out/scratch/folder/thing/file",
         "Hello!",
         createFolders = true
       )
@@ -135,16 +135,16 @@ object ExampleTests extends TestSuite {
       }
       removeAll("out/scratch/folder/thing")
 
-      assert(os.list(os.pwd / "out" / "scratch" / "folder").toSeq == Nil)
+      assert(os.list(os.pwd / "out/scratch/folder").toSeq == Nil)
 
       os.write(
-        os.pwd / "out" / "scratch" / "folder" / "thing" / "file",
+        os.pwd / "out/scratch/folder/thing/file",
         "Hello!",
         createFolders = true
       )
 
-      os.remove.all(os.pwd / "out" / "scratch" / "folder" / "thing")
-      assert(os.list(os.pwd / "out" / "scratch" / "folder").toSeq == Nil)
+      os.remove.all(os.pwd / "out/scratch/folder/thing")
+      assert(os.list(os.pwd / "out/scratch/folder").toSeq == Nil)
     }
 
     test("constructingPaths") {
@@ -155,13 +155,13 @@ object ExampleTests extends TestSuite {
       val wd = os.pwd
 
       // A path nested inside `wd`
-      wd / "folder" / "file"
+      wd / "folder/file"
 
       // A path starting from the root
-      os.root / "folder" / "file"
+      os.root / "folder/file"
 
       // A path with spaces or other special characters
-      wd / "My Folder" / "My File.txt"
+      wd / "My Folder/My File.txt"
 
       // Up one level from the wd
       wd / os.up
@@ -171,17 +171,17 @@ object ExampleTests extends TestSuite {
     }
     test("newPath") {
 
-      val target = os.pwd / "out" / "scratch"
+      val target = os.pwd / "out/scratch"
     }
     test("relPaths") {
 
       // The path "folder/file"
-      val rel1 = os.rel / "folder" / "file"
-      val rel2 = os.rel / "folder" / "file"
+      val rel1 = os.rel / "folder/file"
+      val rel2 = os.rel / "folder/file"
 
       // The relative difference between two paths
-      val target = os.pwd / "out" / "scratch" / "file"
-      assert((target relativeTo os.pwd) == os.rel / "out" / "scratch" / "file")
+      val target = os.pwd / "out/scratch/file"
+      assert((target relativeTo os.pwd) == os.rel / "out/scratch/file")
 
       // `up`s get resolved automatically
       val minus = os.pwd relativeTo target
@@ -195,15 +195,15 @@ object ExampleTests extends TestSuite {
     test("subPaths") {
 
       // The path "folder/file"
-      val sub1 = os.sub / "folder" / "file"
-      val sub2 = os.sub / "folder" / "file"
+      val sub1 = os.sub / "folder/file"
+      val sub2 = os.sub / "folder/file"
 
       // The relative difference between two paths
-      val target = os.pwd / "out" / "scratch" / "file"
-      assert((target subRelativeTo os.pwd) == os.sub / "out" / "scratch" / "file")
+      val target = os.pwd / "out/scratch/file"
+      assert((target subRelativeTo os.pwd) == os.sub / "out/scratch/file")
 
       // Converting os.RelPath to os.SubPath
-      val rel3 = os.rel / "folder" / "file"
+      val rel3 = os.rel / "folder/file"
       val sub3 = rel3.asSubPath
 
       // `up`s are not allowed in sub paths
@@ -211,44 +211,44 @@ object ExampleTests extends TestSuite {
     }
     test("relSubPathEquality") {
       assert(
-        (os.sub / "hello" / "world") == (os.rel / "hello" / "world"),
+        (os.sub / "hello/world") == (os.rel / "hello/world"),
         os.sub == os.rel
       )
     }
     test("relPathCombine") {
-      val target = os.pwd / "out" / "scratch" / "file"
+      val target = os.pwd / "out/scratch/file"
       val rel = target relativeTo os.pwd
-      val newBase = os.root / "code" / "server"
-      assert(newBase / rel == os.root / "code" / "server" / "out" / "scratch" / "file")
+      val newBase = os.root / "code/server"
+      assert(newBase / rel == os.root / "code/server/out/scratch/file")
     }
     test("subPathCombine") {
-      val target = os.pwd / "out" / "scratch" / "file"
+      val target = os.pwd / "out/scratch/file"
       val sub = target subRelativeTo os.pwd
-      val newBase = os.root / "code" / "server"
+      val newBase = os.root / "code/server"
       assert(
-        newBase / sub == os.root / "code" / "server" / "out" / "scratch" / "file",
-        sub / sub == os.sub / "out" / "scratch" / "file" / "out" / "scratch" / "file"
+        newBase / sub == os.root / "code/server/out/scratch/file",
+        sub / sub == os.sub / "out/scratch/file/out/scratch/file"
       )
     }
     test("pathUp") {
-      val target = os.root / "out" / "scratch" / "file"
-      assert(target / os.up == os.root / "out" / "scratch")
+      val target = os.root / "out/scratch/file"
+      assert(target / os.up == os.root / "out/scratch")
     }
     test("relPathUp") {
-      val target = os.rel / "out" / "scratch" / "file"
-      assert(target / os.up == os.rel / "out" / "scratch")
+      val target = os.rel / "out/scratch/file"
+      assert(target / os.up == os.rel / "out/scratch")
     }
     test("relPathUp") {
-      val target = os.sub / "out" / "scratch" / "file"
-      assert(target / os.up == os.sub / "out" / "scratch")
+      val target = os.sub / "out/scratch/file"
+      assert(target / os.up == os.sub / "out/scratch")
     }
     test("canonical") {
       if (Unix()) {
 
-        assert((os.root / "folder" / "file" / os.up).toString == "/folder")
+        assert((os.root / "folder/file" / os.up).toString == "/folder")
         // not "/folder/file/.."
 
-        assert((os.rel / "folder" / "file" / os.up).toString == "folder")
+        assert((os.rel / "folder/file" / os.up).toString == "folder")
         // not "folder/file/.."
       }
     }

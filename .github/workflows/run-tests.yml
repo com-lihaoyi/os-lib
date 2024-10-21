@@ -1,0 +1,65 @@
+name: Run Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        java-version: [11, 17]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: ${{ matrix.java-version }}
+      - name: Fetch millw launcher (Windows)
+        run: curl -Lo mill.bat "https://raw.githubusercontent.com/lefou/millw/main/millw.bat"
+        if: matrix.os == 'windows-latest'
+
+      - run: ./mill -i -k __.test
+        if: matrix.os != 'windows-latest'
+      - run: ./mill.bat -i -k __.jvm.__.test
+        if: matrix.os == 'windows-latest'
+
+  check-bin-compat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 8
+
+      - run: ./mill -i -k __.mimaReportBinaryIssues
+
+  check-formatting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      - run: ./mill -i mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources

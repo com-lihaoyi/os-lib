@@ -2,32 +2,76 @@ package os
 
 import java.net.URI
 import java.nio.file.Paths
-
 import collection.JavaConverters._
 import scala.language.implicitConversions
-import java.nio.file
+import acyclic.skipped
+import os.PathError.{InvalidSegment, NonCanonicalLiteral}
+
+import scala.util.Try //needed for cross-version defined macros
 
 trait PathChunk {
   def segments: Seq[String]
   def ups: Int
 }
-object PathChunk {
+trait StringPathChunkConversion {
+
+  implicit def stringToPathChunk(s: String): PathChunk =
+    new PathChunk.StringPathChunkInternal(s)
+}
+
+object PathChunk extends PathChunkMacros {
+  def segmentsFromString(s: String): Array[String] = {
+    val trailingSeparatorsCount = s.reverseIterator.takeWhile(_ == '/').length
+    val strNoTrailingSeps = s.dropRight(trailingSeparatorsCount)
+    val splitted = strNoTrailingSeps.split('/')
+    splitted ++ Array.fill(trailingSeparatorsCount)("")
+  }
+
+  private[os] def segmentsFromStringLiteralValidation(literal: String): Array[String] = {
+    val stringSegments = segmentsFromString(literal)
+    val validSegmnts = validLiteralSegments(stringSegments)
+    val sanitizedLiteral = validSegmnts.mkString("/")
+    if (validSegmnts.isEmpty) throw InvalidSegment(
+      literal,
+      s"Literal path sequence [$literal] doesn't affect path being formed, please remove it"
+    )
+    if (literal != sanitizedLiteral) throw NonCanonicalLiteral(literal, sanitizedLiteral)
+    stringSegments
+  }
+  private def validLiteralSegments(segments: Array[String]): Array[String] = {
+    val AllowedLiteralSegment = ".."
+    segments.collect {
+      case AllowedLiteralSegment => AllowedLiteralSegment
+      case segment if Try(BasePath.checkSegment(segment)).isSuccess => segment
+    }
+  }
+
   implicit class RelPathChunk(r: RelPath) extends PathChunk {
     def segments = r.segments
     def ups = r.ups
     override def toString() = r.toString
   }
+
   implicit class SubPathChunk(r: SubPath) extends PathChunk {
     def segments = r.segments
     def ups = 0
     override def toString() = r.toString
   }
-  implicit class StringPathChunk(s: String) extends PathChunk {
+
+  // Implicit String => PathChunk conversion used inside os-lib, prevents macro expansion in same compilation unit
+  private[os] implicit class StringPathChunkInternal(s: String) extends PathChunk {
     BasePath.checkSegment(s)
     def segments = Seq(s)
     def ups = 0
     override def toString() = s
   }
+
+  // binary compatibility shim
+  class StringPathChunk(s: String) extends StringPathChunkInternal(s)
+
+  // binary compatibility shim
+  def StringPathChunk(s: String): StringPathChunk = new StringPathChunk(s)
+
   implicit class SymbolPathChunk(s: Symbol) extends PathChunk {
     BasePath.checkSegment(s.name)
     def segments = Seq(s.name)
@@ -127,34 +171,31 @@ object BasePath {
   def checkSegment(s: String) = {
     def fail(msg: String) = throw PathError.InvalidSegment(s, msg)
     def considerStr =
-      "use the Path(...) or RelPath(...) constructor calls to convert them. "
+      "If you are dealing with dynamic path-strings coming from external sources, " +
+        "use the Path(...)/RelPath(...)/SubPath(...) constructor calls to convert them."
 
     s.indexOf('/') match {
       case -1 => // do nothing
       case c => fail(
-          s"[/] is not a valid character to appear in a path segment. " +
-            "If you want to parse an absolute or relative path that may have " +
-            "multiple segments, e.g. path-strings coming from external sources " +
+          s"[/] is not a valid character to appear in a non-literal path segment. " +
             considerStr
         )
 
     }
-    def externalStr = "If you are dealing with path-strings coming from external sources, "
     s match {
       case "" =>
         fail(
-          "OS-Lib does not allow empty path segments " +
-            externalStr + considerStr
+          "OS-Lib does not allow empty path segments. " +
+            considerStr
         )
       case "." =>
         fail(
-          "OS-Lib does not allow [.] as a path segment " +
-            externalStr + considerStr
+          "OS-Lib does not allow [.] in a non-literal path segment. " +
+            considerStr
         )
       case ".." =>
         fail(
-          "OS-Lib does not allow [..] as a path segment " +
-            externalStr +
+          "OS-Lib does not allow [..] in a non-literal path segment. " +
             considerStr +
             "If you want to use the `..` segment manually to represent going up " +
             "one level in the path, use the `up` segment from `os.up` " +
@@ -227,6 +268,11 @@ object PathError {
 
   case class LastOnEmptyPath()
       extends IAE("empty path has no last segment")
+
+  case class NonCanonicalLiteral(providedLiteral: String, sanitizedLiteral: String)
+      extends IAE(
+        s"Literal path sequence [$providedLiteral] used in OS-Lib must be in a canonical form, please use [$sanitizedLiteral] instead"
+      )
 }
 
 /**
@@ -297,6 +343,7 @@ class RelPath private[os] (segments0: Array[String], val ups: Int)
 }
 
 object RelPath {
+
   def apply[T: PathConvertible](f0: T): RelPath = {
     val f = implicitly[PathConvertible[T]].apply(f0)
 
@@ -319,6 +366,10 @@ object RelPath {
   val up: RelPath = new RelPath(Internals.emptyStringArray, 1)
   val rel: RelPath = new RelPath(Internals.emptyStringArray, 0)
   implicit def SubRelPath(p: SubPath): RelPath = new RelPath(p.segments0, 0)
+  def fromStringSegments(segments: Array[String]): RelPath = segments.foldLeft(RelPath.rel) {
+    case (agg, "..") => agg / up
+    case (agg, seg) => agg / seg
+  }
 }
 
 /**
@@ -473,6 +524,7 @@ object Path {
 
 trait ReadablePath {
   def toSource: os.Source
+
   def getInputStream: java.io.InputStream
 }
 
@@ -482,8 +534,10 @@ trait ReadablePath {
  */
 class Path private[os] (val wrapped: java.nio.file.Path)
     extends FilePath with ReadablePath with BasePathImpl {
-  def toSource: SeekableSource =
-    new SeekableSource.ChannelSource(java.nio.file.Files.newByteChannel(wrapped))
+  def toSource: SeekableSource = new SeekableSource.ChannelLengthSource(
+    java.nio.file.Files.newByteChannel(wrapped),
+    java.nio.file.Files.size(wrapped)
+  )
 
   require(wrapped.isAbsolute || Path.driveRelative(wrapped), s"$wrapped is not an absolute path")
   def root = Option(wrapped.getRoot).map(_.toString).getOrElse("")

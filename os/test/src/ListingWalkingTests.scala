@@ -7,14 +7,14 @@ object ListingWalkingTests extends TestSuite {
   def tests = Tests {
     test("list") {
       test - prep { wd =>
-        os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+        os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
         os.list(wd / "folder2") ==> Seq(
-          wd / "folder2" / "nestedA",
-          wd / "folder2" / "nestedB"
+          wd / "folder2/nestedA",
+          wd / "folder2/nestedB"
         )
 
-        os.list(wd / "misc" / "folder-symlink") ==> Seq(
-          wd / "misc" / "folder-symlink" / "one.txt"
+        os.list(wd / "misc/folder-symlink") ==> Seq(
+          wd / "misc/folder-symlink/one.txt"
         )
       }
       test("stream") {
@@ -30,39 +30,39 @@ object ListingWalkingTests extends TestSuite {
     }
     test("walk") {
       test - prep { wd =>
-        os.walk(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+        os.walk(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
 
         os.walk(wd / "folder1", includeTarget = true) ==> Seq(
           wd / "folder1",
-          wd / "folder1" / "one.txt"
+          wd / "folder1/one.txt"
         )
 
         os.walk(wd / "folder2").toSet ==> Set(
-          wd / "folder2" / "nestedA",
-          wd / "folder2" / "nestedA" / "a.txt",
-          wd / "folder2" / "nestedB",
-          wd / "folder2" / "nestedB" / "b.txt"
+          wd / "folder2/nestedA",
+          wd / "folder2/nestedA/a.txt",
+          wd / "folder2/nestedB",
+          wd / "folder2/nestedB/b.txt"
         )
 
         os.walk(wd / "folder2", preOrder = false).toSet ==> Set(
-          wd / "folder2" / "nestedA" / "a.txt",
-          wd / "folder2" / "nestedA",
-          wd / "folder2" / "nestedB" / "b.txt",
-          wd / "folder2" / "nestedB"
+          wd / "folder2/nestedA/a.txt",
+          wd / "folder2/nestedA",
+          wd / "folder2/nestedB/b.txt",
+          wd / "folder2/nestedB"
         )
 
         os.walk(wd / "folder2", maxDepth = 1).toSet ==> Set(
-          wd / "folder2" / "nestedA",
-          wd / "folder2" / "nestedB"
+          wd / "folder2/nestedA",
+          wd / "folder2/nestedB"
         )
 
         os.walk(wd / "folder2", skip = _.last == "nestedA").toSet ==> Set(
-          wd / "folder2" / "nestedB",
-          wd / "folder2" / "nestedB" / "b.txt"
+          wd / "folder2/nestedB",
+          wd / "folder2/nestedB/b.txt"
         )
 
-        os.walk(wd / "misc" / "folder-symlink").toSet ==> Set(
-          wd / "misc" / "folder-symlink" / "one.txt"
+        os.walk(wd / "misc/folder-symlink").toSet ==> Set(
+          wd / "misc/folder-symlink/one.txt"
         )
       }
       test("attrs") {
@@ -73,11 +73,11 @@ object ListingWalkingTests extends TestSuite {
               .collect { case (p, attrs) if attrs.isFile => p }
 
             filesSortedBySize ==> Seq(
-              wd / "misc" / "echo",
-              wd / "misc" / "file-symlink",
-              wd / "misc" / "echo_with_wd",
-              wd / "misc" / "folder-symlink" / "one.txt",
-              wd / "misc" / "binary.png"
+              wd / "misc/echo",
+              wd / "misc/file-symlink",
+              wd / "misc/echo_with_wd",
+              wd / "misc/folder-symlink/one.txt",
+              wd / "misc/binary.png"
             )
           }
         }

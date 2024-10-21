@@ -19,11 +19,13 @@ val scalaVersions = Seq(
 ) ++ communityBuildDottyVersion
 
 object Deps {
-  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.12"
-  val jna = ivy"net.java.dev.jna:jna:5.14.0"
+  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.15"
+  val jna = ivy"net.java.dev.jna:jna:5.15.0"
   val geny = ivy"com.lihaoyi::geny::1.1.1"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
   val utest = ivy"com.lihaoyi::utest::0.8.4"
+  val expecty = ivy"com.eed3si9n.expecty::expecty::0.16.0"
+  def scalaReflect(scalaVersion: String) = ivy"org.scala-lang:scala-reflect:$scalaVersion"
   def scalaLibrary(version: String) = ivy"org.scala-lang:scala-library:${version}"
 }
 
@@ -52,7 +54,19 @@ trait SafeDeps extends ScalaModule {
 
 trait MiMaChecks extends Mima {
   def mimaPreviousVersions =
-    Seq("0.9.0", "0.9.1", "0.9.2", "0.9.3", "0.10.0", "0.10.1", "0.10.2", "0.10.3", "0.10.4")
+    Seq(
+      "0.9.0",
+      "0.9.1",
+      "0.9.2",
+      "0.9.3",
+      "0.10.0",
+      "0.10.1",
+      "0.10.2",
+      "0.10.3",
+      "0.10.4",
+      "0.10.5",
+      "0.10.6"
+    )
   override def mimaBinaryIssueFilters: T[Seq[ProblemFilter]] = Seq(
     ProblemFilter.exclude[ReversedMissingMethodProblem]("os.PathConvertible.isCustomFs"),
     // this is fine, because ProcessLike is sealed (and its subclasses should be final)
@@ -95,6 +109,12 @@ trait OsLibModule
 
 trait OsModule extends OsLibModule { outer =>
   def ivyDeps = Agg(Deps.geny)
+  override def compileIvyDeps = T {
+    val scalaReflectOpt = Option.when(!ZincWorkerUtil.isDottyOrScala3(scalaVersion()))(
+      Deps.scalaReflect(scalaVersion())
+    )
+    super.compileIvyDeps() ++ scalaReflectOpt
+  }
 
   def artifactName = "os-lib"
 
@@ -114,8 +134,8 @@ trait OsModule extends OsLibModule { outer =>
 
   def scalaDocOptions = super.scalaDocOptions() ++ conditionalScalaDocOptions()
 
-  def generatedSources = T{
-    val conversions = for(i <- Range.inclusive(2, 22)) yield {
+  def generatedSources = T {
+    val conversions = for (i <- Range.inclusive(2, 22)) yield {
       val ts = Range.inclusive(1, i).map(n => s"T$n").mkString(", ")
       val fs = Range.inclusive(1, i).map(n => s"f$n: T$n => R").mkString(", ")
       val vs = Range.inclusive(1, i).map(n => s"f$n(t._$n)").mkString(", ")
@@ -146,18 +166,27 @@ object os extends Module {
   object jvm extends Cross[OsJvmModule](scalaVersions)
   trait OsJvmModule extends OsModule with MiMaChecks {
     object test extends ScalaTests with OsLibTestModule {
+      override def ivyDeps = T { super.ivyDeps() ++ Agg(Deps.expecty) }
 
       // we check the textual output of system commands and expect it in english
       def forkEnv = super.forkEnv() ++ Map(
         "TEST_JAR_WRITER_ASSEMBLY" -> testJarWriter.assembly().path.toString,
         "TEST_JAR_READER_ASSEMBLY" -> testJarReader.assembly().path.toString,
-        "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString
+        "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString,
+        "TEST_SPAWN_EXIT_HOOK_ASSEMBLY" -> testSpawnExitHook.assembly().path.toString,
+        "TEST_SPAWN_EXIT_HOOK_ASSEMBLY2" -> testSpawnExitHook2.assembly().path.toString
       )
 
       object testJarWriter extends JavaModule
       object testJarReader extends JavaModule
       object testJarExit extends JavaModule
+      object testSpawnExitHook extends ScalaModule{
+        def scalaVersion = OsJvmModule.this.scalaVersion()
+        def moduleDeps = Seq(OsJvmModule.this)
+      }
+      object testSpawnExitHook2 extends JavaModule
     }
+
     object nohometest extends ScalaTests with OsLibTestModule
   }
 

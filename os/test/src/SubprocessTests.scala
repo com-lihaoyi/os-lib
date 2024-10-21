@@ -32,7 +32,7 @@ object SubprocessTests extends TestSuite {
     }
     test("bytes") {
       if (Unix()) {
-        val res = proc(scriptFolder / "misc" / "echo", "abc").call()
+        val res = proc(scriptFolder / "misc/echo", "abc").call()
         val listed = res.out.bytes
         listed ==> "abc\n".getBytes
       }
@@ -75,10 +75,10 @@ object SubprocessTests extends TestSuite {
 
     test("filebased") {
       if (Unix()) {
-        assert(proc(scriptFolder / "misc" / "echo", "HELLO").call().out.lines().mkString == "HELLO")
+        assert(proc(scriptFolder / "misc/echo", "HELLO").call().out.lines().mkString == "HELLO")
 
         val res: CommandResult =
-          proc(root / "bin" / "bash", "-c", "echo 'Hello'$ENV_ARG").call(
+          proc(root / "bin/bash", "-c", "echo 'Hello'$ENV_ARG").call(
             env = Map("ENV_ARG" -> "123")
           )
 
@@ -87,7 +87,7 @@ object SubprocessTests extends TestSuite {
     }
     test("filebased2") {
       if (Unix()) {
-        val possiblePaths = Seq(root / "bin", root / "usr" / "bin").map { pfx => pfx / "echo" }
+        val possiblePaths = Seq(root / "bin", root / "usr/bin").map { pfx => pfx / "echo" }
         val res = proc("which", "echo").call()
         val echoRoot = Path(res.out.text().trim())
         assert(possiblePaths.contains(echoRoot))
@@ -197,7 +197,7 @@ object SubprocessTests extends TestSuite {
       }
       test("jarTf") {
         // This was the original repro for the multi-chunk concurrency bugs
-        val jarFile = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "misc" / "out.jar"
+        val jarFile = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "misc/out.jar"
         assert(TestUtil.eqIgnoreNewlineStyle(
           os.proc("jar", "-tf", jarFile).call().out.text(),
           """META-INF/MANIFEST.MF
@@ -225,7 +225,7 @@ object SubprocessTests extends TestSuite {
 
     test("fileCustomWorkingDir") {
       if (Unix()) {
-        val output = proc(scriptFolder / "misc" / "echo_with_wd", "HELLO").call(cwd = root / "usr")
+        val output = proc(scriptFolder / "misc/echo_with_wd", "HELLO").call(cwd = root / "usr")
         assert(output.out.lines() == Seq("HELLO /usr"))
       }
     }
