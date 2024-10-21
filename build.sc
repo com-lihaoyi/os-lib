@@ -171,13 +171,21 @@ object os extends Module {
       def forkEnv = super.forkEnv() ++ Map(
         "TEST_JAR_WRITER_ASSEMBLY" -> testJarWriter.assembly().path.toString,
         "TEST_JAR_READER_ASSEMBLY" -> testJarReader.assembly().path.toString,
-        "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString
+        "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString,
+        "TEST_SPAWN_EXIT_HOOK_ASSEMBLY" -> testSpawnExitHook.assembly().path.toString,
+        "TEST_SPAWN_EXIT_HOOK_ASSEMBLY2" -> testSpawnExitHook2.assembly().path.toString
       )
 
       object testJarWriter extends JavaModule
       object testJarReader extends JavaModule
       object testJarExit extends JavaModule
+      object testSpawnExitHook extends ScalaModule{
+        def scalaVersion = OsJvmModule.this.scalaVersion()
+        def moduleDeps = Seq(OsJvmModule.this)
+      }
+      object testSpawnExitHook2 extends JavaModule
     }
+
     object nohometest extends ScalaTests with OsLibTestModule
   }
 

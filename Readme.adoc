@@ -1725,7 +1725,9 @@ os.call(cmd: os.Shellable,
         mergeErrIntoOut: Boolean = false,
         timeout: Long = Long.MaxValue,
         check: Boolean = true,
-        propagateEnv: Boolean = true): os.CommandResult
+        propagateEnv: Boolean = true,
+        shutdownGracePeriod: Long = 100,
+        destroyOnExit: Boolean = true): os.CommandResult
 ----
 
 _Also callable via `os.proc(cmd).call(...)`_
@@ -1853,7 +1855,9 @@ os.spawn(cmd: os.Shellable,
          stdout: os.ProcessOutput = os.Pipe,
          stderr: os.ProcessOutput = os.Pipe,
          mergeErrIntoOut: Boolean = false,
-         propagateEnv: Boolean = true): os.SubProcess
+         propagateEnv: Boolean = true,
+         shutdownGracePeriod: Long = 100,
+         destroyOnExit: Boolean = true): os.SubProcess
 ----
 
 _Also callable via `os.proc(cmd).spawn(...)`_
