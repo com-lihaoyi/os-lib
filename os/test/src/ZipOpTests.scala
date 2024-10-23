@@ -1,7 +1,7 @@
 package test.os
 
 import os.zip
-import test.os.TestUtil.prep
+import test.os.TestUtil._
 import utest._
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, PrintStream}
@@ -10,6 +10,47 @@ import java.util.zip.{ZipEntry, ZipOutputStream}
 object ZipOpTests extends TestSuite {
 
   def tests = Tests {
+    // restricted directory
+    val rd = os.pwd / "os/test/resources/restricted"
+
+    test("checker") - prepChecker { wd =>
+      intercept[WriteDenied] {
+        os.zip(
+          dest = rd / "zipped.zip",
+          sources = Seq(
+            wd / "File.txt",
+            wd / "folder1"
+          )
+        )
+      }
+      os.exists(rd / "zipped.zip") ==> false
+
+      intercept[ReadDenied] {
+        os.zip(
+          dest = wd / "zipped.zip",
+          sources = Seq(
+            wd / "File.txt",
+            rd / "folder1"
+          )
+        )
+      }
+      os.exists(wd / "zipped.zip") ==> false
+
+      val zipFile = os.zip(
+        wd / "zipped.zip",
+        Seq(
+          wd / "File.txt",
+          wd / "folder1"
+        )
+      )
+
+      val unzipDir = os.unzip(zipFile, wd / "unzipped")
+      os.walk(unzipDir).sorted ==> Seq(
+        unzipDir / "File.txt",
+        unzipDir / "one.txt"
+      )
+    }
+
     test("level") - prep { wd =>
       val zipsForLevel = for (i <- Range.inclusive(0, 9)) yield {
         os.write.over(wd / "File.txt", Range(0, 1000).map(x => x.toString * x))
@@ -127,6 +168,30 @@ object ZipOpTests extends TestSuite {
       assert(paths == Seq(unzippedFolder / "File.txt"))
     }
 
+    test("unzipChecker") - prepChecker { wd =>
+      val zipFileName = "zipped.zip"
+      val zipFile: os.Path = os.zip(
+        dest = wd / zipFileName,
+        sources = Seq(
+          wd / "File.txt",
+          wd / "folder1"
+        )
+      )
+
+      intercept[WriteDenied] {
+        os.unzip(
+          source = zipFile,
+          dest = rd / "unzipped"
+        )
+      }
+      os.exists(rd / "unzipped") ==> false
+
+      val unzipDir = os.unzip(
+        source = zipFile,
+        dest = wd / "unzipped"
+      )
+      os.walk(unzipDir).length ==> 2
+    }
     test("list") - prep { wd =>
       // Zipping files and folders in a new zip file
       val zipFileName = "listContentsOfZipFileWithoutExtracting.zip"

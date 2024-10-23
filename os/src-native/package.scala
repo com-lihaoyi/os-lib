@@ -52,6 +52,8 @@ package object os {
 
   val sub: SubPath = SubPath.sub
 
+  val checker: DynamicVariable[Checker] = new DynamicVariable[Checker](Checker.Nop)
+
   /**
    * Extractor to let you easily pattern match on [[os.Path]]s. Lets you do
    *

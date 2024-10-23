@@ -76,6 +76,59 @@ object TestUtil {
     f(os.Path(directory.toAbsolutePath))
   }
 
+  def prepChecker[T](f: os.Path => T)(implicit tp: TestPath, fn: sourcecode.FullName): T =
+    prep(wd => os.checker.withValue(AccessChecker(wd))(f(wd)))
+
+  object AccessChecker {
+    def apply(roots: os.Path*): AccessChecker = AccessChecker(roots, roots)
+  }
+
+  case class AccessChecker(readRoots: Seq[os.Path], writeRoots: Seq[os.Path]) extends os.Checker {
+
+    def onRead(path: os.ReadablePath): Unit = {
+      path match {
+        case path: os.Path =>
+          if (!readRoots.exists(path.startsWith)) throw ReadDenied(path, readRoots)
+        case _ =>
+      }
+    }
+
+    def onWrite(path: os.Path): Unit = {
+      // skip check when not writing to filesystem (like when writing to a zip file)
+      if (path.wrapped.getFileSystem.provider().getScheme == "file") {
+        if (!writeRoots.exists(path.startsWith)) throw WriteDenied(path, writeRoots)
+      }
+    }
+  }
+
+  object Unchecked {
+
+    def apply[T](thunk: => T): T =
+      os.checker.withValue(os.Checker.Nop)(thunk)
+
+    def scope[T](acquire: => Unit, release: => Unit)(thunk: => T): T = {
+      apply(acquire)
+      try thunk
+      finally apply(release)
+    }
+  }
+
+  case class ReadDenied(requested: os.Path, allowed: Seq[os.Path])
+      extends Exception(
+        s"Cannot read from $requested. Read is ${
+            if (allowed.isEmpty) "not permitted"
+            else s"restricted to ${allowed.mkString(", ")}"
+          }."
+      )
+
+  case class WriteDenied(requested: os.Path, allowed: Seq[os.Path])
+      extends Exception(
+        s"Cannot write to $requested. Write is ${
+            if (allowed.isEmpty) "not permitted"
+            else s"restricted to ${allowed.mkString(", ")}"
+          }."
+      )
+
   lazy val isDotty = {
     val cl: ClassLoader = Thread.currentThread().getContextClassLoader
     try {

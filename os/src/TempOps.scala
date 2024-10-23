@@ -35,7 +35,9 @@ object temp {
 
     val nioPath = dir match {
       case null => java.nio.file.Files.createTempFile(prefix, suffix, permArray: _*)
-      case _ => java.nio.file.Files.createTempFile(dir.wrapped, prefix, suffix, permArray: _*)
+      case _ =>
+        checker.value.onWrite(dir)
+        java.nio.file.Files.createTempFile(dir.wrapped, prefix, suffix, permArray: _*)
     }
 
     if (contents != null) write.over(Path(nioPath), contents)
@@ -63,7 +65,9 @@ object temp {
 
     val nioPath = dir match {
       case null => java.nio.file.Files.createTempDirectory(prefix, permArray: _*)
-      case _ => java.nio.file.Files.createTempDirectory(dir.wrapped, prefix, permArray: _*)
+      case _ =>
+        checker.value.onWrite(dir)
+        java.nio.file.Files.createTempDirectory(dir.wrapped, prefix, permArray: _*)
     }
 
     if (deleteOnExit) nioPath.toFile.deleteOnExit()
