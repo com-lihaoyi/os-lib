@@ -9,7 +9,7 @@ import utest._
 import scala.collection.mutable
 
 object SubprocessTests extends TestSuite {
-  val scriptFolder = pwd / "os/test/resources/test"
+  val scriptFolder = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "test"
 
   val lsCmd = if (scala.util.Properties.isWin) "dir" else "ls"
 
@@ -38,6 +38,8 @@ object SubprocessTests extends TestSuite {
       }
     }
     test("chained") {
+      proc("git", "init").call()
+      os.write.over(os.pwd / "Readme.adoc", "hello")
       assert(
         proc("git", "init").call().out.text().contains("Reinitialized existing Git repository"),
         proc("git", "init").call().out.text().contains("Reinitialized existing Git repository"),
@@ -46,6 +48,8 @@ object SubprocessTests extends TestSuite {
     }
     test("basicList") {
       val files = List("Readme.adoc", "build.sc")
+      os.write.over(os.pwd / "Readme.adoc", "hello")
+      os.write.over(os.pwd / "build.sc", "world")
       val output = TestUtil.proc(lsCmd, files).call().out.text()
       assert(files.forall(output.contains))
     }
@@ -193,7 +197,7 @@ object SubprocessTests extends TestSuite {
       }
       test("jarTf") {
         // This was the original repro for the multi-chunk concurrency bugs
-        val jarFile = os.pwd / "os/test/resources/misc/out.jar"
+        val jarFile = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "misc/out.jar"
         assert(TestUtil.eqIgnoreNewlineStyle(
           os.proc("jar", "-tf", jarFile).call().out.text(),
           """META-INF/MANIFEST.MF

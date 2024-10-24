@@ -101,7 +101,8 @@ trait OsLibModule
     // we check the textual output of system commands and expect it in english
     def forkEnv = super.forkEnv() ++ Map(
       "LC_ALL" -> "C",
-      "TEST_SUBPROCESS_ENV" -> "value"
+      "TEST_SUBPROCESS_ENV" -> "value",
+      "OS_TEST_RESOURCE_FOLDER" -> os.jvm(crossValue).test.resources().head.path.toString
     )
   }
 }
@@ -206,6 +207,7 @@ object os extends Module {
       def ivyDeps = Agg(Deps.jna)
       object test extends ScalaTests with OsLibTestModule {
         def moduleDeps = super.moduleDeps ++ Seq(os.jvm().test)
+
       }
     }
   }
