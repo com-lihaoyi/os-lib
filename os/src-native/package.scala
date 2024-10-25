@@ -52,6 +52,7 @@ package object os {
 
   val sub: SubPath = SubPath.sub
 
+  @experimental
   val checker: DynamicVariable[Checker] = new DynamicVariable[Checker](Checker.Nop)
 
   /**
