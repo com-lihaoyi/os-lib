@@ -372,7 +372,7 @@ object hardlink {
 object symlink {
   def apply(link: Path, dest: FilePath, perms: PermSet = null): Unit = {
     checker.value.onWrite(link)
-    checker.value.onRead(dest match {
+    checker.value.onWrite(dest match {
       case p: RelPath => link / RelPath.up / p
       case p: SubPath => link / RelPath.up / p
       case p: Path => p
