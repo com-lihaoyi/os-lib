@@ -39,7 +39,7 @@ object ManipulatingFilesFoldersTests extends TestSuite {
             |And I look good on the barbecue""".stripMargin
       }
       test("checker") - prepChecker { wd =>
-        intercept[ReadDenied] {
+        intercept[WriteDenied] {
           os.move(rd / "folder1/one.txt", wd / "folder1/File.txt")
         }
         os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")

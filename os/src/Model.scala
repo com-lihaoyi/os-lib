@@ -288,9 +288,10 @@ object PosixStatInfo {
  * Defines hooks for path based operations.
  *
  * This, in conjunction with [[checker]], can be used to implement custom checks like
- *  - restricting operations to some path(s)
- *  - logging operations
+ *  - restricting an operation to some path(s)
+ *  - logging an operation
  */
+@experimental
 trait Checker {
 
   /** A hook for a read operation on `path`. */
@@ -300,6 +301,7 @@ trait Checker {
   def onWrite(path: Path): Unit
 }
 
+@experimental
 object Checker {
 
   /** A no-op [[Checker]]. */

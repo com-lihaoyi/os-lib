@@ -20,6 +20,7 @@ object temp {
    * By default, temporary files are deleted on JVM exit. You can disable that
    * behavior by setting `deleteOnExit = false`
    */
+  @experimental
   def apply(
       contents: Source = null,
       dir: Path = null,
@@ -28,7 +29,6 @@ object temp {
       deleteOnExit: Boolean = true,
       perms: PermSet = null
   ): Path = {
-    import collection.JavaConverters._
     val permArray: Array[FileAttribute[_]] =
       if (perms == null) Array.empty
       else Array(PosixFilePermissions.asFileAttribute(perms.toSet()))
@@ -53,6 +53,7 @@ object temp {
    * By default, temporary directories are deleted on JVM exit. You can disable that
    * behavior by setting `deleteOnExit = false`
    */
+  @experimental
   def dir(
       dir: Path = null,
       prefix: String = null,

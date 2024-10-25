@@ -36,6 +36,7 @@ object zip {
    * @param compressionLevel number from 0-9, where 0 is no compression and 9 is best compression. Defaults to -1 (default compression)
    * @return The path to the created ZIP archive.
    */
+  @experimental
   def apply(
       dest: os.Path,
       sources: Seq[ZipSource] = List(),
@@ -265,6 +266,7 @@ object unzip {
    * @param dest     The path to the destination directory for extracted files.
    * @param excludePatterns A list of regular expression patterns to exclude files during extraction. (Optional)
    */
+  @experimental
   def stream(
       source: geny.Readable,
       dest: os.Path,

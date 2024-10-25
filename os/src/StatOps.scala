@@ -73,6 +73,7 @@ object mtime extends Function1[Path, Long] {
    * https://stackoverflow.com/questions/17308363/symlink-lastmodifiedtime-in-java-1-7
    */
   object set {
+    @experimental
     def apply(p: Path, millis: Long) = {
       checker.value.onWrite(p)
       Files.setLastModifiedTime(p.wrapped, FileTime.fromMillis(millis))
