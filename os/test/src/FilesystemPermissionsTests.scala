@@ -6,7 +6,7 @@ import utest._
 object FilesystemPermissionsTests extends TestSuite {
   def tests = Tests {
     // restricted directory
-    val rd = os.pwd / "os/test/resources/restricted"
+    val rd = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "restricted"
 
     test("perms") {
       test - prep { wd =>
