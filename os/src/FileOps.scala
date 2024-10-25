@@ -361,7 +361,7 @@ object exists extends Function1[Path, Boolean] {
 object hardlink {
   def apply(link: Path, dest: Path) = {
     checker.value.onWrite(link)
-    checker.value.onRead(dest)
+    checker.value.onWrite(dest)
     Files.createLink(link.wrapped, dest.wrapped)
   }
 }
