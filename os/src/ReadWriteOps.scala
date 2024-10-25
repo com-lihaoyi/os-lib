@@ -21,7 +21,6 @@ object write {
   /**
    * Open a [[java.io.OutputStream]] to write to the given file
    */
-  @experimental
   def outputStream(
       target: Path,
       perms: PermSet = null,
@@ -48,7 +47,6 @@ object write {
    * from `java.nio.file.Files.write` so we could re-use it properly for
    * different combinations of flags and all sorts of [[Source]]s
    */
-  @experimental
   def write(
       target: Path,
       data: Source,
@@ -169,7 +167,6 @@ object write {
    * Opens a [[SeekableByteChannel]] to write to the given file.
    */
   object channel extends Function1[Path, SeekableByteChannel] {
-    @experimental
     def write(p: Path, options: Seq[StandardOpenOption]) = {
       checker.value.onWrite(p)
       java.nio.file.Files.newByteChannel(p.toNIO, options.toArray: _*)
@@ -217,7 +214,6 @@ object write {
  * given size, does nothing.
  */
 object truncate {
-  @experimental
   def apply(p: Path, size: Long): Unit = {
     checker.value.onWrite(p)
     val channel = FileChannel.open(p.toNIO, StandardOpenOption.WRITE)
@@ -250,7 +246,6 @@ object read extends Function1[ReadablePath, String] {
    * Opens a [[java.io.InputStream]] to read from the given file
    */
   object inputStream extends Function1[ReadablePath, java.io.InputStream] {
-    @experimental
     def apply(p: ReadablePath): java.io.InputStream = {
       checker.value.onRead(p)
       p.getInputStream
@@ -274,7 +269,6 @@ object read extends Function1[ReadablePath, String] {
    * Opens a [[SeekableByteChannel]] to read from the given file.
    */
   object channel extends Function1[Path, SeekableByteChannel] {
-    @experimental
     def apply(p: Path): SeekableByteChannel = {
       checker.value.onRead(p)
       p.toSource.getChannel()

@@ -22,12 +22,10 @@ import scala.util.Try
  * ignore the destination if it already exists, using [[os.makeDir.all]]
  */
 object makeDir extends Function1[Path, Unit] {
-  @experimental
   def apply(path: Path): Unit = {
     checker.value.onWrite(path)
     Files.createDirectory(path.wrapped)
   }
-  @experimental
   def apply(path: Path, perms: PermSet): Unit = {
     checker.value.onWrite(path)
     Files.createDirectory(
@@ -43,7 +41,6 @@ object makeDir extends Function1[Path, Unit] {
    */
   object all extends Function1[Path, Unit] {
     def apply(path: Path): Unit = apply(path, null, true)
-    @experimental
     def apply(path: Path, perms: PermSet = null, acceptLinkedDirectory: Boolean = true): Unit = {
       checker.value.onWrite(path)
       // We special case calling makeDir.all on a symlink to a directory;
@@ -85,7 +82,6 @@ object move {
   def matching(partialFunction: PartialFunction[Path, Path]): PartialFunction[Path, Unit] = {
     matching()(partialFunction)
   }
-  @experimental
   def apply(
       from: Path,
       to: Path,
@@ -178,7 +174,6 @@ object copy {
     matching()(partialFunction)
   }
 
-  @experimental
   def apply(
       from: Path,
       to: Path,
@@ -323,7 +318,6 @@ object copy {
  */
 object remove extends Function1[Path, Boolean] {
   def apply(target: Path): Boolean = apply(target, false)
-  @experimental
   def apply(target: Path, checkExists: Boolean = false): Boolean = {
     checker.value.onWrite(target)
     if (checkExists) {
@@ -335,7 +329,6 @@ object remove extends Function1[Path, Boolean] {
   }
 
   object all extends Function1[Path, Unit] {
-    @experimental
     def apply(target: Path) = {
       require(target.segmentCount != 0, s"Cannot remove a root directory: $target")
       checker.value.onWrite(target)
@@ -366,7 +359,6 @@ object exists extends Function1[Path, Boolean] {
  * Creates a hardlink between two paths
  */
 object hardlink {
-  @experimental
   def apply(link: Path, dest: Path) = {
     checker.value.onWrite(link)
     checker.value.onRead(dest)
@@ -378,7 +370,6 @@ object hardlink {
  * Creates a symbolic link between two paths
  */
 object symlink {
-  @experimental
   def apply(link: Path, dest: FilePath, perms: PermSet = null): Unit = {
     checker.value.onWrite(link)
     checker.value.onRead(dest match {

@@ -23,7 +23,6 @@ object perms extends Function1[Path, PermSet] {
    * default set of permissions and having `os.perms.set` over-write them later
    */
   object set {
-    @experimental
     def apply(p: Path, arg2: PermSet): Unit = {
       checker.value.onWrite(p)
       Files.setPosixFilePermissions(p.wrapped, arg2.toSet())
@@ -46,7 +45,6 @@ object owner extends Function1[Path, UserPrincipal] {
    * Set the owner of the file/folder at the given path
    */
   object set {
-    @experimental
     def apply(arg1: Path, arg2: UserPrincipal): Unit = {
       checker.value.onWrite(arg1)
       Files.setOwner(arg1.wrapped, arg2)
@@ -78,7 +76,6 @@ object group extends Function1[Path, GroupPrincipal] {
    * Set the owning group of the file/folder at the given path
    */
   object set {
-    @experimental
     def apply(arg1: Path, arg2: GroupPrincipal): Unit = {
       checker.value.onWrite(arg1)
       Files.getFileAttributeView(

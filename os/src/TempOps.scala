@@ -20,7 +20,6 @@ object temp {
    * By default, temporary files are deleted on JVM exit. You can disable that
    * behavior by setting `deleteOnExit = false`
    */
-  @experimental
   def apply(
       contents: Source = null,
       dir: Path = null,
@@ -53,7 +52,6 @@ object temp {
    * By default, temporary directories are deleted on JVM exit. You can disable that
    * behavior by setting `deleteOnExit = false`
    */
-  @experimental
   def dir(
       dir: Path = null,
       prefix: String = null,
