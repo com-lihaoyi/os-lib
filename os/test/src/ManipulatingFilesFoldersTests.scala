@@ -416,7 +416,7 @@ object ManipulatingFilesFoldersTests extends TestSuite {
         os.isLink(wd / "Linked.txt") ==> false
       }
       test("checker") - prepChecker { wd =>
-        intercept[ReadDenied] {
+        intercept[WriteDenied] {
           os.hardlink(wd / "Linked.txt", rd / "File.txt")
         }
         os.exists(wd / "Linked.txt") ==> false
