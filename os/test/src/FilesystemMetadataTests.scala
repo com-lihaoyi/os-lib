@@ -1,6 +1,6 @@
 package test.os
 
-import test.os.TestUtil._
+import test.os.TestUtil.prep
 import utest._
 
 object FilesystemMetadataTests extends TestSuite {
@@ -9,9 +9,6 @@ object FilesystemMetadataTests extends TestSuite {
   private val multilineSizes = Set[Long](81, 84)
 
   def tests = Tests {
-    // restricted directory
-    val rd = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "restricted"
-
     test("stat") {
       test - prep { wd =>
         os.stat(wd / "File.txt").size ==> 8
@@ -72,25 +69,7 @@ object FilesystemMetadataTests extends TestSuite {
         os.mtime(wd / "File.txt") ==> 70000
         os.mtime(wd / "misc/file-symlink") ==> 70000
         assert(os.mtime(wd / "misc/file-symlink", followLinks = false) != 40000)
-      }
-      test("checker") - prepChecker { wd =>
-        val before = os.mtime(rd / "File.txt")
-        intercept[WriteDenied] {
-          os.mtime.set(rd / "File.txt", 0)
-        }
-        os.mtime(rd / "File.txt") ==> before
 
-        os.mtime.set(wd / "File.txt", 0)
-        os.mtime(wd / "File.txt") ==> 0
-
-        os.mtime.set(wd / "File.txt", 90000)
-        os.mtime(wd / "File.txt") ==> 90000
-        os.mtime(wd / "misc/file-symlink") ==> 90000
-
-        os.mtime.set(wd / "misc/file-symlink", 70000)
-        os.mtime(wd / "File.txt") ==> 70000
-        os.mtime(wd / "misc/file-symlink") ==> 70000
-        assert(os.mtime(wd / "misc/file-symlink", followLinks = false) != 40000)
       }
     }
   }

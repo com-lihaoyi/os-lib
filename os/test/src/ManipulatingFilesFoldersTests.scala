@@ -1,13 +1,10 @@
 package test.os
 
-import test.os.TestUtil._
+import test.os.TestUtil.prep
 import utest._
 
 object ManipulatingFilesFoldersTests extends TestSuite {
   def tests = Tests {
-    // restricted directory
-    val rd = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "restricted"
-
     test("exists") {
       test - prep { wd =>
         os.exists(wd / "File.txt") ==> true
@@ -22,45 +19,6 @@ object ManipulatingFilesFoldersTests extends TestSuite {
     }
     test("move") {
       test - prep { wd =>
-        os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
-        os.move(wd / "folder1/one.txt", wd / "folder1/first.txt")
-        os.list(wd / "folder1") ==> Seq(wd / "folder1/first.txt")
-
-        os.list(wd / "folder2") ==> Seq(wd / "folder2/nestedA", wd / "folder2/nestedB")
-        os.move(wd / "folder2/nestedA", wd / "folder2/nestedC")
-        os.list(wd / "folder2") ==> Seq(wd / "folder2/nestedB", wd / "folder2/nestedC")
-
-        os.read(wd / "File.txt") ==> "I am cow"
-        os.move(wd / "Multi Line.txt", wd / "File.txt", replaceExisting = true)
-        os.read(wd / "File.txt") ==>
-          """I am cow
-            |Hear me moo
-            |I weigh twice as much as you
-            |And I look good on the barbecue""".stripMargin
-      }
-      test("checker") - prepChecker { wd =>
-        intercept[WriteDenied] {
-          os.move(rd / "folder1/one.txt", wd / "folder1/File.txt")
-        }
-        os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
-
-        os.checker.withValue(AccessChecker(Seq(rd / "folder1/one.txt"), Seq(wd))) {
-          intercept[WriteDenied] { // no write access on parent folder (rd / "folder1")
-            os.move(rd / "folder1/one.txt", wd / "folder1/File.txt")
-          }
-        }
-        os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
-
-        intercept[WriteDenied] {
-          os.move(wd / "folder1/one.txt", rd / "folder1/File.txt")
-        }
-        os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
-
-        intercept[WriteDenied] {
-          os.move(wd / "folder2/nestedA", rd / "folder2/nestedC")
-        }
-        os.list(rd / "folder2") ==> Seq(rd / "folder2/nestedA", rd / "folder2/nestedB")
-
         os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
         os.move(wd / "folder1/one.txt", wd / "folder1/first.txt")
         os.list(wd / "folder1") ==> Seq(wd / "folder1/first.txt")
@@ -114,42 +72,6 @@ object ManipulatingFilesFoldersTests extends TestSuite {
     }
     test("copy") {
       test - prep { wd =>
-        os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
-        os.copy(wd / "folder1/one.txt", wd / "folder1/first.txt")
-        os.list(wd / "folder1") ==> Seq(wd / "folder1/first.txt", wd / "folder1/one.txt")
-
-        os.list(wd / "folder2") ==> Seq(wd / "folder2/nestedA", wd / "folder2/nestedB")
-        os.copy(wd / "folder2/nestedA", wd / "folder2/nestedC")
-        os.list(wd / "folder2") ==> Seq(
-          wd / "folder2/nestedA",
-          wd / "folder2/nestedB",
-          wd / "folder2/nestedC"
-        )
-
-        os.read(wd / "File.txt") ==> "I am cow"
-        os.copy(wd / "Multi Line.txt", wd / "File.txt", replaceExisting = true)
-        os.read(wd / "File.txt") ==>
-          """I am cow
-            |Hear me moo
-            |I weigh twice as much as you
-            |And I look good on the barbecue""".stripMargin
-      }
-      test("checker") - prepChecker { wd =>
-        intercept[ReadDenied] {
-          os.copy(rd / "folder1/one.txt", wd / "folder1/File.txt")
-        }
-        os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
-
-        intercept[WriteDenied] {
-          os.copy(wd / "folder1/one.txt", rd / "folder1/File.txt")
-        }
-        os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
-
-        intercept[WriteDenied] {
-          os.copy(wd / "folder2/nestedA", rd / "folder2/nestedC")
-        }
-        os.list(rd / "folder2") ==> Seq(rd / "folder2/nestedA", rd / "folder2/nestedB")
-
         os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
         os.copy(wd / "folder1/one.txt", wd / "folder1/first.txt")
         os.list(wd / "folder1") ==> Seq(wd / "folder1/first.txt", wd / "folder1/one.txt")
@@ -233,28 +155,8 @@ object ManipulatingFilesFoldersTests extends TestSuite {
         os.makeDir(wd / "new_folder")
         os.exists(wd / "new_folder") ==> true
       }
-      test("checker") - prepChecker { wd =>
-        intercept[WriteDenied] {
-          os.makeDir(rd / "new_folder")
-        }
-        os.exists(rd / "new_folder") ==> false
-
-        os.exists(wd / "new_folder") ==> false
-        os.makeDir(wd / "new_folder")
-        os.exists(wd / "new_folder") ==> true
-      }
       test("all") {
         test - prep { wd =>
-          os.exists(wd / "new_folder") ==> false
-          os.makeDir.all(wd / "new_folder/inner/deep")
-          os.exists(wd / "new_folder/inner/deep") ==> true
-        }
-        test("checker") - prepChecker { wd =>
-          intercept[WriteDenied] {
-            os.makeDir.all(rd / "new_folder/inner/deep")
-          }
-          os.exists(rd / "new_folder") ==> false
-
           os.exists(wd / "new_folder") ==> false
           os.makeDir.all(wd / "new_folder/inner/deep")
           os.exists(wd / "new_folder/inner/deep") ==> true
@@ -263,35 +165,6 @@ object ManipulatingFilesFoldersTests extends TestSuite {
     }
     test("remove") {
       test - prep { wd =>
-        os.exists(wd / "File.txt") ==> true
-        os.remove(wd / "File.txt")
-        os.exists(wd / "File.txt") ==> false
-
-        os.exists(wd / "folder1/one.txt") ==> true
-        os.remove(wd / "folder1/one.txt")
-        os.remove(wd / "folder1")
-        os.exists(wd / "folder1/one.txt") ==> false
-        os.exists(wd / "folder1") ==> false
-      }
-      test("checker") - prepChecker { wd =>
-        intercept[WriteDenied] {
-          os.remove(rd / "File.txt")
-        }
-        os.exists(rd / "File.txt") ==> true
-
-        intercept[WriteDenied] {
-          os.remove(rd / "folder1")
-        }
-        os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
-
-        Unchecked.scope(os.makeDir(rd / "folder"), os.remove(rd / "folder")) {
-          intercept[WriteDenied] {
-            os.remove(rd / "folder")
-          }
-          os.exists(rd / "folder") ==> true
-        }
-        os.exists(rd / "folder") ==> false
-
         os.exists(wd / "File.txt") ==> true
         os.remove(wd / "File.txt")
         os.exists(wd / "File.txt") ==> false
@@ -316,49 +189,9 @@ object ManipulatingFilesFoldersTests extends TestSuite {
           os.remove(wd / "misc/broken-symlink")
           os.exists(wd / "misc/broken-symlink", followLinks = false) ==> false
         }
-        test("checker") - prepChecker { wd =>
-          intercept[WriteDenied] {
-            os.remove(rd / "misc/file-symlink")
-          }
-          os.exists(rd / "misc/file-symlink", followLinks = false) ==> true
-
-          intercept[WriteDenied] {
-            os.remove(rd / "misc/folder-symlink")
-          }
-          os.exists(rd / "misc/folder-symlink", followLinks = false) ==> true
-
-          intercept[WriteDenied] {
-            os.remove(rd / "misc/broken-symlink")
-          }
-          os.exists(rd / "misc/broken-symlink", followLinks = false) ==> true
-          os.exists(rd / "misc/broken-symlink") ==> true
-
-          os.remove(wd / "misc/file-symlink")
-          os.exists(wd / "misc/file-symlink", followLinks = false) ==> false
-          os.exists(wd / "File.txt", followLinks = false) ==> true
-
-          os.remove(wd / "misc/folder-symlink")
-          os.exists(wd / "misc/folder-symlink", followLinks = false) ==> false
-          os.exists(wd / "folder1", followLinks = false) ==> true
-          os.exists(wd / "folder1/one.txt", followLinks = false) ==> true
-
-          os.remove(wd / "misc/broken-symlink")
-          os.exists(wd / "misc/broken-symlink", followLinks = false) ==> false
-        }
       }
       test("all") {
         test - prep { wd =>
-          os.exists(wd / "folder1/one.txt") ==> true
-          os.remove.all(wd / "folder1")
-          os.exists(wd / "folder1/one.txt") ==> false
-          os.exists(wd / "folder1") ==> false
-        }
-        test("checker") - prepChecker { wd =>
-          intercept[WriteDenied] {
-            os.remove.all(rd / "folder1")
-          }
-          os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
-
           os.exists(wd / "folder1/one.txt") ==> true
           os.remove.all(wd / "folder1")
           os.exists(wd / "folder1/one.txt") ==> false
@@ -378,54 +211,11 @@ object ManipulatingFilesFoldersTests extends TestSuite {
             os.remove.all(wd / "misc/broken-symlink")
             os.exists(wd / "misc/broken-symlink", followLinks = false) ==> false
           }
-          test("checker") - prepChecker { wd =>
-            intercept[WriteDenied] {
-              os.remove.all(rd / "misc/file-symlink")
-            }
-            os.exists(rd / "misc/file-symlink", followLinks = false) ==> true
-
-            intercept[WriteDenied] {
-              os.remove.all(rd / "misc/folder-symlink")
-            }
-            os.exists(rd / "misc/folder-symlink", followLinks = false) ==> true
-
-            intercept[WriteDenied] {
-              os.remove.all(rd / "misc/broken-symlink")
-            }
-            os.exists(rd / "misc/broken-symlink", followLinks = false) ==> true
-
-            os.remove.all(wd / "misc/file-symlink")
-            os.exists(wd / "misc/file-symlink", followLinks = false) ==> false
-
-            os.remove.all(wd / "misc/folder-symlink")
-            os.exists(wd / "misc/folder-symlink", followLinks = false) ==> false
-            os.exists(wd / "folder1", followLinks = false) ==> true
-            os.exists(wd / "folder1/one.txt", followLinks = false) ==> true
-
-            os.remove.all(wd / "misc/broken-symlink")
-            os.exists(wd / "misc/broken-symlink", followLinks = false) ==> false
-          }
         }
       }
     }
     test("hardlink") {
       test - prep { wd =>
-        os.hardlink(wd / "Linked.txt", wd / "File.txt")
-        os.exists(wd / "Linked.txt")
-        os.read(wd / "Linked.txt") ==> "I am cow"
-        os.isLink(wd / "Linked.txt") ==> false
-      }
-      test("checker") - prepChecker { wd =>
-        intercept[WriteDenied] {
-          os.hardlink(wd / "Linked.txt", rd / "File.txt")
-        }
-        os.exists(wd / "Linked.txt") ==> false
-
-        intercept[WriteDenied] {
-          os.hardlink(rd / "Linked.txt", wd / "File.txt")
-        }
-        os.exists(rd / "Linked.txt") ==> false
-
         os.hardlink(wd / "Linked.txt", wd / "File.txt")
         os.exists(wd / "Linked.txt")
         os.read(wd / "Linked.txt") ==> "I am cow"
@@ -443,43 +233,6 @@ object ManipulatingFilesFoldersTests extends TestSuite {
         os.exists(wd / "Linked2.txt")
         os.read(wd / "Linked2.txt") ==> "I am cow"
         os.isLink(wd / "Linked2.txt") ==> true
-      }
-      test("checker") - prepChecker { wd =>
-        intercept[WriteDenied] {
-          os.symlink(rd / "Linked.txt", wd / "File.txt")
-        }
-        os.exists(rd / "Linked.txt") ==> false
-
-        intercept[WriteDenied] {
-          os.symlink(rd / "Linked.txt", os.rel / "File.txt")
-        }
-        os.exists(rd / "Linked.txt") ==> false
-
-        intercept[WriteDenied] {
-          os.symlink(rd / "LinkedFolder1", wd / "folder1")
-        }
-        os.exists(rd / "LinkedFolder1") ==> false
-
-        intercept[WriteDenied] {
-          os.symlink(rd / "LinkedFolder2", os.rel / "folder1")
-        }
-        os.exists(rd / "LinkedFolder2") ==> false
-
-        os.symlink(wd / "Linked.txt", wd / "File.txt")
-        os.read(wd / "Linked.txt") ==> "I am cow"
-        os.isLink(wd / "Linked.txt") ==> true
-
-        os.symlink(wd / "Linked2.txt", os.rel / "File.txt")
-        os.read(wd / "Linked2.txt") ==> "I am cow"
-        os.isLink(wd / "Linked2.txt") ==> true
-
-        os.symlink(wd / "LinkedFolder1", wd / "folder1")
-        os.walk(wd / "LinkedFolder1", followLinks = true) ==> Seq(wd / "LinkedFolder1/one.txt")
-        os.isLink(wd / "LinkedFolder1") ==> true
-
-        os.symlink(wd / "LinkedFolder2", os.rel / "folder1")
-        os.walk(wd / "LinkedFolder2", followLinks = true) ==> Seq(wd / "LinkedFolder2/one.txt")
-        os.isLink(wd / "LinkedFolder2") ==> true
       }
     }
     test("followLink") {
@@ -511,33 +264,9 @@ object ManipulatingFilesFoldersTests extends TestSuite {
         os.write.over(tempOne, "Hello")
         os.read(tempOne) ==> "Hello"
       }
-      test("checker") - prepChecker { wd =>
-        val before = os.walk(rd)
-        intercept[WriteDenied] {
-          os.temp("default content", dir = rd)
-        }
-        os.walk(rd) ==> before
-
-        val tempOne = os.temp("default content", dir = wd)
-        os.read(tempOne) ==> "default content"
-        os.write.over(tempOne, "Hello")
-        os.read(tempOne) ==> "Hello"
-      }
       test("dir") {
         test - prep { wd =>
           val tempDir = os.temp.dir()
-          os.list(tempDir) ==> Nil
-          os.write(tempDir / "file", "Hello")
-          os.list(tempDir) ==> Seq(tempDir / "file")
-        }
-        test("checker") - prepChecker { wd =>
-          val before = os.walk(rd)
-          intercept[WriteDenied] {
-            os.temp.dir(dir = rd)
-          }
-          os.walk(rd) ==> before
-
-          val tempDir = os.temp.dir(dir = wd)
           os.list(tempDir) ==> Nil
           os.write(tempDir / "file", "Hello")
           os.list(tempDir) ==> Seq(tempDir / "file")

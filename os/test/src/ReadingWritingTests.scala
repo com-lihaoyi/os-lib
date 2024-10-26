@@ -3,9 +3,6 @@ import utest._
 import TestUtil._
 object ReadingWritingTests extends TestSuite {
   def tests = Tests {
-    // restricted directory
-    val rd = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "restricted"
-
     test("read") {
       test - prep { wd =>
         os.read(wd / "File.txt") ==> "I am cow"
@@ -30,24 +27,6 @@ object ReadingWritingTests extends TestSuite {
           is.read() ==> -1
           is.close()
         }
-      }
-      test("checker") - prepChecker { wd =>
-        os.exists(rd / "File.txt") ==> true
-        intercept[ReadDenied] {
-          os.read.inputStream(rd / "File.txt")
-        }
-
-        val is = os.read.inputStream(wd / "File.txt") // ==> "I am cow"
-        is.read() ==> 'I'
-        is.read() ==> ' '
-        is.read() ==> 'a'
-        is.read() ==> 'm'
-        is.read() ==> ' '
-        is.read() ==> 'c'
-        is.read() ==> 'o'
-        is.read() ==> 'w'
-        is.read() ==> -1
-        is.close()
       }
       test("bytes") {
         test - prep { wd =>
@@ -102,18 +81,6 @@ object ReadingWritingTests extends TestSuite {
         os.write(wd / "NewBinary.bin", Array[Byte](0, 1, 2, 3))
         os.read.bytes(wd / "NewBinary.bin") ==> Array[Byte](0, 1, 2, 3)
       }
-      test("checker") - prepChecker { wd =>
-        intercept[WriteDenied] {
-          os.write(rd / "New File.txt", "New File Contents")
-        }
-        os.exists(rd / "New File.txt") ==> false
-
-        os.write(wd / "New File.txt", "New File Contents")
-        os.read(wd / "New File.txt") ==> "New File Contents"
-
-        os.write(wd / "NewBinary.bin", Array[Byte](0, 1, 2, 3))
-        os.read.bytes(wd / "NewBinary.bin") ==> Array[Byte](0, 1, 2, 3)
-      }
       test("append") {
         test - prep { wd =>
           os.read(wd / "File.txt") ==> "I am cow"
@@ -156,37 +123,10 @@ object ReadingWritingTests extends TestSuite {
 
           os.read(wd / "New File.txt") ==> "Hello"
         }
-        test("checker") - prepChecker { wd =>
-          intercept[WriteDenied] {
-            os.write.outputStream(rd / "New File.txt")
-          }
-          os.exists(rd / "New File.txt") ==> false
-
-          val out = os.write.outputStream(wd / "New File.txt")
-          out.write('H')
-          out.write('e')
-          out.write('l')
-          out.write('l')
-          out.write('o')
-          out.close()
-
-          os.read(wd / "New File.txt") ==> "Hello"
-        }
       }
     }
     test("truncate") {
       test - prep { wd =>
-        os.read(wd / "File.txt") ==> "I am cow"
-
-        os.truncate(wd / "File.txt", 4)
-        os.read(wd / "File.txt") ==> "I am"
-      }
-      test("checker") - prepChecker { wd =>
-        intercept[WriteDenied] {
-          os.truncate(rd / "File.txt", 4)
-        }
-        Unchecked(os.read(rd / "File.txt")) ==> "I am a restricted cow"
-
         os.read(wd / "File.txt") ==> "I am cow"
 
         os.truncate(wd / "File.txt", 4)
