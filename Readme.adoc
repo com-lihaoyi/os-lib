@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.11.2
+:version: 0.11.3
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -2508,6 +2508,10 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+=== main
+
+* Add ability to instrument path based operations using hooks  https://github.com/com-lihaoyi/os-lib/pull/325[#325]
 
 [#0-11-3]
 === 0.11.3
