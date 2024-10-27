@@ -111,7 +111,7 @@ object ReadingWritingTests extends TestSuite {
           os.read(wd / "File.txt") ==> "We  are sow"
         }
       }
-      test("inputStream") {
+      test("outputStream") {
         test - prep { wd =>
           val out = os.write.outputStream(wd / "New File.txt")
           out.write('H')

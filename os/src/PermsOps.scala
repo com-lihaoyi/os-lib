@@ -24,6 +24,7 @@ object perms extends Function1[Path, PermSet] {
    */
   object set {
     def apply(p: Path, arg2: PermSet): Unit = {
+      checker.value.onWrite(p)
       Files.setPosixFilePermissions(p.wrapped, arg2.toSet())
     }
   }
@@ -44,7 +45,10 @@ object owner extends Function1[Path, UserPrincipal] {
    * Set the owner of the file/folder at the given path
    */
   object set {
-    def apply(arg1: Path, arg2: UserPrincipal): Unit = Files.setOwner(arg1.wrapped, arg2)
+    def apply(arg1: Path, arg2: UserPrincipal): Unit = {
+      checker.value.onWrite(arg1)
+      Files.setOwner(arg1.wrapped, arg2)
+    }
     def apply(arg1: Path, arg2: String): Unit = {
       apply(
         arg1,
@@ -73,6 +77,7 @@ object group extends Function1[Path, GroupPrincipal] {
    */
   object set {
     def apply(arg1: Path, arg2: GroupPrincipal): Unit = {
+      checker.value.onWrite(arg1)
       Files.getFileAttributeView(
         arg1.wrapped,
         classOf[PosixFileAttributeView],

@@ -73,6 +73,9 @@ trait MiMaChecks extends Mima {
     // this is fine, because ProcessLike is sealed (and its subclasses should be final)
     ProblemFilter.exclude[ReversedMissingMethodProblem]("os.ProcessLike.joinPumperThreadsHook")
   )
+  override def mimaExcludeAnnotations: T[Seq[String]] = Seq(
+    "os.experimental"
+  )
 }
 
 trait OsLibModule

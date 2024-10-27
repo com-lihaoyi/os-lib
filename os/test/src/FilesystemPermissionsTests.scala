@@ -40,12 +40,12 @@ object FilesystemPermissionsTests extends TestSuite {
         if (Unix()) {
           // Only works as root :(
           if (false) {
-            val originalOwner = os.owner(wd / "File.txt")
+            val originalGroup = os.group(wd / "File.txt")
 
-            os.owner.set(wd / "File.txt", "nobody")
-            os.owner(wd / "File.txt").getName ==> "nobody"
+            os.group.set(wd / "File.txt", "nobody")
+            os.group(wd / "File.txt").getName ==> "nobody"
 
-            os.owner.set(wd / "File.txt", originalOwner)
+            os.group.set(wd / "File.txt", originalGroup)
           }
         }
       }

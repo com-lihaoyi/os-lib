@@ -283,3 +283,30 @@ object PosixStatInfo {
     )
   }
 }
+
+/**
+ * Defines hooks for path based operations.
+ *
+ * This, in conjunction with [[checker]], can be used to implement custom checks like
+ *  - restricting an operation to some path(s)
+ *  - logging an operation
+ */
+@experimental
+trait Checker {
+
+  /** A hook for a read operation on `path`. */
+  def onRead(path: ReadablePath): Unit
+
+  /** A hook for a write operation on `path`. */
+  def onWrite(path: Path): Unit
+}
+
+@experimental
+object Checker {
+
+  /** A no-op [[Checker]]. */
+  object Nop extends Checker {
+    def onRead(path: ReadablePath): Unit = ()
+    def onWrite(path: Path): Unit = ()
+  }
+}
