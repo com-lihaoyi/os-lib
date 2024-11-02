@@ -26,7 +26,7 @@ object PathChunk extends PathChunkMacros {
     val splitted = strNoTrailingSeps.split('/')
     splitted ++ Array.fill(trailingSeparatorsCount)("")
   }
-  private def reduceUps(in:List[String]) = in.foldLeft(List.empty[String]){case (acc,x) => 
+  private def reduceUps(in:Array[String]): List[String] = in.foldLeft(List.empty[String]){case (acc,x) => 
 	   acc match{
 	     case h :: t if h == ".." => x :: acc
 	     case h :: t if x == ".." => t
