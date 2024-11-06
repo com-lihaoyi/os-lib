@@ -23,14 +23,28 @@ object PathTests extends TestSuite {
       test("literals with [..]") {
 
         assert(rel / "src" / ".." == rel / "src" / os.up)
-        assert(root / "src/.." == root / "src" / os.up)
         assert(root / "src" / ".." == root / "src" / os.up)
         assert(root / "hello" / ".." / "world" == root / "hello" / os.up / "world")
         assert(root / "hello" / "../world" == root / "hello" / os.up / "world")
-        assert(root / "hello/../world" == root / "hello" / os.up / "world")
       }
 
       test("Compile errors") {
+
+        compileError("""root / "src/../foo"""").check("", nonCanonicalLiteral("src/../foo","foo"))
+        compileError("""root / "hello/../world"""").check("", nonCanonicalLiteral("hello/../world","world"))
+        compileError("""root / "src/../foo/bar"""").check("", nonCanonicalLiteral("src/../foo/bar","foo/bar"))
+        compileError("""root / "src/../foo/bar/.."""").check("", nonCanonicalLiteral("src/../foo/bar/..","foo"))
+        compileError("""root / "src/../foo/../bar/."""").check("", nonCanonicalLiteral("src/../foo/../bar/.","bar"))
+        compileError("""root / "src/foo/./.."""").check("", nonCanonicalLiteral("src/foo/./..","src"))
+        compileError("""root / "src/foo//./.."""").check("", nonCanonicalLiteral("src/foo//./..","src"))
+
+        compileError("""root / "src/.."""").check("", removeLiteralErr("src/.."))
+        compileError("""root / "src/../foo/.."""").check("", removeLiteralErr("src/../foo/.."))
+        compileError("""root / "src/foo/../.."""").check("", removeLiteralErr("src/foo/../.."))
+        compileError("""root / "src/foo/./../.."""").check("", removeLiteralErr("src/foo/./../.."))
+        compileError("""root / "src/./foo/./../.."""").check("", removeLiteralErr("src/./foo/./../.."))
+        compileError("""root / "src///foo/./../.."""").check("", removeLiteralErr("src///foo/./../.."))
+
         compileError("""root / "/" """).check("", removeLiteralErr("/"))
         compileError("""root / "/ " """).check("", nonCanonicalLiteral("/ ", " "))
         compileError("""root / " /" """).check("", nonCanonicalLiteral(" /", " "))
@@ -40,10 +54,7 @@ object PathTests extends TestSuite {
         compileError("""root / "foo//" """).check("", nonCanonicalLiteral("foo//", "foo"))
 
         compileError("""root / "foo/bar/" """).check("", nonCanonicalLiteral("foo/bar/", "foo/bar"))
-        compileError("""root / "foo/bar//" """).check(
-          "",
-          nonCanonicalLiteral("foo/bar//", "foo/bar")
-        )
+        compileError("""root / "foo/bar//" """).check("", nonCanonicalLiteral("foo/bar//", "foo/bar"))
 
         compileError("""root / "/foo" """).check("", nonCanonicalLiteral("/foo", "foo"))
         compileError("""root / "//foo" """).check("", nonCanonicalLiteral("//foo", "foo"))
