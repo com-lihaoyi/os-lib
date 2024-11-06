@@ -26,12 +26,14 @@ object PathChunk extends PathChunkMacros {
     val splitted = strNoTrailingSeps.split('/')
     splitted ++ Array.fill(trailingSeparatorsCount)("")
   }
-  private def reduceUps(in:Array[String]): List[String] = in.foldLeft(List.empty[String]){case (acc,x) => 
-	   acc match{
-	     case h :: t if h == ".." => x :: acc
-	     case h :: t if x == ".." => t
-	     case _ => x :: acc}
-	 }.reverse
+  private def reduceUps(in: Array[String]): List[String] =
+    in.foldLeft(List.empty[String]) { case (acc, x) =>
+      acc match {
+        case h :: t if h == ".." => x :: acc
+        case h :: t if x == ".." => t
+        case _ => x :: acc
+      }
+    }.reverse
   private[os] def segmentsFromStringLiteralValidation(literal: String): Array[String] = {
     val stringSegments = segmentsFromString(literal)
     val validSegmnts = reduceUps(validLiteralSegments(stringSegments))
