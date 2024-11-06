@@ -24,7 +24,7 @@ object ExpectyIntegration extends TestSuite {
         expect(path.startsWith(os.Path("/") / "tmp"))
       }
       test("multiple args") {
-        expect(rel / "src" / ".." == rel / "src" / os.up, root / "src/.." == root / "src" / os.up)
+        expect(rel / "src" / ".." == rel / "src" / os.up, root / "src" / "../foo" == root / "src" / os.up / "foo")
       }
     }
   }
