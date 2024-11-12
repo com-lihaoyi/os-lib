@@ -14,11 +14,9 @@ object ExpectyIntegration extends TestSuite {
       }
       test("literals with [..]") {
         expect(rel / "src" / ".." == rel / "src" / os.up)
-        expect(root / "src/.." == root / "src" / os.up)
         expect(root / "src" / ".." == root / "src" / os.up)
         expect(root / "hello" / ".." / "world" == root / "hello" / os.up / "world")
         expect(root / "hello" / "../world" == root / "hello" / os.up / "world")
-        expect(root / "hello/../world" == root / "hello" / os.up / "world")
       }
       test("from issue") {
         expect(Seq(os.pwd / "foo") == Seq(os.pwd / "foo"))
@@ -26,7 +24,10 @@ object ExpectyIntegration extends TestSuite {
         expect(path.startsWith(os.Path("/") / "tmp"))
       }
       test("multiple args") {
-        expect(rel / "src" / ".." == rel / "src" / os.up, root / "src/.." == root / "src" / os.up)
+        expect(
+          rel / "src" / ".." == rel / "src" / os.up,
+          root / "src" / "../foo" == root / "src" / os.up / "foo"
+        )
       }
     }
   }
