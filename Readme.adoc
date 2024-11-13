@@ -2512,6 +2512,7 @@ string, int or set representations of the `os.PermSet` via:
 === main
 
 * Add ability to instrument path based operations using hooks  https://github.com/com-lihaoyi/os-lib/pull/325[#325]
+* Add compile-time validation of literal paths containing ".." https://github.com/com-lihaoyi/os-lib/pull/329[#329]
 
 [#0-11-3]
 === 0.11.3

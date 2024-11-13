@@ -453,8 +453,9 @@ object CheckerTests extends TestSuite {
       val unzipDir = os.unzip(zipFile, wd / "unzipped")
       os.walk(unzipDir).sorted ==> Seq(
         unzipDir / "File.txt",
-        unzipDir / "one.txt"
-      )
+        unzipDir / "folder1/one.txt",
+        unzipDir / "folder1"
+      ).sorted
     }
     test("unzip") - prepChecker { wd =>
       val zipFileName = "zipped.zip"
@@ -478,7 +479,7 @@ object CheckerTests extends TestSuite {
         source = zipFile,
         dest = wd / "unzipped"
       )
-      os.walk(unzipDir).length ==> 2
+      os.walk(unzipDir).length ==> 3
     }
   }
 }
