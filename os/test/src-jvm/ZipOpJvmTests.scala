@@ -5,7 +5,7 @@ import utest._
 import java.nio.file.attribute.FileTime
 import java.nio.file.{Files, Paths}
 import java.util.zip.ZipFile
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 object ZipOpJvmTests extends TestSuite {
 

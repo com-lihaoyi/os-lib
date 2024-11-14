@@ -2,7 +2,7 @@ package os
 
 import java.net.URI
 import java.nio.file.Paths
-import collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.language.implicitConversions
 import acyclic.skipped
 import os.PathError.{InvalidSegment, NonCanonicalLiteral}
@@ -212,7 +212,7 @@ object BasePath {
     }
   }
   def chunkify(s: java.nio.file.Path) = {
-    import collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
     s.iterator().asScala.map(_.toString).filter(_ != ".").filter(_ != "").toArray
   }
 }

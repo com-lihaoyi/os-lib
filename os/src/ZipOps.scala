@@ -4,7 +4,8 @@ import java.net.URI
 import java.nio.file.{FileSystem, FileSystems, Files}
 import java.nio.file.attribute.{BasicFileAttributeView, FileTime, PosixFilePermissions}
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
+
 import scala.util.matching.Regex
 
 object zip {

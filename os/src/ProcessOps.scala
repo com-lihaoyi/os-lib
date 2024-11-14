@@ -1,6 +1,6 @@
 package os
 
-import collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import java.lang.ProcessBuilder.Redirect
 import os.SubProcess.InputStream
 import java.io.IOException

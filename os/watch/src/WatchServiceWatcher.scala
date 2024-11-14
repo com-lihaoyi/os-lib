@@ -8,7 +8,7 @@ import java.nio.file.StandardWatchEventKinds.{ENTRY_CREATE, ENTRY_DELETE, ENTRY_
 import com.sun.nio.file.{ExtendedWatchEventModifier, SensitivityWatchEventModifier}
 
 import scala.collection.mutable
-import collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.Properties.isWin
 
 class WatchServiceWatcher(

@@ -56,7 +56,7 @@ object write {
   ) = {
     checker.value.onWrite(target)
 
-    import collection.JavaConverters._
+    import scala.jdk.CollectionConverters._
     val permArray: Array[FileAttribute[_]] =
       if (perms == null) Array.empty
       else Array(PosixFilePermissions.asFileAttribute(perms.toSet()))
