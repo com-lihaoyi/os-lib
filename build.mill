@@ -43,6 +43,8 @@ trait AcyclicModule extends ScalaModule {
   def scalacOptions = super.scalacOptions() ++ acyclicOptions() ++ Seq(
     "-deprecation",
     "-feature",
+    "-language:implicitConversions",
+    "-language:higherKinds",
   )
 }
 

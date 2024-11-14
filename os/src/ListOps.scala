@@ -17,7 +17,7 @@ import java.nio.file.attribute.BasicFileAttributes
 object list extends Function1[Path, IndexedSeq[Path]] {
   def apply(src: Path, sort: Boolean = true): IndexedSeq[Path] = {
     val arr = stream(src).toArray[Path]
-    if (sort) arr.sorted
+    if (sort) arr.sorted.toIndexedSeq
     else arr
   }
   def apply(src: Path): IndexedSeq[Path] = apply(src, true).toIndexedSeq
@@ -53,7 +53,7 @@ object list extends Function1[Path, IndexedSeq[Path]] {
  * saving time as compared to filtering them after the fact.
  *
  * By default, the paths are returned as a pre-order traversal: the enclosing
- * folder is occurs first before any of it's contents. You can pass in `preOrder =
+ * folder occurs first before any of its contents. You can pass in `preOrder =
  * false` to turn it into a post-order traversal, such that the enclosing folder
  * occurs last after all it's contents.
  *
@@ -76,12 +76,12 @@ object walk {
    *                 you want `preOrder` to be `true` so the folder gets
    *                 created first.
    *
-   * @param followLinks Whether or not to follow symlinks while walking; defaults
+   * @param followLinks Whether to follow symlinks while walking; defaults
    *                    to false
    *
    * @param maxDepth The max depth of the tree you wish to walk; defaults to unlimited
    *
-   * @param includeTarget Whether or not to include the given path as part of the walk.
+   * @param includeTarget Whether to include the given path as part of the walk.
    *                      If `true`, does not raise an error if the given path is a
    *                      simple file and not a folder
    */
@@ -109,12 +109,12 @@ object walk {
    *                 you want `preOrder` to be `true` so the folder gets
    *                 created first.
    *
-   * @param followLinks Whether or not to follow symlinks while walking; defaults
+   * @param followLinks Whether to follow symlinks while walking; defaults
    *                    to false
    *
    * @param maxDepth The max depth of the tree you wish to walk; defaults to unlimited
    *
-   * @param includeTarget Whether or not to include the given path as part of the walk.
+   * @param includeTarget Whether to include the given path as part of the walk.
    *                      If `true`, does not raise an error if the given path is a
    *                      simple file and not a folder
    */
@@ -145,12 +145,12 @@ object walk {
      *                 you want `preOrder` to be `true` so the folder gets
      *                 created first.
      *
-     * @param followLinks Whether or not to follow symlinks while walking; defaults
+     * @param followLinks Whether to follow symlinks while walking; defaults
      *                    to false
      *
      * @param maxDepth The max depth of the tree you wish to walk; defaults to unlimited
      *
-     * @param includeTarget Whether or not to include the given path as part of the walk.
+     * @param includeTarget Whether to include the given path as part of the walk.
      *                      If `true`, does not raise an error if the given path is a
      *                      simple file and not a folder
      */
@@ -179,12 +179,12 @@ object walk {
      *                 you want `preOrder` to be `true` so the folder gets
      *                 created first.
      *
-     * @param followLinks Whether or not to follow symlinks while walking; defaults
+     * @param followLinks Whether to follow symlinks while walking; defaults
      *                    to false
      *
      * @param maxDepth The max depth of the tree you wish to walk; defaults to unlimited
      *
-     * @param includeTarget Whether or not to include the given path as part of the walk.
+     * @param includeTarget Whether to include the given path as part of the walk.
      *                      If `true`, does not raise an error if the given path is a
      *                      simple file and not a folder
      */
@@ -228,7 +228,7 @@ object walk {
             // rather than relying on `walkFileTree`, because `walkFileTree`
             // does the unintuitive thing when the `path` being walked is a
             // symlink to a directory (it just returns the symlink path and
-            // does not walking)
+            // does not walk)
             val ds = Files.newDirectoryStream(pathNIO)
             val iter = ds.iterator()
             try {

@@ -51,7 +51,7 @@ sealed trait ProcessLike extends java.lang.AutoCloseable {
 
   /**
    * Wait up to `millis` for the [[ProcessLike]] to terminate and all stdout and stderr
-   * from the subprocess to be handled. By default waits indefinitely; if a time
+   * from the subprocess to be handled. By default, waits indefinitely; if a time
    * limit is given, explicitly destroys the [[ProcessLike]] if it has not completed by
    * the time the timeout has occurred.
    *
@@ -152,7 +152,7 @@ class SubProcess(
    * @param async set this to `true` if you do not want to wait on the subprocess exiting
    * @param shutdownGracePeriod use this to override the default wait time for the subprocess
    *                            to gracefully exit before destroying it forcibly. Defaults to the `shutdownGracePeriod`
-   *                            that was used to spawned the process, but can be set to 0
+   *                            that was used to spawn the process, but can be set to 0
    *                            (i.e. force exit immediately) or -1 (i.e. never force exit)
    *                            or anything in between. Typically defaults to 100 milliseconds.
    */
@@ -183,7 +183,7 @@ class SubProcess(
   /**
    * Alias for [[destroy]]
    */
-  def close() = wrapped.destroy()
+  def close(): Unit = wrapped.destroy()
 
   /**
    * Wait up to `millis` for the subprocess to terminate, by default waits
@@ -296,7 +296,7 @@ object SubProcess {
       out.toByteArray
     }
 
-    override def close() = wrapped.close()
+    override def close(): Unit = wrapped.close()
   }
 }
 
@@ -314,7 +314,7 @@ class ProcessPipeline(
   /**
    * String representation of the pipeline.
    */
-  def commandString = processes.map(_.wrapped.toString).mkString(" | ")
+  def commandString: String = processes.map(_.wrapped.toString).mkString(" | ")
 
   private[os] val brokenPipeHandler: Option[Thread] = brokenPipeQueue.map { queue =>
     new Thread(
@@ -326,7 +326,7 @@ class ProcessPipeline(
             if (brokenPipeIndex == processes.length) { // Special case signaling finished pipeline
               pipelineRunning = false
             } else {
-              processes(brokenPipeIndex).destroyForcibly()
+              processes(brokenPipeIndex).destroy(shutdownGracePeriod = 0)
             }
           }
           new Thread(
@@ -354,9 +354,7 @@ class ProcessPipeline(
    */
   override def exitCode(): Int = {
     if (pipefail)
-      processes.map(_.exitCode())
-        .filter(_ != 0)
-        .headOption
+      processes.map(_.exitCode()).find(_ != 0)
         .getOrElse(0)
     else
       processes.last.exitCode()
@@ -383,7 +381,7 @@ class ProcessPipeline(
    * All processes in the pipeline are force-destroyed.
    */
   override def destroyForcibly(): Unit = {
-    processes.foreach(_.destroyForcibly())
+    processes.foreach(_.destroy(shutdownGracePeriod = 0))
   }
 
   /**
