@@ -8,6 +8,8 @@ import mill._, scalalib._, scalanativelib._, publish._
 import mill.scalalib.api.ZincWorkerUtil
 import com.github.lolgab.mill.mima._
 import de.tobiasroeser.mill.vcs.version.VcsVersion
+import mill.scalalib.scalafmt.ScalafmtModule
+
 
 val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 
@@ -117,7 +119,7 @@ trait OsLibModule
   }
 }
 
-trait OsModule extends OsLibModule { outer =>
+trait OsModule extends OsLibModule with ScalafmtModule { outer =>
   def ivyDeps = Agg(Deps.geny, Deps.collectionCompact)
   override def compileIvyDeps = T {
     val scalaReflectOpt = Option.when(!ZincWorkerUtil.isDottyOrScala3(scalaVersion()))(
