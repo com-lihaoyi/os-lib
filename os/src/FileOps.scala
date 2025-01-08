@@ -329,16 +329,21 @@ object remove extends Function1[Path, Boolean] {
   }
 
   object all extends Function1[Path, Unit] {
-    def apply(target: Path) = {
+    def apply(target: Path): Unit = apply(target, ignoreErrors = false)
+    def apply(target: Path, ignoreErrors: Boolean = false): Unit = {
       require(target.segmentCount != 0, s"Cannot remove a root directory: $target")
       checker.value.onWrite(target)
 
       val nioTarget = target.wrapped
       if (Files.exists(nioTarget, LinkOption.NOFOLLOW_LINKS)) {
         if (Files.isDirectory(nioTarget, LinkOption.NOFOLLOW_LINKS)) {
-          walk.stream(target, preOrder = false).foreach(remove(_))
+          for (p <- walk.stream(target, preOrder = false)) {
+            try remove(p)
+            catch { case e: Throwable if ignoreErrors => /*ignore*/ }
+          }
         }
-        Files.delete(nioTarget)
+        try Files.delete(nioTarget)
+        catch { case e: Throwable if ignoreErrors => /*ignore*/ }
       }
     }
   }

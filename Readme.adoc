@@ -1028,7 +1028,7 @@ If you wish to remove the destination of a symlink, use
 
 [source,scala]
 ----
-os.remove.all(target: Path): Unit
+os.remove.all(target: Path, ignoreErrors: Boolean = false): Unit
 ----
 
 Remove the target file or folder; if it is a folder and not empty, recursively
@@ -1062,6 +1062,12 @@ os.exists(wd / "misc/broken-symlink", followLinks = false) ==> false
 
 If you wish to remove the destination of a symlink, use
 <<os-readlink>>.
+
+``os.remove.all`` removes nested files and folders one at a time, and any failure
+in removing a file (e.g. due to permissions) or folder (e.g. due to someone concurrently
+creating a file within it) causes an error to be thrown and terminates the removal early.
+You can pass `ignoreErrors = false` to continue with the deletion of other files
+even if some files or folders failed to be removed.
 
 ==== `os.hardlink`
 
