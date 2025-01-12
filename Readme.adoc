@@ -1748,6 +1748,8 @@ is run:
 
 * `cwd`: the working directory of the subprocess
 * `env`: any additional environment variables you wish to set in the subprocess
+  in addition to those passed via `propagateEnv`. You can also set their values 
+  to `null` to remove specific variables.
 * `stdin`: any data you wish to pass to the subprocess's standard input
 * `stdout`/`stderr`: these are ``os.Redirect``s that let you configure how the
 processes output/error streams are configured.
