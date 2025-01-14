@@ -332,7 +332,9 @@ case class proc(command: Shellable*) {
         override def run(): Unit = {
           while (proc.wrapped.isAlive) Thread.sleep(1)
           try Runtime.getRuntime().removeShutdownHook(t)
-          catch { case e: Throwable => /*do nothing*/ }
+          catch {
+            case e: Throwable => /*do nothing*/
+          }
         }
       }
     )
