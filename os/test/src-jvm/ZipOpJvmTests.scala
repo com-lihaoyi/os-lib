@@ -36,21 +36,19 @@ object ZipOpJvmTests extends TestSuite {
         dest = wd / "unzipped folder"
       )
 
-      val paths = os.walk(unzippedFolder).toList.sorted
-      val expected = List(
+      val paths = os.walk(unzippedFolder)
+      val expected = Seq(
         // Files get included in the zip root using their name
         wd / "unzipped folder/File.txt",
         wd / "unzipped folder/Multi Line.txt",
         // Folder contents get included relative to the source root
-        wd / "unzipped folder/folder1",
-        wd / "unzipped folder/folder1/one.txt",
-        wd / "unzipped folder/folder2",
-        wd / "unzipped folder/folder2/nestedA",
-        wd / "unzipped folder/folder2/nestedA/a.txt",
-        wd / "unzipped folder/folder2/nestedB",
-        wd / "unzipped folder/folder2/nestedB/b.txt"
-      ).sorted
-      assert(paths == expected)
+        wd / "unzipped folder/nestedA",
+        wd / "unzipped folder/nestedB",
+        wd / "unzipped folder/one.txt",
+        wd / "unzipped folder/nestedA/a.txt",
+        wd / "unzipped folder/nestedB/b.txt"
+      )
+      assert(paths.sorted == expected)
     }
 
     test("zipAndUnzipPreserveMtimes") - prep { wd =>

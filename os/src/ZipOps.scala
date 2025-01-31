@@ -62,7 +62,7 @@ object zip {
           excludePatterns,
           includePatterns,
           (path, sub) => {
-            os.copy.over(path, opened / sub, createFolders = true)
+            os.copy(path, opened / sub, createFolders = true)
             if (!preserveMtimes) {
               os.mtime.set(opened / sub, 0)
               // This is the only way we can properly zero out filesystem metadata within the
@@ -98,12 +98,10 @@ object zip {
     sources.foreach { source =>
       if (os.isDir(source.src)) {
         for (path <- os.walk(source.src)) {
-          if (shouldInclude(path.toString, excludePatterns, includePatterns)) {
-            val target = source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src / os.up)
-            makeZipEntry0(path, target)
+          if (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) {
+            makeZipEntry0(path, source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src))
           }
         }
-        makeZipEntry0(source.src, source.dest.getOrElse(os.sub / source.src.last))
       } else if (shouldInclude(source.src.last, excludePatterns, includePatterns)) {
         makeZipEntry0(source.src, source.dest.getOrElse(os.sub / source.src.last))
       }
@@ -155,7 +153,6 @@ object zip {
     val mtimeOpt = if (preserveMtimes) Some(os.mtime(file)) else None
 
     val fis = if (os.isFile(file)) Some(os.read.inputStream(file)) else None
-
     try makeZipEntry0(sub, fis, mtimeOpt, zipOut)
     finally fis.foreach(_.close())
   }
@@ -166,14 +163,7 @@ object zip {
       preserveMtimes: Option[Long],
       zipOut: ZipOutputStream
   ) = {
-    val path = is match {
-      // for folder
-      case None => sub.toString + "/"
-      // for file
-      case Some(_) => sub.toString
-    }
-
-    val zipEntry = new ZipEntry(path)
+    val zipEntry = new ZipEntry(sub.toString)
 
     preserveMtimes match {
       case Some(mtime) => zipEntry.setTime(mtime)

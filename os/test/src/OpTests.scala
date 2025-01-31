@@ -18,8 +18,7 @@ object OpTests extends TestSuite {
         res / "misc",
         res / "os",
         res / "File.txt",
-        res / "Multi Line.txt",
-        res / "emptyFolder"
+        res / "Multi Line.txt"
       ),
       os.list(res / "folder2").toSet == Set(
         res / "folder2/nestedA",
