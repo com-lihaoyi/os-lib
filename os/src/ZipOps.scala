@@ -219,10 +219,10 @@ object zip {
   class ZipSource private[os] (val src: os.Path, val dest: Option[os.SubPath])
   object ZipSource {
     implicit def fromPath(src: os.Path): ZipSource = new ZipSource(src, None)
+    implicit def fromSeqPath(srcs: Seq[os.Path]): Seq[ZipSource] = srcs.map(fromPath)
     implicit def fromPathTuple(tuple: (os.Path, os.SubPath)): ZipSource =
       new ZipSource(tuple._1, Some(tuple._2))
   }
-
 }
 
 object unzip {
