@@ -176,6 +176,17 @@ object ZipOpTests extends TestSuite {
       assert(paths == expected)
     }
 
+    test("zipList") - prep { wd =>
+      val sources = wd / "folder1"
+      val zipFilePath = os.zip(
+        dest = wd / "my.zip",
+        sources = os.list(sources)
+      )
+
+      val expected = os.unzip.list(source = zipFilePath).map(_.resolveFrom(sources)).toSet
+      assert(os.list(sources).toSet == expected)
+    }
+
     test("unzipStream") - prep { wd =>
       // Step 1: Create an in-memory ZIP file as a stream
       val zipStreamOutput = new ByteArrayOutputStream()
