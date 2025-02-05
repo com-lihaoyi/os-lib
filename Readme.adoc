@@ -2073,6 +2073,9 @@ wd / "folder" / "file"
 // The RHS of `/` can have multiple segments if-and-only-if it is a literal string
 wd / "folder/file"
 
+// Literal syntax for absolute `os.Path`
+val p: os.Path = "/folder/file"
+
 // A path starting from the root
 os.root / "folder/file"
 
@@ -2086,7 +2089,7 @@ wd / os.up
 wd / os.up / os.up
 ----
 
-When constructing `os.Path`s, the right-hand-side of the `/` operator must be either a non-literal
+When constructing ``os.Path``s, the right-hand-side of the `/` operator must be either a non-literal
 a string expression containing a single path segment or a literal string containing one-or-more
 path segments. If a non-literal string expression on the RHS contains multiple segments, you need
 to wrap the RHS in an explicit `os.RelPath(...)` or `os.SubPath(...)` constructor to tell OS-Lib
@@ -2135,9 +2138,11 @@ before the relative path is applied. They can be created in the following ways:
 val rel1 = os.rel / "folder" / "file"
 // RHS of `/` can have multiple segments if-and-only-if it is a literal string
 val rel2 = os.rel / "folder/file"
+// Literal syntax for `os.RelPath`
+val rel3: os.RelPath = "folder/file"
 
 // The path "file"
-val rel3 = os.rel / "file"
+val rel4 = os.rel / "file"
 
 // The relative difference between two paths
 val target = os.pwd / "target/file"
@@ -2201,6 +2206,8 @@ They can be created in the following ways:
 val sub1 = os.sub / "folder" / "file"
 // RHS of `/` can have multiple segments if-and-only-if it is a literal string
 val sub2 = os.sub / "folder/file"
+// Literal syntax for `os.SubPath`
+val sub2: os.Subpath = "folder/file"
 
 // The relative difference between two paths
 val target = os.pwd / "out/scratch/file"

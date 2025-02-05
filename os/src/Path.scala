@@ -349,7 +349,7 @@ class RelPath private[os] (segments0: Array[String], val ups: Int)
   def resolveFrom(base: os.Path) = base / this
 }
 
-object RelPath {
+object RelPath extends RelPathMacros {
 
   def apply[T: PathConvertible](f0: T): RelPath = {
     val f = implicitly[PathConvertible[T]].apply(f0)
@@ -410,7 +410,7 @@ class SubPath private[os] (val segments0: Array[String])
   def resolveFrom(base: os.Path) = base / this
 }
 
-object SubPath {
+object SubPath extends SubPathMacros {
   private[os] def relativeTo0(segments0: Array[String], segments: IndexedSeq[String]): RelPath = {
 
     val commonPrefix = {
@@ -437,7 +437,7 @@ object SubPath {
   val sub: SubPath = new SubPath(Internals.emptyStringArray)
 }
 
-object Path {
+object Path extends PathMacros {
   def apply(p: FilePath, base: Path) = p match {
     case p: RelPath => base / p
     case p: SubPath => base / p
