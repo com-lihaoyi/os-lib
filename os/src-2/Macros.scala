@@ -49,7 +49,7 @@ object Macros {
       case Expr(Literal(Constant(literal: String))) if !literal.startsWith("/") =>
         val stringSegments = segmentsFromStringLiteralValidation(literal)
 
-        if(stringSegments.startsWith(Seq(".."))) {
+        if (stringSegments.startsWith(Seq(".."))) {
           c.abort(s.tree.pos, "Invalid subpath literal: " + s.tree)
         }
         c.Expr(q"""os.sub / _root_.os.RelPath.fromStringSegments($stringSegments)""")

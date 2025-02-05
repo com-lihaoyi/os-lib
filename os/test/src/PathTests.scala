@@ -15,7 +15,7 @@ object PathTests extends TestSuite {
 
   val tests = Tests {
     test("Literals") {
-      test("implicitConstructors"){
+      test("implicitConstructors") {
         test("valid") {
           val p: os.Path = "/hello/world"
           val s: os.SubPath = "hello/world"
@@ -24,7 +24,7 @@ object PathTests extends TestSuite {
           assert(s == os.SubPath("hello/world"))
           assert(r == os.RelPath("../hello/world"))
         }
-        test("invalidLiteral"){
+        test("invalidLiteral") {
           val err1 = compileError("""val p: os.Path = "hello/world" """)
           assert(err1.msg.contains("Invalid absolute path literal: \"hello/world\""))
 
@@ -37,7 +37,7 @@ object PathTests extends TestSuite {
           val err4 = compileError("""val r: os.RelPath = "/hello/world" """)
           assert(err4.msg.contains("Invalid relative path literal: \"/hello/world\""))
         }
-        test("nonLiteral"){
+        test("nonLiteral") {
           val err1 = compileError("""val str = "hello/world"; val p: os.Path = str """)
           assert(err1.msg.contains("Invalid absolute path literal: str"))
 
