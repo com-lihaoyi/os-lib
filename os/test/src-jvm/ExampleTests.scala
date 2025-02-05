@@ -172,7 +172,7 @@ object ExampleTests extends TestSuite {
     test("newPath") {
 
       val target = os.pwd / "out/scratch"
-      val target: os.Path = "/out/scratch" // literal syntax
+      val target2: os.Path = "/out/scratch" // literal syntax
     }
     test("relPaths") {
 
@@ -207,7 +207,7 @@ object ExampleTests extends TestSuite {
 
       // Converting os.RelPath to os.SubPath
       val rel3 = os.rel / "folder/file"
-      val sub3 = rel3.asSubPath
+      val sub4 = rel3.asSubPath
 
       // `up`s are not allowed in sub paths
       intercept[Exception](os.pwd subRelativeTo target)

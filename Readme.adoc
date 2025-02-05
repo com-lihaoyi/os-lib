@@ -2215,7 +2215,7 @@ assert((target subRelativeTo os.pwd) == os.sub / "out/scratch/file")
 
 // Converting os.RelPath to os.SubPath
 val rel3 = os.rel / "folder/file"
-val sub3 = rel3.asSubPath
+val sub4 = rel3.asSubPath
 ----
 
 ``os.SubPath``s are useful for representing paths within a particular
