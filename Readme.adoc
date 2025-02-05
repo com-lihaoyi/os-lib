@@ -2528,6 +2528,7 @@ string, int or set representations of the `os.PermSet` via:
 
 * Add ability to instrument path based operations using hooks  https://github.com/com-lihaoyi/os-lib/pull/325[#325]
 * Add compile-time validation of literal paths containing ".." https://github.com/com-lihaoyi/os-lib/pull/329[#329]
+* Add literal string syntax for `os.Path`s, `os.SubPath`s, and `os.RelPath`s https://github.com/com-lihaoyi/os-lib/pull/353[#353]
 
 [#0-11-3]
 === 0.11.3
