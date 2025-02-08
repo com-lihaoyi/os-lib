@@ -32,7 +32,9 @@ class FSEventsWatcher(
         else {
           existingFolders.add(p)
           try os.walk.stream(p).foreach(nestedPaths.append(_))
-          catch { case e: Throwable => /*do nothing*/ }
+          catch {
+            case e: Throwable => /*do nothing*/
+          }
         }
       }
       onEvent((paths ++ nestedPaths).toSet)
