@@ -24,7 +24,7 @@ object Deps {
   val jna = ivy"net.java.dev.jna:jna:5.15.0"
   val geny = ivy"com.lihaoyi::geny::1.1.1"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
-  val utest = ivy"com.lihaoyi::utest::0.8.4"
+  val utest = ivy"com.lihaoyi::utest::0.8.5"
   val expecty = ivy"com.eed3si9n.expecty::expecty::0.16.0"
   def scalaReflect(scalaVersion: String) = ivy"org.scala-lang:scala-reflect:$scalaVersion"
   def scalaLibrary(version: String) = ivy"org.scala-lang:scala-library:${version}"
