@@ -277,7 +277,7 @@ case class proc(command: Shellable*) {
     check,
     propagateEnv,
     timeoutGracePeriod,
-    false
+    destroyOnExit = true
   )
 
   /**
@@ -374,7 +374,7 @@ case class proc(command: Shellable*) {
     mergeErrIntoOut = mergeErrIntoOut,
     propagateEnv = propagateEnv,
     shutdownGracePeriod = 100,
-    false
+    destroyOnExit = true
   )
 
   /**
