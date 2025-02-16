@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.11.3
+:version: 0.11.4
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -2524,11 +2524,11 @@ string, int or set representations of the `os.PermSet` via:
 
 == Changelog
 
-=== main
+=== 0.11.4
 
 * Add ability to instrument path based operations using hooks  https://github.com/com-lihaoyi/os-lib/pull/325[#325]
 * Add compile-time validation of literal paths containing ".." https://github.com/com-lihaoyi/os-lib/pull/329[#329]
-* Add literal string syntax for `os.Path`s, `os.SubPath`s, and `os.RelPath`s https://github.com/com-lihaoyi/os-lib/pull/353[#353]
+* Add literal string syntax for `os.Path`, `os.SubPath`, and `os.RelPath` https://github.com/com-lihaoyi/os-lib/pull/353[#353]
 
 [#0-11-3]
 === 0.11.3
