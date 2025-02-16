@@ -71,7 +71,7 @@ object call {
       check = check,
       propagateEnv = propagateEnv,
       shutdownGracePeriod = timeoutGracePeriod,
-      destroyOnExit = false
+      destroyOnExit = true
     )
   }
 }
@@ -130,7 +130,7 @@ object spawn {
       mergeErrIntoOut = mergeErrIntoOut,
       propagateEnv = propagateEnv,
       shutdownGracePeriod = 100,
-      destroyOnExit = false
+      destroyOnExit = true
     )
   }
 }
@@ -277,7 +277,7 @@ case class proc(command: Shellable*) {
     check,
     propagateEnv,
     timeoutGracePeriod,
-    destroyOnExit = false
+    false
   )
 
   /**
@@ -374,7 +374,7 @@ case class proc(command: Shellable*) {
     mergeErrIntoOut = mergeErrIntoOut,
     propagateEnv = propagateEnv,
     shutdownGracePeriod = 100,
-    destroyOnExit = false
+    false
   )
 
   /**
