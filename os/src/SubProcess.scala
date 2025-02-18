@@ -146,9 +146,10 @@ class SubProcess(
   def destroy(): Unit = destroy(shutdownGracePeriod = this.shutdownGracePeriod, async = false)
 
   def destroy(
-               shutdownGracePeriod: Long,
-               async: Boolean,
-             ): Unit = destroy(shutdownGracePeriod, async, recursive = true)
+      shutdownGracePeriod: Long,
+      async: Boolean
+  ): Unit = destroy(shutdownGracePeriod, async, recursive = true)
+
   /**
    * Destroys the subprocess, via the underlying JVM APIs, with configurable levels of
    * aggressiveness:
