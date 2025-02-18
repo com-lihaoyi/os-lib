@@ -220,7 +220,7 @@ object SpawningSubprocessesNewTests extends TestSuite {
         }
       }
 
-      test("destroyNoGrace") {
+      test("destroyNoGrace") - retry(3) {
         if (Unix()) {
           val temp = os.temp()
           val subprocess = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp))

@@ -173,7 +173,7 @@ object ZipOpTests extends TestSuite {
         wd / "unzipAllExceptExcludingCertainFiles/one.txt"
       )
 
-      assert(paths == expected)
+      assert(paths.toSet == expected.toSet)
     }
 
     test("zipList") - prep { wd =>

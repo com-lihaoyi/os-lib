@@ -71,7 +71,7 @@ object call {
       check = check,
       propagateEnv = propagateEnv,
       shutdownGracePeriod = timeoutGracePeriod,
-      destroyOnExit = false
+      destroyOnExit = true
     )
   }
 }
@@ -130,7 +130,7 @@ object spawn {
       mergeErrIntoOut = mergeErrIntoOut,
       propagateEnv = propagateEnv,
       shutdownGracePeriod = 100,
-      destroyOnExit = false
+      destroyOnExit = true
     )
   }
 }
@@ -219,7 +219,9 @@ case class proc(command: Shellable*) {
         chunks.add(Right(new geny.Bytes(java.util.Arrays.copyOf(buf, n))))
       ),
       mergeErrIntoOut,
-      propagateEnv
+      propagateEnv,
+      shutdownGracePeriod = shutdownGracePeriod,
+      destroyOnExit = destroyOnExit
     )
 
     sub.join(timeout, shutdownGracePeriod)
@@ -277,7 +279,7 @@ case class proc(command: Shellable*) {
     check,
     propagateEnv,
     timeoutGracePeriod,
-    destroyOnExit = false
+    destroyOnExit = true
   )
 
   /**
@@ -374,7 +376,7 @@ case class proc(command: Shellable*) {
     mergeErrIntoOut = mergeErrIntoOut,
     propagateEnv = propagateEnv,
     shutdownGracePeriod = 100,
-    destroyOnExit = false
+    destroyOnExit = true
   )
 
   /**
