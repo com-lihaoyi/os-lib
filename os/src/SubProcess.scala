@@ -160,8 +160,10 @@ class SubProcess(
    *                            that was used to spawned the process, but can be set to 0
    *                            (i.e. force exit immediately) or -1 (i.e. never force exit)
    *                            or anything in between. Typically defaults to 100 milliseconds.
-   * @param recursive whether or not to also destroy this process's child processes and
-   *                  descendents
+   * @param recursive whether or not to also destroy this process's own child processes and
+   *                  descendents. Each parent process is destroyed before its children, to
+   *                  ensure that when we are destroying the child processes no other children
+   *                  can be spawned concurrently
    */
   def destroy(
       shutdownGracePeriod: Long = this.shutdownGracePeriod,
