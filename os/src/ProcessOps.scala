@@ -323,15 +323,11 @@ case class proc(command: Shellable*) {
       propagateEnv
     )
 
-    println("destroyOnExit " + destroyOnExit)
-    println("command.value " + command.value)
     lazy val shutdownHookThread =
       if (!destroyOnExit) None
       else Some(new Thread("subprocess-shutdown-hook") {
         override def run(): Unit = {
-          println("proc.destroy(shutdownGracePeriod)")
           proc.destroy(shutdownGracePeriod)
-          println("proc.destroy(shutdownGracePeriod) END")
         }
       })
 
@@ -341,7 +337,6 @@ case class proc(command: Shellable*) {
           while (proc.wrapped.isAlive) Thread.sleep(1)
           try Runtime.getRuntime().removeShutdownHook(t)
           catch { case e: Throwable => /*do nothing*/ }
-          println("XXX shutdownHookMonitorThread END")
         }
       }
     )
@@ -356,8 +351,6 @@ case class proc(command: Shellable*) {
       shutdownGracePeriod = shutdownGracePeriod,
       shutdownHookMonitorThread = shutdownHookMonitorThread
     )
-
-    println("XXX shutdownHookMonitorThread.foreach(_.start())")
 
     shutdownHookMonitorThread.foreach(_.start())
 

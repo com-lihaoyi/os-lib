@@ -155,23 +155,35 @@ class SubProcess(
    *                            that was used to spawned the process, but can be set to 0
    *                            (i.e. force exit immediately) or -1 (i.e. never force exit)
    *                            or anything in between. Typically defaults to 100 milliseconds.
+   * @param recursive whether or not to also destroy this process's child processes and
+   *                  descendents
    */
   def destroy(
       shutdownGracePeriod: Long = this.shutdownGracePeriod,
-      async: Boolean = false
+      async: Boolean = false,
+      recursive: Boolean = true
   ): Unit = {
-    wrapped.destroy()
-    if (!async) {
-      val now = System.currentTimeMillis()
 
-      while (
-        wrapped.isAlive && (shutdownGracePeriod == -1 || System.currentTimeMillis() - now < shutdownGracePeriod)
-      ) {
-        Thread.sleep(1)
+    def destroy0(p: ProcessHandle) = {
+      p.destroy()
+      if (!async) {
+        val now = System.currentTimeMillis()
+
+        while (
+          p.isAlive && (shutdownGracePeriod == -1 || System.currentTimeMillis() - now < shutdownGracePeriod)
+        ) {
+          Thread.sleep(1)
+        }
+
+        if (p.isAlive) p.destroyForcibly()
       }
-
-      if (wrapped.isAlive) wrapped.destroyForcibly()
     }
+    def rec(p: ProcessHandle): Unit = {
+      p.children().forEach(c => rec(c))
+      destroy0(p)
+    }
+    if (recursive) rec(wrapped.toHandle)
+    else destroy0(wrapped.toHandle)
   }
 
   @deprecated("Use destroy(shutdownGracePeriod = 0)")
