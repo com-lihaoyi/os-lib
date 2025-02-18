@@ -170,27 +170,7 @@ class SubProcess(
       async: Boolean = false,
       recursive: Boolean = true
   ): Unit = {
-
-    def destroy0(p: ProcessHandle) = {
-      p.destroy()
-      if (!async) {
-        val now = System.currentTimeMillis()
-
-        while (
-          p.isAlive && (shutdownGracePeriod == -1 || System.currentTimeMillis() - now < shutdownGracePeriod)
-        ) {
-          Thread.sleep(1)
-        }
-
-        if (p.isAlive) p.destroyForcibly()
-      }
-    }
-    def rec(p: ProcessHandle): Unit = {
-      destroy0(p)
-      p.children().forEach(c => rec(c))
-    }
-    if (recursive) rec(wrapped.toHandle)
-    else destroy0(wrapped.toHandle)
+    SubProcess.destroy(wrapped.toHandle, async, shutdownGracePeriod, recursive)
   }
 
   @deprecated("Use destroy(shutdownGracePeriod = 0)")
@@ -222,6 +202,31 @@ class SubProcess(
 }
 
 object SubProcess {
+  private def destroySingle(p: ProcessHandle, async: Boolean, shutdownGracePeriod: Long) = {
+    p.destroy()
+    if (!async) {
+      val now = System.currentTimeMillis()
+
+      while (
+        p.isAlive && (shutdownGracePeriod == -1 || System.currentTimeMillis() - now < shutdownGracePeriod)
+      ) {
+        Thread.sleep(1)
+      }
+
+      if (p.isAlive) p.destroyForcibly()
+    }
+  }
+
+  private def destroyRecursive(p: ProcessHandle, async: Boolean, shutdownGracePeriod: Long): Unit = {
+    destroyRecursive(p, async, shutdownGracePeriod)
+    p.children().forEach(c => destroyRecursive(c, async, shutdownGracePeriod))
+
+  }
+
+  def destroy(p: ProcessHandle, async: Boolean = false, shutdownGracePeriod: Long = 100L, recursive: Boolean = true): Unit = {
+    if (recursive) SubProcess.destroyRecursive(p, async, shutdownGracePeriod)
+    else SubProcess.destroySingle(p, async, shutdownGracePeriod)
+  }
 
   /**
    * The env passed by default to child processes.
