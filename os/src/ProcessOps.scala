@@ -71,7 +71,7 @@ object call {
       check = check,
       propagateEnv = propagateEnv,
       shutdownGracePeriod = timeoutGracePeriod,
-      destroyOnExit = false
+      destroyOnExit = true
     )
   }
 }
@@ -130,7 +130,7 @@ object spawn {
       mergeErrIntoOut = mergeErrIntoOut,
       propagateEnv = propagateEnv,
       shutdownGracePeriod = 100,
-      destroyOnExit = false
+      destroyOnExit = true
     )
   }
 }
@@ -279,7 +279,7 @@ case class proc(command: Shellable*) {
     check,
     propagateEnv,
     timeoutGracePeriod,
-    destroyOnExit = false
+    destroyOnExit = true
   )
 
   /**
@@ -323,10 +323,16 @@ case class proc(command: Shellable*) {
       propagateEnv
     )
 
+    println("destroyOnExit " + destroyOnExit)
+    println("command.value " + command.value)
     lazy val shutdownHookThread =
       if (!destroyOnExit) None
       else Some(new Thread("subprocess-shutdown-hook") {
-        override def run(): Unit = proc.destroy(shutdownGracePeriod)
+        override def run(): Unit = {
+          println("proc.destroy(shutdownGracePeriod)")
+          proc.destroy(shutdownGracePeriod)
+          println("proc.destroy(shutdownGracePeriod) END")
+        }
       })
 
     lazy val shutdownHookMonitorThread = shutdownHookThread.map(t =>
@@ -335,6 +341,7 @@ case class proc(command: Shellable*) {
           while (proc.wrapped.isAlive) Thread.sleep(1)
           try Runtime.getRuntime().removeShutdownHook(t)
           catch { case e: Throwable => /*do nothing*/ }
+          println("XXX shutdownHookMonitorThread END")
         }
       }
     )
@@ -349,6 +356,8 @@ case class proc(command: Shellable*) {
       shutdownGracePeriod = shutdownGracePeriod,
       shutdownHookMonitorThread = shutdownHookMonitorThread
     )
+
+    println("XXX shutdownHookMonitorThread.foreach(_.start())")
 
     shutdownHookMonitorThread.foreach(_.start())
 
@@ -376,7 +385,7 @@ case class proc(command: Shellable*) {
     mergeErrIntoOut = mergeErrIntoOut,
     propagateEnv = propagateEnv,
     shutdownGracePeriod = 100,
-    destroyOnExit = false
+    destroyOnExit = true
   )
 
   /**
