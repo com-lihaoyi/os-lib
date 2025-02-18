@@ -22,8 +22,12 @@ import scala.util.Try
  * ignore the destination if it already exists, using [[os.makeDir.all]]
  */
 object makeDir extends Function1[Path, Unit] {
-  def apply(path: Path): Unit = Files.createDirectory(path.wrapped)
+  def apply(path: Path): Unit = {
+    checker.value.onWrite(path)
+    Files.createDirectory(path.wrapped)
+  }
   def apply(path: Path, perms: PermSet): Unit = {
+    checker.value.onWrite(path)
     Files.createDirectory(
       path.wrapped,
       PosixFilePermissions.asFileAttribute(perms.toSet())
@@ -38,6 +42,7 @@ object makeDir extends Function1[Path, Unit] {
   object all extends Function1[Path, Unit] {
     def apply(path: Path): Unit = apply(path, null, true)
     def apply(path: Path, perms: PermSet = null, acceptLinkedDirectory: Boolean = true): Unit = {
+      checker.value.onWrite(path)
       // We special case calling makeDir.all on a symlink to a directory;
       // normally createDirectories blows up noisily, when really what most
       // people would want is for it to succeed since there is a (linked)
@@ -84,6 +89,8 @@ object move {
       atomicMove: Boolean = false,
       createFolders: Boolean = false
   ): Unit = {
+    checker.value.onWrite(from)
+    checker.value.onWrite(to)
     if (createFolders && to.segmentCount != 0) makeDir.all(to / up)
     val opts1 =
       if (replaceExisting) Array[CopyOption](StandardCopyOption.REPLACE_EXISTING)
@@ -176,6 +183,8 @@ object copy {
       createFolders: Boolean = false,
       mergeFolders: Boolean = false
   ): Unit = {
+    checker.value.onRead(from)
+    checker.value.onWrite(to)
     if (createFolders && to.segmentCount != 0) makeDir.all(to / up)
     val opts1 =
       if (followLinks) Array[CopyOption]()
@@ -191,18 +200,17 @@ object copy {
       s"Can't copy a directory into itself: $to is inside $from"
     )
 
-    def copyOne(p: Path): file.Path = {
+    def copyOne(p: Path): Unit = {
       val target = to / p.relativeTo(from)
       if (mergeFolders && isDir(p, followLinks) && isDir(target, followLinks)) {
         // nothing to do
-        target.wrapped
       } else {
         Files.copy(p.wrapped, target.wrapped, opts1 ++ opts2 ++ opts3: _*)
       }
     }
 
     copyOne(from)
-    if (stat(from, followLinks = followLinks).isDir) walk(from).map(copyOne)
+    if (stat(from, followLinks = followLinks).isDir) for (p <- walk(from)) copyOne(p)
   }
 
   /** This overload is only to keep binary compatibility with older os-lib versions. */
@@ -311,6 +319,7 @@ object copy {
 object remove extends Function1[Path, Boolean] {
   def apply(target: Path): Boolean = apply(target, false)
   def apply(target: Path, checkExists: Boolean = false): Boolean = {
+    checker.value.onWrite(target)
     if (checkExists) {
       Files.delete(target.wrapped)
       true
@@ -320,15 +329,21 @@ object remove extends Function1[Path, Boolean] {
   }
 
   object all extends Function1[Path, Unit] {
-    def apply(target: Path) = {
+    def apply(target: Path): Unit = apply(target, ignoreErrors = false)
+    def apply(target: Path, ignoreErrors: Boolean = false): Unit = {
       require(target.segmentCount != 0, s"Cannot remove a root directory: $target")
+      checker.value.onWrite(target)
 
       val nioTarget = target.wrapped
       if (Files.exists(nioTarget, LinkOption.NOFOLLOW_LINKS)) {
         if (Files.isDirectory(nioTarget, LinkOption.NOFOLLOW_LINKS)) {
-          walk.stream(target, preOrder = false).foreach(remove(_))
+          for (p <- walk.stream(target, preOrder = false)) {
+            try remove(p)
+            catch { case e: Throwable if ignoreErrors => /*ignore*/ }
+          }
         }
-        Files.delete(nioTarget)
+        try Files.delete(nioTarget)
+        catch { case e: Throwable if ignoreErrors => /*ignore*/ }
       }
     }
   }
@@ -350,6 +365,8 @@ object exists extends Function1[Path, Boolean] {
  */
 object hardlink {
   def apply(link: Path, dest: Path) = {
+    checker.value.onWrite(link)
+    checker.value.onWrite(dest)
     Files.createLink(link.wrapped, dest.wrapped)
   }
 }
@@ -359,6 +376,12 @@ object hardlink {
  */
 object symlink {
   def apply(link: Path, dest: FilePath, perms: PermSet = null): Unit = {
+    checker.value.onWrite(link)
+    checker.value.onWrite(dest match {
+      case p: RelPath => link / RelPath.up / p
+      case p: SubPath => link / RelPath.up / p
+      case p: Path => p
+    })
     val permArray: Array[FileAttribute[_]] =
       if (perms == null) Array[FileAttribute[_]]()
       else Array(PosixFilePermissions.asFileAttribute(perms.toSet()))

@@ -219,7 +219,9 @@ case class proc(command: Shellable*) {
         chunks.add(Right(new geny.Bytes(java.util.Arrays.copyOf(buf, n))))
       ),
       mergeErrIntoOut,
-      propagateEnv
+      propagateEnv,
+      shutdownGracePeriod = shutdownGracePeriod,
+      destroyOnExit = destroyOnExit
     )
 
     sub.join(timeout, shutdownGracePeriod)

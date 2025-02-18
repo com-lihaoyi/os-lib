@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.11.3
+:version: 0.11.4
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -1028,7 +1028,7 @@ If you wish to remove the destination of a symlink, use
 
 [source,scala]
 ----
-os.remove.all(target: Path): Unit
+os.remove.all(target: Path, ignoreErrors: Boolean = false): Unit
 ----
 
 Remove the target file or folder; if it is a folder and not empty, recursively
@@ -1062,6 +1062,12 @@ os.exists(wd / "misc/broken-symlink", followLinks = false) ==> false
 
 If you wish to remove the destination of a symlink, use
 <<os-readlink>>.
+
+``os.remove.all`` removes nested files and folders one at a time, and any failure
+in removing a file (e.g. due to permissions) or folder (e.g. due to someone concurrently
+creating a file within it) causes an error to be thrown and terminates the removal early.
+You can pass `ignoreErrors = false` to continue with the deletion of other files
+even if some files or folders failed to be removed.
 
 ==== `os.hardlink`
 
@@ -1742,6 +1748,8 @@ is run:
 
 * `cwd`: the working directory of the subprocess
 * `env`: any additional environment variables you wish to set in the subprocess
+  in addition to those passed via `propagateEnv`. You can also set their values 
+  to `null` to remove specific variables.
 * `stdin`: any data you wish to pass to the subprocess's standard input
 * `stdout`/`stderr`: these are ``os.Redirect``s that let you configure how the
 processes output/error streams are configured.
@@ -2065,6 +2073,9 @@ wd / "folder" / "file"
 // The RHS of `/` can have multiple segments if-and-only-if it is a literal string
 wd / "folder/file"
 
+// Literal syntax for absolute `os.Path`
+val p: os.Path = "/folder/file"
+
 // A path starting from the root
 os.root / "folder/file"
 
@@ -2078,7 +2089,7 @@ wd / os.up
 wd / os.up / os.up
 ----
 
-When constructing `os.Path`s, the right-hand-side of the `/` operator must be either a non-literal
+When constructing ``os.Path``s, the right-hand-side of the `/` operator must be either a non-literal
 a string expression containing a single path segment or a literal string containing one-or-more
 path segments. If a non-literal string expression on the RHS contains multiple segments, you need
 to wrap the RHS in an explicit `os.RelPath(...)` or `os.SubPath(...)` constructor to tell OS-Lib
@@ -2127,9 +2138,11 @@ before the relative path is applied. They can be created in the following ways:
 val rel1 = os.rel / "folder" / "file"
 // RHS of `/` can have multiple segments if-and-only-if it is a literal string
 val rel2 = os.rel / "folder/file"
+// Literal syntax for `os.RelPath`
+val rel3: os.RelPath = "folder/file"
 
 // The path "file"
-val rel3 = os.rel / "file"
+val rel4 = os.rel / "file"
 
 // The relative difference between two paths
 val target = os.pwd / "target/file"
@@ -2193,6 +2206,8 @@ They can be created in the following ways:
 val sub1 = os.sub / "folder" / "file"
 // RHS of `/` can have multiple segments if-and-only-if it is a literal string
 val sub2 = os.sub / "folder/file"
+// Literal syntax for `os.SubPath`
+val sub2: os.Subpath = "folder/file"
 
 // The relative difference between two paths
 val target = os.pwd / "out/scratch/file"
@@ -2200,7 +2215,7 @@ assert((target subRelativeTo os.pwd) == os.sub / "out/scratch/file")
 
 // Converting os.RelPath to os.SubPath
 val rel3 = os.rel / "folder/file"
-val sub3 = rel3.asSubPath
+val sub4 = rel3.asSubPath
 ----
 
 ``os.SubPath``s are useful for representing paths within a particular
@@ -2508,6 +2523,12 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+=== 0.11.4
+
+* Add ability to instrument path based operations using hooks  https://github.com/com-lihaoyi/os-lib/pull/325[#325]
+* Add compile-time validation of literal paths containing ".." https://github.com/com-lihaoyi/os-lib/pull/329[#329]
+* Add literal string syntax for `os.Path`, `os.SubPath`, and `os.RelPath` https://github.com/com-lihaoyi/os-lib/pull/353[#353]
 
 [#0-11-3]
 === 0.11.3

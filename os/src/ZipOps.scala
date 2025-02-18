@@ -45,6 +45,9 @@ object zip {
       deletePatterns: Seq[Regex] = List(),
       compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION
   ): os.Path = {
+    checker.value.onWrite(dest)
+    // check read preemptively in case "dest" is created
+    for (source <- sources) checker.value.onRead(source.src)
 
     if (os.exists(dest)) {
       val opened = open(dest)
@@ -216,10 +219,10 @@ object zip {
   class ZipSource private[os] (val src: os.Path, val dest: Option[os.SubPath])
   object ZipSource {
     implicit def fromPath(src: os.Path): ZipSource = new ZipSource(src, None)
+    implicit def fromSeqPath(srcs: Seq[os.Path]): Seq[ZipSource] = srcs.map(fromPath)
     implicit def fromPathTuple(tuple: (os.Path, os.SubPath)): ZipSource =
       new ZipSource(tuple._1, Some(tuple._2))
   }
-
 }
 
 object unzip {
@@ -268,6 +271,7 @@ object unzip {
       excludePatterns: Seq[Regex] = List(),
       includePatterns: Seq[Regex] = List()
   ): Unit = {
+    checker.value.onWrite(dest)
     for ((zipEntry, zipInputStream) <- streamRaw(source, excludePatterns, includePatterns)) {
       val newFile = dest / os.SubPath(zipEntry.getName)
       if (zipEntry.isDirectory) os.makeDir.all(newFile)

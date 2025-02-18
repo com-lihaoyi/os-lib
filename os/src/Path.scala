@@ -26,10 +26,17 @@ object PathChunk extends PathChunkMacros {
     val splitted = strNoTrailingSeps.split('/')
     splitted ++ Array.fill(trailingSeparatorsCount)("")
   }
-
+  private def reduceUps(in: Array[String]): List[String] =
+    in.foldLeft(List.empty[String]) { case (acc, x) =>
+      acc match {
+        case h :: t if h == ".." => x :: acc
+        case h :: t if x == ".." => t
+        case _ => x :: acc
+      }
+    }.reverse
   private[os] def segmentsFromStringLiteralValidation(literal: String): Array[String] = {
     val stringSegments = segmentsFromString(literal)
-    val validSegmnts = validLiteralSegments(stringSegments)
+    val validSegmnts = reduceUps(validLiteralSegments(stringSegments))
     val sanitizedLiteral = validSegmnts.mkString("/")
     if (validSegmnts.isEmpty) throw InvalidSegment(
       literal,
@@ -342,7 +349,7 @@ class RelPath private[os] (segments0: Array[String], val ups: Int)
   def resolveFrom(base: os.Path) = base / this
 }
 
-object RelPath {
+object RelPath extends RelPathMacros {
 
   def apply[T: PathConvertible](f0: T): RelPath = {
     val f = implicitly[PathConvertible[T]].apply(f0)
@@ -403,7 +410,7 @@ class SubPath private[os] (val segments0: Array[String])
   def resolveFrom(base: os.Path) = base / this
 }
 
-object SubPath {
+object SubPath extends SubPathMacros {
   private[os] def relativeTo0(segments0: Array[String], segments: IndexedSeq[String]): RelPath = {
 
     val commonPrefix = {
@@ -430,7 +437,7 @@ object SubPath {
   val sub: SubPath = new SubPath(Internals.emptyStringArray)
 }
 
-object Path {
+object Path extends PathMacros {
   def apply(p: FilePath, base: Path) = p match {
     case p: RelPath => base / p
     case p: SubPath => base / p

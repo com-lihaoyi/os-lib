@@ -170,10 +170,7 @@ class SubProcess(
         Thread.sleep(1)
       }
 
-      if (wrapped.isAlive) {
-        println("wrapped.destroyForcibly()")
-        wrapped.destroyForcibly()
-      }
+      if (wrapped.isAlive) wrapped.destroyForcibly()
     }
   }
 

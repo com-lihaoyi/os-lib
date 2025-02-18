@@ -1,3 +1,4 @@
+package build
 // plugins
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
 import $ivy.`com.github.lolgab::mill-mima::0.1.1`
@@ -19,7 +20,7 @@ val scalaVersions = Seq(
 ) ++ communityBuildDottyVersion
 
 object Deps {
-  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.15"
+  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.16"
   val jna = ivy"net.java.dev.jna:jna:5.15.0"
   val geny = ivy"com.lihaoyi::geny::1.1.1"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
@@ -72,6 +73,9 @@ trait MiMaChecks extends Mima {
     // this is fine, because ProcessLike is sealed (and its subclasses should be final)
     ProblemFilter.exclude[ReversedMissingMethodProblem]("os.ProcessLike.joinPumperThreadsHook")
   )
+  override def mimaExcludeAnnotations: T[Seq[String]] = Seq(
+    "os.experimental"
+  )
 }
 
 trait OsLibModule
@@ -101,7 +105,8 @@ trait OsLibModule
     // we check the textual output of system commands and expect it in english
     def forkEnv = super.forkEnv() ++ Map(
       "LC_ALL" -> "C",
-      "TEST_SUBPROCESS_ENV" -> "value"
+      "TEST_SUBPROCESS_ENV" -> "value",
+      "OS_TEST_RESOURCE_FOLDER" -> os.jvm(crossValue).test.resources().head.path.toString
     )
   }
 }
@@ -206,6 +211,7 @@ object os extends Module {
       def ivyDeps = Agg(Deps.jna)
       object test extends ScalaTests with OsLibTestModule {
         def moduleDeps = super.moduleDeps ++ Seq(os.jvm().test)
+
       }
     }
   }
