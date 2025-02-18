@@ -326,9 +326,7 @@ case class proc(command: Shellable*) {
     lazy val shutdownHookThread =
       if (!destroyOnExit) None
       else Some(new Thread("subprocess-shutdown-hook") {
-        override def run(): Unit = {
-          proc.destroy(shutdownGracePeriod)
-        }
+        override def run(): Unit = proc.destroy(shutdownGracePeriod)
       })
 
     lazy val shutdownHookMonitorThread = shutdownHookThread.map(t =>
