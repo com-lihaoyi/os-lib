@@ -184,8 +184,8 @@ class SubProcess(
       }
     }
     def rec(p: ProcessHandle): Unit = {
-      p.children().forEach(c => rec(c))
       destroy0(p)
+      p.children().forEach(c => rec(c))
     }
     if (recursive) rec(wrapped.toHandle)
     else destroy0(wrapped.toHandle)
