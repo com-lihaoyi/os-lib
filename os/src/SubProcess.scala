@@ -220,9 +220,12 @@ object SubProcess {
   private def destroyRecursive(p: ProcessHandle, async: Boolean, shutdownGracePeriod: Long): Unit = {
     destroyRecursive(p, async, shutdownGracePeriod)
     p.children().forEach(c => destroyRecursive(c, async, shutdownGracePeriod))
-
+    
   }
 
+  /**
+   * Similar to [[SubProcess.destroy]], but can be called on an arbitrary process handle
+   */
   def destroy(p: ProcessHandle, async: Boolean = false, shutdownGracePeriod: Long = 100L, recursive: Boolean = true): Unit = {
     if (recursive) SubProcess.destroyRecursive(p, async, shutdownGracePeriod)
     else SubProcess.destroySingle(p, async, shutdownGracePeriod)
