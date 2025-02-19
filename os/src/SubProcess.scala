@@ -224,7 +224,9 @@ object SubProcess {
   }
 
   /**
-   * Similar to [[SubProcess.destroy]], but can be called on an arbitrary process handle
+   * Similar to [[SubProcess.destroy]], but can be called on an arbitrary process handle,
+   * not just [[SubProcess]] objects created by OS-Lib. e.g. could be to called on 
+   * `ProcessHandle.current().children()` to cleanup leaked processes during shutdown
    */
   def destroy(p: ProcessHandle, async: Boolean = false, shutdownGracePeriod: Long = 100L, recursive: Boolean = true): Unit = {
     if (recursive) SubProcess.destroyRecursive(p, async, shutdownGracePeriod)
