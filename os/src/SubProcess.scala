@@ -217,18 +217,27 @@ object SubProcess {
     }
   }
 
-  private def destroyRecursive(p: ProcessHandle, async: Boolean, shutdownGracePeriod: Long): Unit = {
+  private def destroyRecursive(
+      p: ProcessHandle,
+      async: Boolean,
+      shutdownGracePeriod: Long
+  ): Unit = {
     destroyRecursive(p, async, shutdownGracePeriod)
     p.children().forEach(c => destroyRecursive(c, async, shutdownGracePeriod))
-    
+
   }
 
   /**
    * Similar to [[SubProcess.destroy]], but can be called on an arbitrary process handle,
-   * not just [[SubProcess]] objects created by OS-Lib. e.g. could be to called on 
+   * not just [[SubProcess]] objects created by OS-Lib. e.g. could be to called on
    * `ProcessHandle.current().children()` to cleanup leaked processes during shutdown
    */
-  def destroy(p: ProcessHandle, async: Boolean = false, shutdownGracePeriod: Long = 100L, recursive: Boolean = true): Unit = {
+  def destroy(
+      p: ProcessHandle,
+      async: Boolean = false,
+      shutdownGracePeriod: Long = 100L,
+      recursive: Boolean = true
+  ): Unit = {
     if (recursive) SubProcess.destroyRecursive(p, async, shutdownGracePeriod)
     else SubProcess.destroySingle(p, async, shutdownGracePeriod)
   }
