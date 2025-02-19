@@ -222,7 +222,7 @@ object SubProcess {
       async: Boolean,
       shutdownGracePeriod: Long
   ): Unit = {
-    destroyRecursive(p, async, shutdownGracePeriod)
+    destroySingle(p, async, shutdownGracePeriod)
     p.children().forEach(c => destroyRecursive(c, async, shutdownGracePeriod))
 
   }
