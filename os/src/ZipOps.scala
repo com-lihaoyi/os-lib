@@ -2,7 +2,7 @@ package os
 
 import java.net.URI
 import java.nio.file.{FileSystem, FileSystems, Files}
-import java.nio.file.attribute.{BasicFileAttributeView, FileTime, PosixFilePermissions}
+import java.nio.file.attribute.{BasicFileAttributeView, FileTime, PosixFilePermission, PosixFilePermissions}
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
 import scala.collection.JavaConverters._
 import scala.util.matching.Regex
@@ -149,29 +149,20 @@ object zip {
       preserveMtimes: Boolean,
       zipOut: ZipOutputStream
   ) = {
-
-    val mtimeOpt = if (preserveMtimes) Some(os.mtime(file)) else None
-
-    val fis = if (os.isFile(file)) Some(os.read.inputStream(file)) else None
-    try makeZipEntry0(sub, fis, mtimeOpt, zipOut)
-    finally fis.foreach(_.close())
-  }
-
-  private def makeZipEntry0(
-      sub: os.SubPath,
-      is: Option[java.io.InputStream],
-      preserveMtimes: Option[Long],
-      zipOut: ZipOutputStream
-  ) = {
     val zipEntry = new ZipEntry(sub.toString)
-
-    preserveMtimes match {
-      case Some(mtime) => zipEntry.setTime(mtime)
-      case None => zipEntry.setTime(0)
-    }
-
+    if (preserveMtimes) zipEntry.setTime(os.mtime(file)) else zipEntry.setTime(0)
     zipOut.putNextEntry(zipEntry)
-    is.foreach(os.Internals.transfer(_, zipOut, close = false))
+    if (os.isFile(file)) {
+        val fis = os.read.inputStream(file)
+        try os.Internals.transfer(fis, zipOut, close = false)
+        finally fis.close()
+    }
+    // TODO make it conditional ???
+    if (!scala.util.Properties.isWin) {
+      val filePerms = os.perms(file)
+      val perms = PosixFilePermissions.fromString(filePerms.toString)
+      Files.setAttribute(sub.toNIO, "zip:permissions", perms);
+    }
   }
 
   /**
@@ -279,6 +270,11 @@ object unzip {
         val outputStream = os.write.outputStream(newFile, createFolders = true)
         os.Internals.transfer(zipInputStream, outputStream, close = false)
         outputStream.close()
+      }
+      // TODO optional ???
+      if (!scala.util.Properties.isWin) {
+        val perms = Files.getAttribute(java.nio.file.Paths.get(zipEntry.getName), "zip:permissions").asInstanceOf[java.util.Set[PosixFilePermission]]
+        os.perms.set(newFile, PermSet.fromSet(perms))
       }
     }
   }

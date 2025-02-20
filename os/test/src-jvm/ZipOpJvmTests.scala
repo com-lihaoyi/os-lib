@@ -133,6 +133,53 @@ object ZipOpJvmTests extends TestSuite {
       test("append") - prep { wd => zipAndUnzipDontPreserveMtimes(wd, true) }
     }
 
+    test("zipAndUnzipPreservePermissions") - prep { wd =>
+      if (Unix()) {
+        // Zipping files and folders in a new zip file
+        val zipFileName = "zip-file-test.zip"
+        os.perms.set(wd / "File.txt", "rwxr-xr-x")
+        os.perms.set(wd / "folder1/one.txt", "rw-rw-rw-")
+        val zipFile1: os.Path = os.zip(
+            dest = wd / zipFileName,
+            sources = Seq(
+            wd / "File.txt",
+            wd / "folder1"
+            )
+        )
+        // Adding files and folders to an existing zip file
+        os.zip(
+            dest = zipFile1,
+            sources = Seq(
+                wd / "folder2",
+                wd / "Multi Line.txt"
+            )
+        )
+
+        // Unzip file to a destination folder
+        val unzippedFolder = os.unzip(
+            source = wd / zipFileName,
+            dest = wd / "unzipped folder"
+        )
+
+        val paths = os.walk(unzippedFolder)
+        val expected = Seq(
+            // Files get included in the zip root using their name
+            wd / "unzipped folder/File.txt",
+            wd / "unzipped folder/Multi Line.txt",
+            // Folder contents get included relative to the source root
+            wd / "unzipped folder/nestedA",
+            wd / "unzipped folder/nestedB",
+            wd / "unzipped folder/one.txt",
+            wd / "unzipped folder/nestedA/a.txt",
+            wd / "unzipped folder/nestedB/b.txt"
+        )
+        assert(paths.sorted == expected)
+
+        os.perms(wd / "unzipped folder/File.txt") ==> "rwxr-xr-x"
+        os.perms(wd / "unzipped folder/one.txt") ==> "rw-rw-rw-"
+      }
+    }
+
     test("deletePatterns") - prep { wd =>
       val amxFile = "File.amx"
       os.copy(wd / "File.txt", wd / amxFile)
