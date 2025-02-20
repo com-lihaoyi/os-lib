@@ -138,12 +138,12 @@ object ZipOpJvmTests extends TestSuite {
         // Zipping files and folders in a new zip file
         val zipFileName = "zip-file-test.zip"
         os.perms.set(wd / "File.txt", "rwxr-xr-x")
-        os.perms.set(wd / "folder1/one.txt", "rw-rw-rw-")
+        os.perms.set(wd / "folder1/nestedA", "rw-rw-rw-")
         val zipFile1: os.Path = os.zip(
             dest = wd / zipFileName,
             sources = Seq(
-            wd / "File.txt",
-            wd / "folder1"
+                wd / "File.txt",
+                wd / "folder1"
             )
         )
         // Adding files and folders to an existing zip file
@@ -176,7 +176,7 @@ object ZipOpJvmTests extends TestSuite {
         assert(paths.sorted == expected)
 
         os.perms(wd / "unzipped folder/File.txt") ==> "rwxr-xr-x"
-        os.perms(wd / "unzipped folder/one.txt") ==> "rw-rw-rw-"
+        os.perms(wd / "unzipped folder/nestedA") ==> "rw-rw-rw-"
       }
     }
 
