@@ -7,7 +7,7 @@ import scala.language.implicitConversions
 import acyclic.skipped
 import os.PathError.{InvalidSegment, NonCanonicalLiteral}
 
-import scala.util.Try //needed for cross-version defined macros
+import scala.util.{DynamicVariable, Try} //needed for cross-version defined macros
 
 trait PathChunk {
   def segments: Seq[String]
@@ -438,6 +438,31 @@ object SubPath extends SubPathMacros {
 }
 
 object Path extends PathMacros {
+  trait Serializer {
+    def serializeString(p: os.Path): String
+    def serializeFile(p: os.Path): java.io.File
+    def serializePath(p: os.Path): java.nio.file.Path
+    def deserialize(s: String): java.nio.file.Path
+    def deserialize(s: java.io.File): java.nio.file.Path
+    def deserialize(s: java.nio.file.Path): java.nio.file.Path
+    def deserialize(s: java.net.URI): java.nio.file.Path
+  }
+  val pathSerializer = new DynamicVariable[Serializer](defaultPathSerializer)
+  object defaultPathSerializer extends Serializer{
+    def serializeString(p: os.Path): String = p.toString
+    def serializeFile(p: os.Path): java.io.File = p.wrapped.toFile
+    def serializePath(p: os.Path): java.nio.file.Path = p.wrapped
+    def deserialize(s: String) = Paths.get(s)
+    def deserialize(s: java.io.File) = Paths.get(s.getPath)
+    def deserialize(s: java.nio.file.Path) = s
+    def deserialize(s: java.net.URI) = s.getScheme() match {
+      case "file" => Paths.get(s)
+      case uriType =>
+        throw new IllegalArgumentException(
+          s"""os.Path can only be created from a "file" URI scheme, but found "${uriType}""""
+        )
+    }
+  }
   def apply(p: FilePath, base: Path) = p match {
     case p: RelPath => base / p
     case p: SubPath => base / p
@@ -562,7 +587,7 @@ class Path private[os] (val wrapped: java.nio.file.Path)
     val resolved = wrapped.resolve(chunk.toString).normalize()
     new Path(resolved)
   }
-  override def toString = wrapped.toString
+  override def toString = Path.pathSerializer.value.serializeString(this)
 
   override def equals(o: Any): Boolean = o match {
     case p: Path => wrapped.equals(p.wrapped)
@@ -593,8 +618,8 @@ class Path private[os] (val wrapped: java.nio.file.Path)
     new RelPath(segments.drop(nonUpIndex), nonUpIndex)
   }
 
-  def toIO: java.io.File = wrapped.toFile
-  def toNIO: java.nio.file.Path = wrapped
+  def toIO: java.io.File = Path.pathSerializer.value.serializeFile(this)
+  def toNIO: java.nio.file.Path = Path.pathSerializer.value.serializePath(this)
 
   def resolveFrom(base: os.Path) = this
 
@@ -608,23 +633,18 @@ sealed trait PathConvertible[T] {
 
 object PathConvertible {
   implicit object StringConvertible extends PathConvertible[String] {
-    def apply(t: String) = Paths.get(t)
+    def apply(t: String) = Path.pathSerializer.value.deserialize(t)
   }
   implicit object JavaIoFileConvertible extends PathConvertible[java.io.File] {
-    def apply(t: java.io.File) = Paths.get(t.getPath)
+    def apply(t: java.io.File) = Path.pathSerializer.value.deserialize(t)
   }
   implicit object NioPathConvertible extends PathConvertible[java.nio.file.Path] {
-    def apply(t: java.nio.file.Path) = t
+    def apply(t: java.nio.file.Path) = Path.pathSerializer.value.deserialize(t)
     override def isCustomFs(t: java.nio.file.Path): Boolean =
       t.getFileSystem() != java.nio.file.FileSystems.getDefault()
   }
   implicit object UriPathConvertible extends PathConvertible[URI] {
-    def apply(uri: URI) = uri.getScheme() match {
-      case "file" => Paths.get(uri)
-      case uriType =>
-        throw new IllegalArgumentException(
-          s"""os.Path can only be created from a "file" URI scheme, but found "${uriType}""""
-        )
-    }
+    def apply(uri: URI) = Path.pathSerializer.value.deserialize(uri)
+
   }
 }
