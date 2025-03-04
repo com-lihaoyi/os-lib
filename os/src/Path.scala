@@ -438,7 +438,7 @@ object SubPath extends SubPathMacros {
 }
 
 object Path extends PathMacros {
-  trait Serializer {
+  @experimental trait Serializer {
     def serializeString(p: os.Path): String
     def serializeFile(p: os.Path): java.io.File
     def serializePath(p: os.Path): java.nio.file.Path
@@ -447,8 +447,8 @@ object Path extends PathMacros {
     def deserialize(s: java.nio.file.Path): java.nio.file.Path
     def deserialize(s: java.net.URI): java.nio.file.Path
   }
-  val pathSerializer = new DynamicVariable[Serializer](defaultPathSerializer)
-  object defaultPathSerializer extends Serializer{
+  @experimental val pathSerializer = new DynamicVariable[Serializer](defaultPathSerializer)
+  @experimental object defaultPathSerializer extends Serializer{
     def serializeString(p: os.Path): String = p.toString
     def serializeFile(p: os.Path): java.io.File = p.wrapped.toFile
     def serializePath(p: os.Path): java.nio.file.Path = p.wrapped

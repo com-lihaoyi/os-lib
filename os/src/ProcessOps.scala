@@ -607,7 +607,9 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
   def pipeTo(next: proc) = ProcGroup(commands :+ next)
 }
 
-private[os] object ProcessOps {
+@experimental
+object ProcessOps {
+  val spawnHook = new scala.util.DynamicVariable[os.Path => Unit]({ p => () })
   def buildProcess(
       command: Seq[String],
       cwd: Path = null,
@@ -644,7 +646,9 @@ private[os] object ProcessOps {
 
     addToProcessEnv(env)
 
-    builder.directory(Option(cwd).getOrElse(os.pwd).toIO)
+    val dir = Option(cwd).getOrElse(os.pwd)
+    builder.directory(dir.toIO)
+    spawnHook.value.apply(dir)
 
     builder
       .command(command: _*)
