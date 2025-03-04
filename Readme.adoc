@@ -59,7 +59,7 @@ If you use OS-Lib and like it, you will probably enjoy the following book by the
 
 * https://www.handsonscala.com/[_Hands-on Scala Programming_]
 
-_Hands-on Scala_ has uses OS-Lib extensively throughout the book, and has
+_Hands-on Scala_ uses OS-Lib extensively throughout the book, and has
 the entirety of _Chapter 7: Files and Subprocesses_ dedicated to
 OS-Lib. _Hands-on Scala_ is a great way to level up your skills in Scala
 in general and OS-Lib in particular.
@@ -91,7 +91,7 @@ https://javadoc.io/doc/com.lihaoyi/os-lib_3[API Documentation (Scala 3)]
 
 == Cookbook
 
-Most operation in OS-Lib take place on <<os-path>>s, which are
+Most operations in OS-Lib take place on <<os-path>>s, which are
 constructed from a base path or working directory `wd`. Most often, the first
 thing to do is to define a `wd` path representing the folder you want to work
 with:
@@ -101,7 +101,7 @@ with:
 val wd = os.pwd / "my-test-folder"
 ----
 
-You can of course multiple base paths, to use in different parts of your program
+You can of course have multiple base paths, to use in different parts of your program
 where convenient, or simply work with one of the pre-defined paths `os.pwd`,
 `os.root`, or `os.home`.
 
