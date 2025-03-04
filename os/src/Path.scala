@@ -448,8 +448,8 @@ object Path extends PathMacros {
     def deserialize(s: java.net.URI): java.nio.file.Path
   }
   @experimental val pathSerializer = new DynamicVariable[Serializer](defaultPathSerializer)
-  @experimental object defaultPathSerializer extends Serializer{
-    def serializeString(p: os.Path): String = p.toString
+  @experimental object defaultPathSerializer extends Serializer {
+    def serializeString(p: os.Path): String = p.wrapped.toString
     def serializeFile(p: os.Path): java.io.File = p.wrapped.toFile
     def serializePath(p: os.Path): java.nio.file.Path = p.wrapped
     def deserialize(s: String) = Paths.get(s)

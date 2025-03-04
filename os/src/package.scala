@@ -4,7 +4,7 @@ import java.nio.file.FileSystems
 import java.nio.file.Paths
 import scala.util.DynamicVariable
 
-package object os extends ResourceApi{
+package object os extends ResourceApi {
   type Generator[+T] = geny.Generator[T]
   val Generator = geny.Generator
   implicit def GlobSyntax(s: StringContext): GlobInterpolator = new GlobInterpolator(s)
