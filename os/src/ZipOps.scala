@@ -1,5 +1,7 @@
 package os
 
+import org.apache.tools.{zip => ant}
+
 import java.net.URI
 import java.nio.file.{FileSystem, FileSystems, Files}
 import java.nio.file.attribute.{BasicFileAttributeView, FileTime, PosixFilePermissions}
@@ -125,7 +127,7 @@ object zip {
       compressionLevel: Int,
       out: java.io.OutputStream
   ): Unit = {
-    val zipOut = new ZipOutputStream(out)
+    val zipOut = new ant.ZipOutputStream(out)
     zipOut.setLevel(compressionLevel)
 
     try {
@@ -154,21 +156,35 @@ object zip {
     !isExcluded && isIncluded
   }
 
+  private def toFileType(file: os.Path): PermissionUtils.FileType = {
+    if (os.isLink(file)) PermissionUtils.FileType.SYMLINK
+    else if (os.isFile(file)) PermissionUtils.FileType.REGULAR_FILE
+    else if (os.isDir(file)) PermissionUtils.FileType.DIR
+    else PermissionUtils.FileType.OTHER
+  }
+
   private def makeZipEntry(
       file: os.Path,
       sub: os.SubPath,
       preserveMtimes: Boolean,
-      zipOut: ZipOutputStream
+      zipOut: ant.ZipOutputStream
   ) = {
     val name =
       if (os.isDir(file)) sub.toString + "/"
       else sub.toString
-    val zipEntry = new ZipEntry(name)
+    val zipEntry = new ant.ZipEntry(name)
 
     val mtime = if (preserveMtimes) os.mtime(file) else 0
     zipEntry.setTime(mtime)
 
-    val fis = if (os.isFile(file)) Some(os.read.inputStream(file)) else None
+    val mode = PermissionUtils.modeFromPermissions(os.perms(file).toSet(), toFileType(file))
+    zipEntry.setUnixMode(mode)
+
+    val fis =
+      if (os.isLink(file))
+        Some(new java.io.ByteArrayInputStream(os.readLink(file).toString().getBytes()))
+      else if (os.isFile(file)) Some(os.read.inputStream(file))
+      else None
 
     try {
       zipOut.putNextEntry(zipEntry)
@@ -244,6 +260,10 @@ object unzip {
     } yield os.SubPath(zipEntry.getName)
   }
 
+  private lazy val S_IFMT: Int = java.lang.Integer.parseInt("0170000", 8)
+  private def isSymLink(mode: Int): Boolean =
+    (mode & S_IFMT) == ant.UnixStat.LINK_FLAG
+
   /**
    * Extract the given zip file into the destination directory
    *
@@ -257,7 +277,39 @@ object unzip {
       excludePatterns: Seq[Regex] = List(),
       includePatterns: Seq[Regex] = List()
   ): os.Path = {
-    stream(os.read.stream(source), dest, excludePatterns, includePatterns)
+    checker.value.onWrite(dest)
+
+    val zipFile = new ant.ZipFile(source.toIO)
+    val zipEntryInputStreams = zipFile.getEntries.asScala
+      .filter(ze => os.zip.shouldInclude(ze.getName, excludePatterns, includePatterns))
+      .map(ze => (ze, zipFile.getInputStream(ze)))
+
+    try {
+      for ((zipEntry, zipInputStream) <- zipEntryInputStreams) {
+        val newFile = dest / os.SubPath(zipEntry.getName)
+        val mode = zipEntry.getUnixMode
+        val perms = if (mode > 0) {
+          os.PermSet.fromSet(PermissionUtils.permissionsFromMode(mode))
+        } else null
+
+        if (zipEntry.isDirectory) {
+          os.makeDir.all(newFile, perms = perms)
+        } else if (isSymLink(mode)) {
+          val target = scala.io.Source.fromInputStream(zipInputStream).mkString
+          val path = java.nio.file.Paths.get(target)
+          val dest = if (path.isAbsolute) os.Path(path) else os.RelPath(path)
+          os.symlink(newFile, dest)
+        } else {
+          val outputStream = os.write.outputStream(newFile, createFolders = true)
+          os.Internals.transfer(zipInputStream, outputStream, close = false)
+          outputStream.close()
+          if (perms != null) os.perms.set(newFile, perms)
+        }
+      }
+    } finally {
+      zipFile.close()
+    }
+
     dest
   }
 

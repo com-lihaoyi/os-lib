@@ -23,6 +23,7 @@ object Deps {
   val acyclic = ivy"com.lihaoyi:::acyclic:0.3.18"
   val jna = ivy"net.java.dev.jna:jna:5.15.0"
   val geny = ivy"com.lihaoyi::geny::1.1.1"
+  val compress = ivy"org.apache.ant:ant:1.10.15"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
   val utest = ivy"com.lihaoyi::utest::0.8.4"
   val expecty = ivy"com.eed3si9n.expecty::expecty::0.16.0"
@@ -112,7 +113,7 @@ trait OsLibModule
 }
 
 trait OsModule extends OsLibModule { outer =>
-  def ivyDeps = Agg(Deps.geny)
+  def ivyDeps = Agg(Deps.geny, Deps.compress)
   override def compileIvyDeps = T {
     val scalaReflectOpt = Option.when(!ZincWorkerUtil.isDottyOrScala3(scalaVersion()))(
       Deps.scalaReflect(scalaVersion())
