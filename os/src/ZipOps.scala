@@ -97,8 +97,14 @@ object zip {
   ): Unit = {
     sources.foreach { source =>
       if (os.isDir(source.src)) {
-        for (path <- os.walk(source.src)) {
-          if (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) {
+        val contents = os.walk(source.src)
+        if (contents.isEmpty)
+          makeZipEntry0(source.src, source.dest.getOrElse(os.sub / source.src.last))
+        for (path <- contents) {
+          if (
+            (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) ||
+            (os.isDir(path) && os.walk.stream(path).headOption.isEmpty)
+          ) {
             makeZipEntry0(path, source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src))
           }
         }
@@ -150,7 +156,10 @@ object zip {
       preserveMtimes: Boolean,
       zipOut: ZipOutputStream
   ) = {
-    val zipEntry = new ZipEntry(sub.toString())
+    val name =
+      if (os.isDir(file)) sub.toString + "/"
+      else sub.toString
+    val zipEntry = new ZipEntry(name)
 
     val mtime = if (preserveMtimes) os.mtime(file) else 0
     zipEntry.setTime(mtime)
