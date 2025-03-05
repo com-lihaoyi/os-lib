@@ -109,6 +109,25 @@ object ZipOpTests extends TestSuite {
       assert(paths == expected)
     }
 
+    test("zipEmptyDir") - prep { wd =>
+      val zipFileName = "zipEmptyDirs"
+
+      val emptyDir = wd / "empty1"
+      os.makeDir(emptyDir)
+
+      val outerEmptyDir = wd / "outer"
+      os.makeDir.all(outerEmptyDir)
+      os.makeDir(outerEmptyDir / "empty2")
+
+      val zipped = os.zip(
+        dest = wd / s"${zipFileName}.zip",
+        sources = Seq(emptyDir, outerEmptyDir)
+      )
+
+      val unzipped = os.unzip(zipped, wd / zipFileName)
+      assert(List(unzipped / "empty1", unzipped / "empty2").forall(os.isDir))
+    }
+
     test("zipStream") - prep { wd =>
       val zipFileName = "zipStreamFunction.zip"
 
