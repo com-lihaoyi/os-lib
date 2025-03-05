@@ -125,6 +125,7 @@ object zip {
         includePatterns,
         (path, sub) => makeZipEntry(path, sub, preserveMtimes, zipOut)
       )
+      zipOut.finish()
     } finally {
       zipOut.close()
     }
@@ -149,29 +150,18 @@ object zip {
       preserveMtimes: Boolean,
       zipOut: ZipOutputStream
   ) = {
+    val zipEntry = new ZipEntry(sub.toString())
 
-    val mtimeOpt = if (preserveMtimes) Some(os.mtime(file)) else None
+    val mtime = if (preserveMtimes) os.mtime(file) else 0
+    zipEntry.setTime(mtime)
 
     val fis = if (os.isFile(file)) Some(os.read.inputStream(file)) else None
-    try makeZipEntry0(sub, fis, mtimeOpt, zipOut)
-    finally fis.foreach(_.close())
-  }
 
-  private def makeZipEntry0(
-      sub: os.SubPath,
-      is: Option[java.io.InputStream],
-      preserveMtimes: Option[Long],
-      zipOut: ZipOutputStream
-  ) = {
-    val zipEntry = new ZipEntry(sub.toString)
-
-    preserveMtimes match {
-      case Some(mtime) => zipEntry.setTime(mtime)
-      case None => zipEntry.setTime(0)
-    }
-
-    zipOut.putNextEntry(zipEntry)
-    is.foreach(os.Internals.transfer(_, zipOut, close = false))
+    try {
+      zipOut.putNextEntry(zipEntry)
+      fis.foreach(os.Internals.transfer(_, zipOut, close = false))
+      zipOut.closeEntry()
+    } finally fis.foreach(_.close())
   }
 
   /**
