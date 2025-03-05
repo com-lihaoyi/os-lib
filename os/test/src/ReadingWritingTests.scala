@@ -125,7 +125,7 @@ object ReadingWritingTests extends TestSuite {
         }
       }
       test("outputStreamWithPerms") {
-        test - prep { wd =>
+        test - prep { wd => if (!scala.util.Properties.isWin) {
           val out = os.write.outputStream(wd / "New File.txt", perms = os.PermSet(420))
           out.write('H')
           out.write('e')
@@ -135,7 +135,7 @@ object ReadingWritingTests extends TestSuite {
           out.close()
 
           os.read(wd / "New File.txt") ==> "Hello"
-        }
+        }}
       }
     }
     test("truncate") {
