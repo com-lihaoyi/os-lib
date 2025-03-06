@@ -278,7 +278,7 @@ object CheckerTests extends TestSuite {
       }
     }
     test("hardlink") - prepChecker { wd =>
-      intercept[WriteDenied] {
+      intercept[ReadDenied] {
         os.hardlink(wd / "Linked.txt", rd / "File.txt")
       }
       os.exists(wd / "Linked.txt") ==> false

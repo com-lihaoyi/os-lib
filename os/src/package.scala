@@ -4,7 +4,7 @@ import java.nio.file.FileSystems
 import java.nio.file.Paths
 import scala.util.DynamicVariable
 
-package object os {
+package object os extends ResourceApi {
   type Generator[+T] = geny.Generator[T]
   val Generator = geny.Generator
   implicit def GlobSyntax(s: StringContext): GlobInterpolator = new GlobInterpolator(s)
@@ -18,10 +18,6 @@ package object os {
     val path = Path(fileSystem.getPath(root))
     assert(path.root == root || path.root == root.replace('/', '\\'), s"$root is not a root path")
     path
-  }
-
-  def resource(implicit resRoot: ResourceRoot = Thread.currentThread().getContextClassLoader) = {
-    os.ResourcePath.resource(resRoot)
   }
 
   // See https://github.com/com-lihaoyi/os-lib/pull/239
