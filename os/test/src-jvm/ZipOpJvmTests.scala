@@ -132,6 +132,29 @@ object ZipOpJvmTests extends TestSuite {
       test("noAppend") - prep { wd => zipAndUnzipDontPreserveMtimes(wd, false) }
       test("append") - prep { wd => zipAndUnzipDontPreserveMtimes(wd, true) }
     }
+    
+    test("zipAndUnzipPreservePermissions") - prep { wd =>
+      // Create a file and set its permissions
+      val testFile = wd / "FileWithPerms"
+      os.write(testFile, "Test content")
+      os.perms.set(testFile, "rwxr-xr-x")
+
+      // Zipping the file with preserveMtimes = true
+      val zipFile = os.zip(
+        dest = wd / "zipWithPermsPreservation.zip",
+        sources = List(wd / "FileWithPerms")
+      )
+      
+      val unzippedFolder = wd / "unzippedWithPerms"
+      os.unzip(
+        source = zipFile,
+        dest = unzippedFolder
+      )
+
+      // Compare the original and actual permissions
+      val unzippedFilePerms = os.perms(unzippedFolder / "FileWithPerms")
+      assert(unzippedFilePerms.toString() == "rwxr-xr-x")
+    }
 
     test("deletePatterns") - prep { wd =>
       val amxFile = "File.amx"
