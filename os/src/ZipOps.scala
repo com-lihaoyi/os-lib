@@ -1,7 +1,5 @@
 package os
 
-import org.apache.tools.{zip => ant}
-
 import java.net.URI
 import java.nio.file.{FileSystem, FileSystems, Files}
 import java.nio.file.attribute.{BasicFileAttributeView, FileTime, PosixFilePermissions}
@@ -127,7 +125,7 @@ object zip {
       compressionLevel: Int,
       out: java.io.OutputStream
   ): Unit = {
-    val zipOut = new ant.ZipOutputStream(out)
+    val zipOut = new _ApacheZipOutputStream(out)
     zipOut.setLevel(compressionLevel)
 
     try {
@@ -167,12 +165,12 @@ object zip {
       file: os.Path,
       sub: os.SubPath,
       preserveMtimes: Boolean,
-      zipOut: ant.ZipOutputStream
+      zipOut: _ApacheZipOutputStream
   ) = {
     val name =
       if (os.isDir(file)) sub.toString + "/"
       else sub.toString
-    val zipEntry = new ant.ZipEntry(name)
+    val zipEntry = new _ApacheZipEntry(name)
 
     val mtime = if (preserveMtimes) os.mtime(file) else 0
     zipEntry.setTime(mtime)
@@ -262,7 +260,7 @@ object unzip {
 
   private lazy val S_IFMT: Int = java.lang.Integer.parseInt("0170000", 8)
   private def isSymLink(mode: Int): Boolean =
-    (mode & S_IFMT) == ant.UnixStat.LINK_FLAG
+    (mode & S_IFMT) == _ApacheUnixStat.LINK_FLAG
 
   /**
    * Extract the given zip file into the destination directory
@@ -279,7 +277,7 @@ object unzip {
   ): os.Path = {
     checker.value.onWrite(dest)
 
-    val zipFile = new ant.ZipFile(source.toIO)
+    val zipFile = new _ApacheZipFile(source.toIO)
     val zipEntryInputStreams = zipFile.getEntries.asScala
       .filter(ze => os.zip.shouldInclude(ze.getName, excludePatterns, includePatterns))
       .map(ze => (ze, zipFile.getInputStream(ze)))
