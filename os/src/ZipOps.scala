@@ -304,7 +304,9 @@ object unzip {
           val relPath = path.subRelativeTo(dest).toString
           if (os.zip.shouldInclude(relPath, excludePatterns, includePatterns)) {
             val entry = zipFS.getPath(relPath)
-            val permissions = Files.getAttribute(entry, "zip:permissions").asInstanceOf[java.util.Set[PosixFilePermission]]
+            val permissions =
+              Files.getAttribute(entry, "zip:permissions")
+                .asInstanceOf[java.util.Set[PosixFilePermission]]
             if (permissions != null) {
               os.perms.set(path, permissions)
             }
