@@ -1,5 +1,11 @@
 package os
 
+import org.apache.commons.compress.archivers.zip.{
+  ZipArchiveEntry,
+  ZipFile => ZipArchiveFile,
+  ZipArchiveOutputStream
+}
+
 import java.net.URI
 import java.nio.file.{FileSystem, FileSystems, Files}
 import java.nio.file.attribute.{BasicFileAttributeView, FileTime, PosixFilePermissions}
@@ -97,8 +103,14 @@ object zip {
   ): Unit = {
     sources.foreach { source =>
       if (os.isDir(source.src)) {
-        for (path <- os.walk(source.src)) {
-          if (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) {
+        val contents = os.walk(source.src)
+        if (contents.isEmpty)
+          makeZipEntry0(source.src, source.dest.getOrElse(os.sub / source.src.last))
+        for (path <- contents) {
+          if (
+            (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) ||
+            (os.isDir(path) && os.walk.stream(path).headOption.isEmpty)
+          ) {
             makeZipEntry0(path, source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src))
           }
         }
@@ -115,7 +127,7 @@ object zip {
       compressionLevel: Int,
       out: java.io.OutputStream
   ): Unit = {
-    val zipOut = new ZipOutputStream(out)
+    val zipOut = new ZipArchiveOutputStream(out)
     zipOut.setLevel(compressionLevel)
 
     try {
@@ -125,6 +137,7 @@ object zip {
         includePatterns,
         (path, sub) => makeZipEntry(path, sub, preserveMtimes, zipOut)
       )
+      zipOut.finish()
     } finally {
       zipOut.close()
     }
@@ -143,35 +156,41 @@ object zip {
     !isExcluded && isIncluded
   }
 
+  private def toFileType(file: os.Path): PermissionUtils.FileType = {
+    if (os.isLink(file)) PermissionUtils.FileType.SYMLINK
+    else if (os.isFile(file)) PermissionUtils.FileType.REGULAR_FILE
+    else if (os.isDir(file)) PermissionUtils.FileType.DIR
+    else PermissionUtils.FileType.OTHER
+  }
+
   private def makeZipEntry(
       file: os.Path,
       sub: os.SubPath,
       preserveMtimes: Boolean,
-      zipOut: ZipOutputStream
+      zipOut: ZipArchiveOutputStream
   ) = {
+    val name =
+      if (os.isDir(file)) sub.toString() + "/"
+      else sub.toString()
+    val zipEntry = new ZipArchiveEntry(name)
 
-    val mtimeOpt = if (preserveMtimes) Some(os.mtime(file)) else None
+    val mtime = if (preserveMtimes) os.mtime(file) else 0
+    zipEntry.setTime(mtime)
 
-    val fis = if (os.isFile(file)) Some(os.read.inputStream(file)) else None
-    try makeZipEntry0(sub, fis, mtimeOpt, zipOut)
-    finally fis.foreach(_.close())
-  }
+    val mode = PermissionUtils.modeFromPermissions(os.perms(file).toSet(), toFileType(file))
+    zipEntry.setUnixMode(mode)
 
-  private def makeZipEntry0(
-      sub: os.SubPath,
-      is: Option[java.io.InputStream],
-      preserveMtimes: Option[Long],
-      zipOut: ZipOutputStream
-  ) = {
-    val zipEntry = new ZipEntry(sub.toString)
+    val fis =
+      if (os.isLink(file))
+        Some(new java.io.ByteArrayInputStream(os.readLink(file).toString().getBytes()))
+      else if (os.isFile(file)) Some(os.read.inputStream(file))
+      else None
 
-    preserveMtimes match {
-      case Some(mtime) => zipEntry.setTime(mtime)
-      case None => zipEntry.setTime(0)
-    }
-
-    zipOut.putNextEntry(zipEntry)
-    is.foreach(os.Internals.transfer(_, zipOut, close = false))
+    try {
+      zipOut.putArchiveEntry(zipEntry)
+      fis.foreach(os.Internals.transfer(_, zipOut, close = false))
+      zipOut.closeArchiveEntry()
+    } finally fis.foreach(_.close())
   }
 
   /**
@@ -254,7 +273,39 @@ object unzip {
       excludePatterns: Seq[Regex] = List(),
       includePatterns: Seq[Regex] = List()
   ): os.Path = {
-    stream(os.read.stream(source), dest, excludePatterns, includePatterns)
+    checker.value.onWrite(dest)
+
+    val zipFile = new ZipArchiveFile(source.toIO)
+    val zipEntryInputStreams = zipFile.getEntries.asScala
+      .filter(ze => os.zip.shouldInclude(ze.getName, excludePatterns, includePatterns))
+      .map(ze => (ze, zipFile.getInputStream(ze)))
+
+    try {
+      for ((zipEntry, zipInputStream) <- zipEntryInputStreams) {
+        val newFile = dest / os.SubPath(zipEntry.getName)
+        val mode = zipEntry.getUnixMode
+        val perms = if (mode > 0 && !scala.util.Properties.isWin) {
+          os.PermSet.fromSet(PermissionUtils.permissionsFromMode(mode))
+        } else null
+
+        if (zipEntry.isDirectory) {
+          os.makeDir.all(newFile, perms = perms)
+        } else if (zipEntry.isUnixSymlink() && !scala.util.Properties.isWin) {
+          val target = scala.io.Source.fromInputStream(zipInputStream).mkString
+          val path = java.nio.file.Paths.get(target)
+          val dest = if (path.isAbsolute) os.Path(path) else os.RelPath(path)
+          os.symlink(newFile, dest)
+        } else {
+          val outputStream = os.write.outputStream(newFile, createFolders = true)
+          os.Internals.transfer(zipInputStream, outputStream, close = false)
+          outputStream.close()
+          if (perms != null) os.perms.set(newFile, perms)
+        }
+      }
+    } finally {
+      zipFile.close()
+    }
+
     dest
   }
 
