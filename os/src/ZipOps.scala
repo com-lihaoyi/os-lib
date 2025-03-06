@@ -99,7 +99,9 @@ object zip {
           for (path <- os.walk(source.src)) {
             if (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) {
               val sourcePerms = os.perms(path)
-              val entry = zipFS.getPath((source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src)).toString)
+              val entry = zipFS.getPath(
+                (source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src)).toString
+              )
               Files.setPosixFilePermissions(entry, sourcePerms.toSet())
             }
           }
