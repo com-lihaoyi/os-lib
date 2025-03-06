@@ -2,7 +2,7 @@ package os
 
 import java.net.URI
 import java.nio.file.{FileSystem, FileSystems, Files}
-import java.nio.file.attribute.{BasicFileAttributeView, FileTime, PosixFilePermissions}
+import java.nio.file.attribute.{BasicFileAttributeView, FileTime, PosixFilePermission}
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
 import scala.collection.JavaConverters._
 import scala.util.matching.Regex
