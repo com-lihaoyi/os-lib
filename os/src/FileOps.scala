@@ -202,7 +202,9 @@ object copy {
 
     def copyOne(p: Path): Unit = {
       val target = to / p.relativeTo(from)
-      if (mergeFolders && isDir(p, followLinks) && isDir(target, followLinks)) {
+      if (mergeFolders && isDir(p, false) && !exists(target, false)) {
+        os.makeDir(target)
+      } else if (mergeFolders && isDir(p, followLinks) && isDir(target, followLinks)) {
         // nothing to do
       } else {
         Files.copy(p.wrapped, target.wrapped, opts1 ++ opts2 ++ opts3: _*)
