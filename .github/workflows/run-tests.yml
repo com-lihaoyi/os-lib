@@ -31,7 +31,7 @@ jobs:
         run: curl -Lo mill.bat "https://raw.githubusercontent.com/lefou/millw/main/millw.bat"
         if: matrix.os == 'windows-latest'
 
-      - run: ./mill -i -k __.test
+      - run: sudo ./mill -i -k __.test
         if: matrix.os != 'windows-latest'
       - run: ./mill.bat -i -k __.jvm.__.test
         if: matrix.os == 'windows-latest'
