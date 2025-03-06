@@ -134,24 +134,26 @@ object ZipOpJvmTests extends TestSuite {
     }
 
     test("zipAndUnzipPreservePermissions") - prep { wd =>
-      // Create a file and set its permissions
-      val testFile = wd / "FileWithPerms"
-      os.write(testFile, "Test content")
-      os.perms.set(testFile, "rwxr-xr-x")
-      // Zip the file with permissions
-      val zipFile = os.zip(
-        dest = wd / "zipWithPermsPreservation.zip",
-        sources = List(testFile)
-      )
-      // Unzip it
-      val unzippedFolder = wd / "unzippedWithPerms"
-      os.unzip(
-        source = zipFile,
-        dest = unzippedFolder
-      )
-      // Compare the original and actual permissions after unzip
-      val unzippedFilePerms = os.perms(unzippedFolder / "FileWithPerms")
-      assert(unzippedFilePerms.toString() == "rwxr-xr-x")
+      if (Unix()) {
+        // Create a file and set its permissions
+        val testFile = wd / "FileWithPerms"
+        os.write(testFile, "Test content")
+        os.perms.set(testFile, "rwxr-xr-x")
+        // Zip the file with permissions
+        val zipFile = os.zip(
+          dest = wd / "zipWithPermsPreservation.zip",
+          sources = List(testFile)
+        )
+        // Unzip it
+        val unzippedFolder = wd / "unzippedWithPerms"
+        os.unzip(
+          source = zipFile,
+          dest = unzippedFolder
+        )
+        // Compare the original and actual permissions after unzip
+        val unzippedFilePerms = os.perms(unzippedFolder / "FileWithPerms")
+        assert(unzippedFilePerms.toString() == "rwxr-xr-x")
+      }
     }
 
     test("deletePatterns") - prep { wd =>

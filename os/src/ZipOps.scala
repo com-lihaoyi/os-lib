@@ -86,32 +86,39 @@ object zip {
         )
       finally f.close()
       // preserve permissions
-      val zipFS = FileSystems.newFileSystem(
-        new URI("jar", dest.wrapped.toUri.toString, null),
-        Map(
-          "create" -> "true",
-          "enablePosixFileAttributes" -> "true",
-          "defaultPermissions" -> Set.empty[String].asJava
-        ).asJava
-      )
-      sources.foreach { source =>
-        if (os.isDir(source.src)) {
-          for (path <- os.walk(source.src)) {
-            if (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) {
-              val sourcePerms = os.perms(path)
-              val entry = zipFS.getPath(
-                (source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src)).toString
-              )
+      if (!scala.util.Properties.isWin) {
+        val zipFS = FileSystems.newFileSystem(
+          new URI("jar", dest.wrapped.toUri.toString, null),
+          Map(
+            "create" -> "true",
+            "enablePosixFileAttributes" -> "true",
+            "defaultPermissions" -> Set.empty[String].asJava
+          ).asJava
+        )
+        try {
+          sources.foreach { source =>
+            if (os.isDir(source.src)) {
+              for (path <- os.walk(source.src)) {
+                if (
+                  os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)
+                ) {
+                  val sourcePerms = os.perms(path)
+                  val entry = zipFS.getPath(
+                    (source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src)).toString
+                  )
+                  Files.setPosixFilePermissions(entry, sourcePerms.toSet())
+                }
+              }
+            } else if (shouldInclude(source.src.last, excludePatterns, includePatterns)) {
+              val sourcePerms = os.perms(source.src)
+              val entry = zipFS.getPath(source.dest.getOrElse(os.sub / source.src.last).toString)
               Files.setPosixFilePermissions(entry, sourcePerms.toSet())
             }
           }
-        } else if (shouldInclude(source.src.last, excludePatterns, includePatterns)) {
-          val sourcePerms = os.perms(source.src)
-          val entry = zipFS.getPath(source.dest.getOrElse(os.sub / source.src.last).toString)
-          Files.setPosixFilePermissions(entry, sourcePerms.toSet())
+        } finally {
+          zipFS.close()
         }
       }
-      zipFS.close()
     }
     dest
   }
@@ -283,23 +290,28 @@ object unzip {
   ): os.Path = {
     stream(os.read.stream(source), dest, excludePatterns, includePatterns)
     // preserve permissions
-    val zipFS = FileSystems.newFileSystem(
-      new URI("jar", source.wrapped.toUri.toString, null),
-      Map(
-        "create" -> "true",
-        "enablePosixFileAttributes" -> "true",
-        "defaultPermissions" -> Set.empty[String].asJava
-      ).asJava
-    )
-    os.walk(dest).foreach { path =>
-      val relPath = path.subRelativeTo(dest).toString
-      if (os.zip.shouldInclude(relPath, excludePatterns, includePatterns)) {
-        val entry = zipFS.getPath(relPath)
-        val permissions = Files.getPosixFilePermissions(entry)
-        os.perms.set(path, permissions)
+    if (!scala.util.Properties.isWin) {
+      val zipFS = FileSystems.newFileSystem(
+        new URI("jar", source.wrapped.toUri.toString, null),
+        Map(
+          "create" -> "true",
+          "enablePosixFileAttributes" -> "true",
+          "defaultPermissions" -> Set.empty[String].asJava
+        ).asJava
+      )
+      try {
+        os.walk(dest).foreach { path =>
+          val relPath = path.subRelativeTo(dest).toString
+          if (os.zip.shouldInclude(relPath, excludePatterns, includePatterns)) {
+            val entry = zipFS.getPath(relPath)
+            val permissions = Files.getPosixFilePermissions(entry)
+            os.perms.set(path, permissions)
+          }
+        }
+      } finally {
+        zipFS.close()
       }
     }
-    zipFS.close()
     dest
   }
 
