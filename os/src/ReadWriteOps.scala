@@ -30,8 +30,8 @@ object write {
     checker.value.onWrite(target)
     if (createFolders) makeDir.all(target / RelPath.up, perms)
     if (perms != null && !exists(target)) {
-      val permArray =
-        if (perms == null) Array[FileAttribute[PosixFilePermission]]()
+      val permArray: Array[FileAttribute[_]] =
+        if (perms == null) Array.empty
         else Array(PosixFilePermissions.asFileAttribute(perms.toSet()))
       java.nio.file.Files.createFile(target.toNIO, permArray: _*)
     }
