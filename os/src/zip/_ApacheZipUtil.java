@@ -1,0 +1,270 @@
+/*
+ *  Licensed to the Apache Software Foundation (ASF) under one or more
+ *  contributor license agreements.  See the NOTICE file distributed with
+ *  this work for additional information regarding copyright ownership.
+ *  The ASF licenses this file to You under the Apache License, Version 2.0
+ *  (the "License"); you may not use this file except in compliance with
+ *  the License.  You may obtain a copy of the License at
+ *
+ *      https://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ *
+ */
+package os;
+
+import java.io.IOException;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.zip.CRC32;
+
+/**
+ * Utility class for handling DOS and Java time conversions.
+ * @since Ant 1.8.1
+ */
+public abstract class _ApacheZipUtil {
+    /**
+     * Smallest date/time ZIP can handle.
+     */
+    private static final byte[] DOS_TIME_MIN = _ApacheZipLong.getBytes(0x00002100L);
+
+    /**
+     * Convert a Date object to a DOS date/time field.
+     *
+     * @param time the <code>Date</code> to convert
+     * @return the date as a <code>_ApacheZipLong</code>
+     */
+    public static _ApacheZipLong toDosTime(Date time) {
+        return new _ApacheZipLong(toDosTime(time.getTime()));
+    }
+
+    /**
+     * Convert a Date object to a DOS date/time field.
+     *
+     * <p>Stolen from InfoZip's <code>fileio.c</code></p>
+     *
+     * @param t number of milliseconds since the epoch
+     * @return the date as a byte array
+     */
+    public static byte[] toDosTime(long t) {
+        byte[] result = new byte[4];
+        toDosTime(t, result, 0);
+        return result;
+    }
+
+    /**
+     * Convert a Date object to a DOS date/time field.
+     *
+     * <p>Stolen from InfoZip's <code>fileio.c</code></p>
+     *
+     * @param t number of milliseconds since the epoch
+     * @param buf the output buffer
+     * @param offset
+     *         The offset within the output buffer of the first byte to be written.
+     *         must be non-negative and no larger than <code>buf.length-4</code>
+     */
+    public static void toDosTime(long t, byte[] buf, int offset) {
+        toDosTime(Calendar.getInstance(), t, buf, offset);
+    }
+
+    static void toDosTime(Calendar c, long t, byte[] buf, int offset) {
+        c.setTimeInMillis(t);
+
+        int year = c.get(Calendar.YEAR);
+        if (year < 1980) {
+            System.arraycopy(DOS_TIME_MIN, 0, buf, offset, DOS_TIME_MIN.length); // stop callers from changing the array
+            return;
+        }
+        int month = c.get(Calendar.MONTH) + 1;
+        long value =  ((year - 1980) << 25)
+            |         (month << 21)
+            |         (c.get(Calendar.DAY_OF_MONTH) << 16)
+            |         (c.get(Calendar.HOUR_OF_DAY) << 11)
+            |         (c.get(Calendar.MINUTE) << 5)
+            |         (c.get(Calendar.SECOND) >> 1);
+        _ApacheZipLong.putLong(value, buf, offset);
+    }
+
+    /**
+     * Assumes a negative integer really is a positive integer that
+     * has wrapped around and re-creates the original value.
+     *
+     * <p>This methods is no longer used as of Apache Ant 1.9.0</p>
+     *
+     * @param i the value to treat as unsigned int.
+     * @return the unsigned int as a long.
+     */
+    public static long adjustToLong(int i) {
+        if (i < 0) {
+            return 2 * ((long) Integer.MAX_VALUE) + 2 + i;
+        } else {
+            return i;
+        }
+    }
+
+    /**
+     * Convert a DOS date/time field to a Date object.
+     *
+     * @param zipDosTime contains the stored DOS time.
+     * @return a Date instance corresponding to the given time.
+     */
+    public static Date fromDosTime(_ApacheZipLong zipDosTime) {
+        long dosTime = zipDosTime.getValue();
+        return new Date(dosToJavaTime(dosTime));
+    }
+
+    /**
+     * Converts DOS time to Java time (number of milliseconds since
+     * epoch).
+     *
+     * @param dosTime long
+     * @return long
+     */
+    public static long dosToJavaTime(long dosTime) {
+        Calendar cal = Calendar.getInstance();
+        // CheckStyle:MagicNumberCheck OFF - no point
+        cal.set(Calendar.YEAR, (int) ((dosTime >> 25) & 0x7f) + 1980);
+        cal.set(Calendar.MONTH, (int) ((dosTime >> 21) & 0x0f) - 1);
+        cal.set(Calendar.DATE, (int) (dosTime >> 16) & 0x1f);
+        cal.set(Calendar.HOUR_OF_DAY, (int) (dosTime >> 11) & 0x1f);
+        cal.set(Calendar.MINUTE, (int) (dosTime >> 5) & 0x3f);
+        cal.set(Calendar.SECOND, (int) (dosTime << 1) & 0x3e);
+        cal.set(Calendar.MILLISECOND, 0);
+        // CheckStyle:MagicNumberCheck ON
+        return cal.getTime().getTime();
+    }
+
+    /**
+     * If the entry has Unicode*ExtraFields and the CRCs of the
+     * names/comments match those of the extra fields, transfer the
+     * known Unicode values from the extra field.
+     *
+     * @param ze _ApacheZipEntry
+     * @param originalNameBytes byte[]
+     * @param commentBytes byte[]
+     */
+    static void setNameAndCommentFromExtraFields(_ApacheZipEntry ze,
+                                                 byte[] originalNameBytes,
+                                                 byte[] commentBytes) {
+        _ApacheUnicodePathExtraField name = (_ApacheUnicodePathExtraField)
+            ze.getExtraField(_ApacheUnicodePathExtraField.UPATH_ID);
+        String originalName = ze.getName();
+        String newName = getUnicodeStringIfOriginalMatches(name,
+                                                           originalNameBytes);
+        if (newName != null && !originalName.equals(newName)) {
+            ze.setName(newName);
+        }
+
+        if (commentBytes != null && commentBytes.length > 0) {
+            _ApacheUnicodeCommentExtraField cmt = (_ApacheUnicodeCommentExtraField)
+                ze.getExtraField(_ApacheUnicodeCommentExtraField.UCOM_ID);
+            String newComment =
+                getUnicodeStringIfOriginalMatches(cmt, commentBytes);
+            if (newComment != null) {
+                ze.setComment(newComment);
+            }
+        }
+    }
+
+    /**
+     * If the stored CRC matches the one of the given name, return the
+     * Unicode name of the given field.
+     *
+     * <p>If the field is null or the CRCs don't match, return null
+     * instead.</p>
+     *
+     * @param f _ApacheAbstractUnicodeExtraField
+     * @param orig byte[]
+     */
+    private static
+        String getUnicodeStringIfOriginalMatches(_ApacheAbstractUnicodeExtraField f,
+                                                 byte[] orig) {
+        if (f != null) {
+            CRC32 crc32 = new CRC32();
+            crc32.update(orig);
+            long origCRC32 = crc32.getValue();
+
+            if (origCRC32 == f.getNameCRC32()) {
+                try {
+                    return _ApacheZipEncodingHelper
+                        .UTF8_ZIP_ENCODING.decode(f.getUnicodeName());
+                } catch (IOException ex) {
+                    // UTF-8 unsupported?  should be impossible the
+                    // Unicode*ExtraField must contain some bad bytes
+
+                    // TODO log this anywhere?
+                    return null;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Create a copy of the given array - or return null if the
+     * argument is null.
+     *
+     * @param from byte[]
+     * @return byte[]
+     */
+    static byte[] copy(byte[] from) {
+        if (from != null) {
+            byte[] to = new byte[from.length];
+            System.arraycopy(from, 0, to, 0, to.length);
+            return to;
+        }
+        return null;
+    }
+
+    /**
+     * Whether this library is able to read or write the given entry.
+     *
+     * @return boolean
+     */
+    static boolean canHandleEntryData(_ApacheZipEntry entry) {
+        return supportsEncryptionOf(entry) && supportsMethodOf(entry);
+    }
+
+    /**
+     * Whether this library supports the encryption used by the given
+     * entry.
+     *
+     * @return true if the entry isn't encrypted at all
+     */
+    private static boolean supportsEncryptionOf(_ApacheZipEntry entry) {
+        return !entry.getGeneralPurposeBit().usesEncryption();
+    }
+
+    /**
+     * Whether this library supports the compression method used by
+     * the given entry.
+     *
+     * @return true if the compression method is STORED or DEFLATED
+     */
+    private static boolean supportsMethodOf(_ApacheZipEntry entry) {
+        return entry.getMethod() == _ApacheZipEntry.STORED
+            || entry.getMethod() == _ApacheZipEntry.DEFLATED;
+    }
+
+    /**
+     * Checks whether the entry requires features not (yet) supported
+     * by the library and throws an exception if it does.
+     */
+    static void checkRequestedFeatures(_ApacheZipEntry ze)
+        throws _ApacheUnsupportedZipFeatureException {
+        if (!supportsEncryptionOf(ze)) {
+            throw
+                new _ApacheUnsupportedZipFeatureException(_ApacheUnsupportedZipFeatureException
+                                                   .Feature.ENCRYPTION, ze);
+        }
+        if (!supportsMethodOf(ze)) {
+            throw
+                new _ApacheUnsupportedZipFeatureException(_ApacheUnsupportedZipFeatureException
+                                                   .Feature.METHOD, ze);
+        }
+    }
+}
