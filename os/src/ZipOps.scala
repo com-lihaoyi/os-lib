@@ -99,11 +99,15 @@ object zip {
       if (os.isDir(source.src)) {
         val contents = os.walk(source.src)
         if (contents.isEmpty)
-          source.dest.foreach(makeZipEntry0(source.src, _))
+          source.dest
+            .filter(_ => shouldInclude(source.src.toString + "/", excludePatterns, includePatterns))
+            .foreach(makeZipEntry0(source.src, _))
         for (path <- contents) {
           if (
             (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) ||
-            (os.isDir(path) && os.walk.stream(path).headOption.isEmpty)
+            (os.isDir(path) &&
+              os.walk.stream(path).headOption.isEmpty &&
+              shouldInclude(path.toString + "/", excludePatterns, includePatterns))
           ) {
             makeZipEntry0(path, source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src))
           }
