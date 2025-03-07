@@ -112,20 +112,39 @@ object ZipOpTests extends TestSuite {
     test("zipEmptyDir") - prep { wd =>
       val zipFileName = "zipEmptyDirs"
 
-      val emptyDir = wd / "empty1"
+      val emptyDir = wd / "empty"
       os.makeDir(emptyDir)
 
-      val outerEmptyDir = wd / "outer"
-      os.makeDir.all(outerEmptyDir)
-      os.makeDir(outerEmptyDir / "empty2")
+      val containsEmptyDir = wd / "outer"
+      os.makeDir.all(containsEmptyDir)
+      os.makeDir(containsEmptyDir / "emptyInnerDir")
 
       val zipped = os.zip(
         dest = wd / s"${zipFileName}.zip",
-        sources = Seq(emptyDir, outerEmptyDir)
+        sources = Seq(emptyDir, containsEmptyDir)
       )
 
       val unzipped = os.unzip(zipped, wd / zipFileName)
-      assert(List(unzipped / "empty1", unzipped / "empty2").forall(os.isDir))
+      // should include empty dirs inside source
+      assert(os.isDir(unzipped / "emptyInnerDir"))
+      // should ignore empty dirs specified in sources without dest
+      assert(!os.exists(unzipped / "empty"))
+    }
+
+    test("zipEmptyDirWithDest") - prep { wd =>
+      val zipFileName = "zipEmptyDirs"
+
+      val emptyDir = wd / "empty"
+      os.makeDir(emptyDir)
+
+      val zipped = os.zip(
+        dest = wd / s"${zipFileName}.zip",
+        sources = Seq((emptyDir, os.sub / "empty"))
+      )
+
+      val unzipped = os.unzip(zipped, wd / zipFileName)
+      // should include empty dirs specified in sources with dest
+      assert(os.isDir(unzipped / "empty"))
     }
 
     test("zipStream") - prep { wd =>

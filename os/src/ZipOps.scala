@@ -99,7 +99,7 @@ object zip {
       if (os.isDir(source.src)) {
         val contents = os.walk(source.src)
         if (contents.isEmpty)
-          makeZipEntry0(source.src, source.dest.getOrElse(os.sub / source.src.last))
+          source.dest.foreach(makeZipEntry0(source.src, _))
         for (path <- contents) {
           if (
             (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) ||
