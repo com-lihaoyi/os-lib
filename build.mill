@@ -23,7 +23,7 @@ object Deps {
   val acyclic = ivy"com.lihaoyi:::acyclic:0.3.18"
   val jna = ivy"net.java.dev.jna:jna:5.15.0"
   val geny = ivy"com.lihaoyi::geny::1.1.1"
-  // val compress = ivy"org.apache.ant:ant:1.10.15"
+  val ant = ivy"org.apache.ant:ant:1.10.15"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
   val utest = ivy"com.lihaoyi::utest::0.8.4"
   val expecty = ivy"com.eed3si9n.expecty::expecty::0.16.0"
@@ -114,7 +114,6 @@ trait OsLibModule
 
 trait OsModule extends OsLibModule { outer =>
   def ivyDeps = Agg(Deps.geny)
-  // def ivyDeps = Agg(Deps.geny, Deps.compress)
   override def compileIvyDeps = T {
     val scalaReflectOpt = Option.when(!ZincWorkerUtil.isDottyOrScala3(scalaVersion()))(
       Deps.scalaReflect(scalaVersion())
@@ -140,38 +139,6 @@ trait OsModule extends OsLibModule { outer =>
 
   def scalaDocOptions = super.scalaDocOptions() ++ conditionalScalaDocOptions()
 
-  def apacheAntZipSources: T[PathRef] = Task(persistent = true) {
-    if (!_root_.os.exists(Task.dest / "src")) {
-      _root_.os.remove.all(Task.dest / "unzipped")
-      _root_.os.unzip.stream(
-        requests.get.stream("https://repo1.maven.org/maven2/org/apache/ant/ant/1.10.15/ant-1.10.15-sources.jar"),
-        Task.dest / "unzipped"
-      )
-      _root_.os.makeDir.all(Task.dest / "src/os")
-
-      val classes = _root_.os.walk.stream(Task.dest / "unzipped" / "org/apache/tools/zip")
-        .map(_.baseName)
-      val classRegex = classes.mkString("|")
-      val prefix = "_Apache"
-
-      // Add "_Apache" prefix to all classes
-      // Move from "package org.apache.tools.zip" to "package os"
-      // Make all classes package private (private [os])
-      _root_.os.walk.stream(Task.dest / "unzipped" / "org/apache/tools/zip")
-        .filter(_.ext == "java")
-        .foreach { p =>
-          val content = _root_.os.read(p)
-            .replaceAll(s"(?<![_a-zA-Z\\.])(${classRegex})(?![_a-zA-Z0-9])", prefix + "$1")
-            .replaceAll(s"(?<=org.apache.tools.zip.)($classRegex)(?![_a-zA-Z0-9])", prefix + "$1")
-            .replaceAll("org.apache.tools.zip", "os")
-            .replaceAll("^public ", "")
-          _root_.os.write(Task.dest / "src/os" / s"$prefix${p.last}", content)
-        }
-    }
-
-    PathRef(Task.dest / "src")
-  }
-
   def generatedSources = T {
     val conversions = for (i <- Range.inclusive(2, 22)) yield {
       val ts = Range.inclusive(1, i).map(n => s"T$n").mkString(", ")
@@ -195,14 +162,15 @@ trait OsModule extends OsLibModule { outer =>
          |""".stripMargin,
       createFolders = true
     )
-    Seq(PathRef(T.dest), apacheAntZipSources())
+    Seq(PathRef(T.dest))
   }
 }
 
-object os extends Module {
+object os extends Module with ApacheAntZipVendor {
 
   object jvm extends Cross[OsJvmModule](scalaVersions)
   trait OsJvmModule extends OsModule with MiMaChecks {
+
     object test extends ScalaTests with OsLibTestModule {
       override def ivyDeps = T { super.ivyDeps() ++ Agg(Deps.expecty) }
 
@@ -248,5 +216,47 @@ object os extends Module {
 
       }
     }
+  }
+}
+
+trait ApacheAntZipVendor extends Module {
+  def apacheAntZipOriginalSource: T[PathRef] = Task(persistent = true) {
+    if (!_root_.os.exists(Task.dest / "unzipped")) {
+      val antVersion = Deps.ant.version
+      _root_.os.unzip.stream(
+        requests.get.stream(
+          s"https://repo1.maven.org/maven2/org/apache/ant/ant/$antVersion/ant-$antVersion-sources.jar"
+        ),
+        Task.dest / "unzipped"
+      )
+    }
+
+    PathRef(Task.dest / "unzipped" / "org/apache/tools/zip")
+  }
+
+  def apacheAntZipSource: T[PathRef] = Task {
+    val zipSrc = millSourcePath / "src/zip"
+    _root_.os.remove.all(zipSrc)
+    _root_.os.makeDir.all(zipSrc)
+
+    val classes = _root_.os.walk.stream(apacheAntZipOriginalSource().path)
+      .map(_.baseName)
+    val classRegex = classes.mkString("|")
+    val prefix = "_Apache"
+
+    // Add "_Apache" prefix to all classes
+    // Move from "package org.apache.tools.zip" to "package os"
+    // Make all classes package private (private [os])
+    _root_.os.walk.stream(apacheAntZipOriginalSource().path)
+      .filter(_.ext == "java")
+      .foreach { p =>
+        val content = _root_.os.read(p)
+          .replaceAll(s"(?<![_a-zA-Z\\.])($classRegex)(?![_a-zA-Z0-9])", prefix + "$1")
+          .replaceAll(s"(?<=org.apache.tools.zip.)($classRegex)(?![_a-zA-Z0-9])", prefix + "$1")
+          .replaceAll("org.apache.tools.zip", "os")
+          .replaceAll("^public ", "")
+        _root_.os.write(zipSrc / s"$prefix${p.last}", content)
+      }
+    PathRef(zipSrc)
   }
 }
