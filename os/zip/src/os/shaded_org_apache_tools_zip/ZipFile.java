@@ -73,7 +73,7 @@ import java.util.zip.ZipException;
  * </ul>
  *
  */
-class ZipFile implements Closeable {
+public class ZipFile implements Closeable {
     private static final int HASH_SIZE = 509;
     static final int NIBLET_MASK = 0x0f;
     static final int BYTE_SHIFT = 8;

@@ -28,7 +28,7 @@ package os.shaded_org_apache_tools_zip;
  * APPNOTE.TXT, section 4.6.8</a>.</p>
  *
  */
-class UnicodeCommentExtraField extends AbstractUnicodeExtraField {
+public class UnicodeCommentExtraField extends AbstractUnicodeExtraField {
 
     public static final ZipShort UCOM_ID = new ZipShort(0x6375);
 

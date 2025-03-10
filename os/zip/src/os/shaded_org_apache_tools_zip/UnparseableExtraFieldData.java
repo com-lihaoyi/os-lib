@@ -28,7 +28,7 @@ package os.shaded_org_apache_tools_zip;
  *
  * @since Ant 1.8.1
  */
-final class UnparseableExtraFieldData
+public final class UnparseableExtraFieldData
     implements CentralDirectoryParsingZipExtraField {
 
     private static final ZipShort HEADER_ID = new ZipShort(0xACC1);

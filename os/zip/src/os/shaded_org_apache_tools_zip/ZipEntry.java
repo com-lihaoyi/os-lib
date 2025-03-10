@@ -46,7 +46,7 @@ import java.util.zip.ZipException;
  * conforming to the recommendation.</p>
  *
  */
-class ZipEntry extends java.util.zip.ZipEntry implements Cloneable {
+public class ZipEntry extends java.util.zip.ZipEntry implements Cloneable {
 
     public static final int PLATFORM_UNIX = 3;
     public static final int PLATFORM_FAT  = 0;

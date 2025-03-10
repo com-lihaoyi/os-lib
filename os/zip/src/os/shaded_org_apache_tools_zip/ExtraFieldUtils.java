@@ -30,7 +30,7 @@ import java.util.zip.ZipException;
  *
  */
 // CheckStyle:HideUtilityClassConstructorCheck OFF (bc)
-class ExtraFieldUtils {
+public class ExtraFieldUtils {
 
     private static final int WORD = 4;
 

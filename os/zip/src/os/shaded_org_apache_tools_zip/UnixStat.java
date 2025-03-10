@@ -23,7 +23,7 @@ package os.shaded_org_apache_tools_zip;
  *
  */
 // CheckStyle:InterfaceIsTypeCheck OFF - backward compatible
-interface UnixStat {
+public interface UnixStat {
 
     /**
      * Bits used for permissions (and sticky bit)

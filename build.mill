@@ -231,7 +231,6 @@ object os extends Module {
         .foreach { p =>
           val content = _root_.os.read(p)
             .replaceAll("org.apache.tools.zip", pkg)
-            .replaceAll("(?m)^public ", "")
           _root_.os.write(zipSrc / p.last, content)
         }
 

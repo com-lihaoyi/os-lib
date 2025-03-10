@@ -26,7 +26,7 @@ import java.util.zip.ZipException;
  *
  * @since Ant 1.6.3
  */
-final class JarMarker implements ZipExtraField {
+public final class JarMarker implements ZipExtraField {
 
     private static final ZipShort ID = new ZipShort(0xCAFE);
     private static final ZipShort NULL = new ZipShort(0);

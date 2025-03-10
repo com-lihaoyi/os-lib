@@ -26,7 +26,7 @@ import static os.shaded_org_apache_tools_zip.ZipConstants.WORD;
  * rules for the big endian byte order of ZIP files.
  *
  */
-final class ZipLong implements Cloneable {
+public final class ZipLong implements Cloneable {
 
     //private static final int BYTE_BIT_SIZE = 8;
 

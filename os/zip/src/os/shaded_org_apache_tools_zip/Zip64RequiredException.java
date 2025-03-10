@@ -26,7 +26,7 @@ import java.util.zip.ZipException;
  * UseZip64} has been set to {@link Zip64Mode#Never Never}.
  * @since Ant 1.9.0
  */
-class Zip64RequiredException extends ZipException {
+public class Zip64RequiredException extends ZipException {
 
     private static final long serialVersionUID = 20110809L;
 

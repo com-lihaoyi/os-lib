@@ -25,7 +25,7 @@ import java.math.BigInteger;
  * Utility class that represents an eight byte integer with conversion
  * rules for the big endian byte order of ZIP files.
  */
-final class ZipEightByteInteger {
+public final class ZipEightByteInteger {
 
     private static final int BYTE_1 = 1;
     private static final int BYTE_1_MASK = 0xFF00;

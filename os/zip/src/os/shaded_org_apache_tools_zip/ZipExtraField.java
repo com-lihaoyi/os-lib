@@ -30,7 +30,7 @@ import java.util.zip.ZipException;
  * only use the local file data in both places.</p>
  *
  */
-interface ZipExtraField {
+public interface ZipExtraField {
 
     /**
      * The Header-ID.

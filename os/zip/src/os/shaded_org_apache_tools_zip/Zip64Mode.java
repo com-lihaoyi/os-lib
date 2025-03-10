@@ -25,7 +25,7 @@ package os.shaded_org_apache_tools_zip;
  *
  * @since Ant 1.9.0
  */
-enum Zip64Mode {
+public enum Zip64Mode {
     /**
      * Use Zip64 extensions for all entries, even if it is clear it is
      * not required.
