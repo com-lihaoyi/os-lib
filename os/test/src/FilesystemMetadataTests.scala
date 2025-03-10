@@ -50,6 +50,27 @@ object FilesystemMetadataTests extends TestSuite {
         os.isLink(wd / "folder1") ==> false
       }
     }
+    test("isReadable") {
+      test - prep { wd =>
+        os.isReadable(wd / "File.txt") ==> true
+        os.isReadable(wd / "folder1") ==> true
+      }
+    }
+    test("isWritable") {
+      test - prep { wd =>
+        os.isWritable(wd / "File.txt") ==> true
+        os.isWritable(wd / "folder1") ==> true
+      }
+    }
+    test("isExecutable") {
+      test - prep { wd =>
+        if (Unix()) {
+          os.perms.set(wd / "File.txt", "rw-rw-rw-")
+          os.isExecutable(wd / "File.txt") ==> false
+          os.isExecutable(wd / "misc/echo") ==> true
+        }
+      }
+    }
     test("size") {
       test - prep { wd =>
         os.size(wd / "File.txt") ==> 8
