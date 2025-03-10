@@ -40,7 +40,6 @@ object isDir extends Function1[Path, Boolean] {
   }
 }
 
-
 /**
  * Checks whether the given path is readable
  *
@@ -49,7 +48,6 @@ object isDir extends Function1[Path, Boolean] {
 object isReadable extends Function1[Path, Boolean] {
   def apply(p: Path): Boolean = Files.isReadable(p.wrapped)
 }
-
 
 /**
  * Checks whether the given path is writable
@@ -60,7 +58,6 @@ object isWritable extends Function1[Path, Boolean] {
   def apply(p: Path): Boolean = Files.isWritable(p.wrapped)
 }
 
-
 /**
  * Checks whether the given path is executable
  *
@@ -69,7 +66,6 @@ object isWritable extends Function1[Path, Boolean] {
 object isExecutable extends Function1[Path, Boolean] {
   def apply(p: Path): Boolean = Files.isExecutable(p.wrapped)
 }
-
 
 /**
  * Gets the size of the given file or folder
