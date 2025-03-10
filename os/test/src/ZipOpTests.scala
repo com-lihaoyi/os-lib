@@ -109,6 +109,75 @@ object ZipOpTests extends TestSuite {
       assert(paths == expected)
     }
 
+    test("zipEmptyDir") {
+      def prepare(wd: os.Path) = {
+        val zipFileName = "zipEmptyDirs"
+
+        val emptyDir = wd / "empty"
+        os.makeDir(emptyDir)
+
+        val containsEmptyDir = wd / "outer"
+        os.makeDir.all(containsEmptyDir)
+        os.makeDir(containsEmptyDir / "emptyInnerDir")
+
+        (zipFileName, emptyDir, containsEmptyDir)
+      }
+
+      test("zipEmptyDir") - prep { wd =>
+        val (zipFileName, emptyDir, containsEmptyDir) = prepare(wd)
+
+        val zipped = os.zip(
+          dest = wd / s"${zipFileName}.zip",
+          sources = Seq(emptyDir, containsEmptyDir)
+        )
+
+        val unzipped = os.unzip(zipped, wd / zipFileName)
+        // should include empty dirs inside source
+        assert(os.isDir(unzipped / "emptyInnerDir"))
+        // should ignore empty dirs specified in sources without dest
+        assert(!os.exists(unzipped / "empty"))
+      }
+
+      test("includePatterns") - prep { wd =>
+        val (zipFileName, _, containsEmptyDir) = prepare(wd)
+
+        val zipped = os.zip(
+          dest = wd / s"${zipFileName}.zip",
+          sources = Seq(containsEmptyDir),
+          includePatterns = Seq(raw".*Inner.*".r)
+        )
+
+        val unzipped = os.unzip(zipped, wd / zipFileName)
+        assert(os.isDir(unzipped / "emptyInnerDir"))
+      }
+
+      test("excludePatterns") - prep { wd =>
+        val (zipFileName, _, containsEmptyDir) = prepare(wd)
+
+        val zipped = os.zip(
+          dest = wd / s"${zipFileName}.zip",
+          sources = Seq(containsEmptyDir),
+          excludePatterns = Seq(raw".*Inner.*".r)
+        )
+
+        val unzipped = os.unzip(zipped, wd / zipFileName)
+        assert(!os.exists(unzipped / "emptyInnerDir"))
+      }
+
+      test("withDest") - prep { wd =>
+        val (zipFileName, emptyDir, _) = prepare(wd)
+
+        val zipped = os.zip(
+          dest = wd / s"${zipFileName}.zip",
+          sources = Seq((emptyDir, os.sub / "empty"))
+        )
+
+        val unzipped = os.unzip(zipped, wd / zipFileName)
+        // should include empty dirs specified in sources with dest
+        assert(os.isDir(unzipped / "empty"))
+      }
+    }
+
     test("zipStream") - prep { wd =>
       val zipFileName = "zipStreamFunction.zip"
 
