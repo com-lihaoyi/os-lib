@@ -33,7 +33,7 @@ import java.util.Set;
  * PosixFilePermission} or the traditional Unix mode representation of
  * permissions.
  */
-class PermissionUtils {
+public class PermissionUtils {
 
     private PermissionUtils() { }
 

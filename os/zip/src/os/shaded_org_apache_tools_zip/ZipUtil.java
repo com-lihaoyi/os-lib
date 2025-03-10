@@ -26,7 +26,7 @@ import java.util.zip.CRC32;
  * Utility class for handling DOS and Java time conversions.
  * @since Ant 1.8.1
  */
-abstract class ZipUtil {
+public abstract class ZipUtil {
     /**
      * Smallest date/time ZIP can handle.
      */

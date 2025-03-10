@@ -29,7 +29,7 @@ import java.util.Map;
 /**
  * Static helper functions for robustly encoding filenames in zip files.
  */
-abstract class ZipEncodingHelper {
+public abstract class ZipEncodingHelper {
 
     /**
      * A class, which holds the high characters of a simple encoding

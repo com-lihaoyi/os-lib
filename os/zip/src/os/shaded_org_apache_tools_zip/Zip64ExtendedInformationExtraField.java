@@ -38,7 +38,7 @@ import java.util.zip.ZipException;
  *
  * @since Ant 1.9.0
  */
-class Zip64ExtendedInformationExtraField
+public class Zip64ExtendedInformationExtraField
     implements CentralDirectoryParsingZipExtraField {
 
     static final ZipShort HEADER_ID = new ZipShort(0x0001);

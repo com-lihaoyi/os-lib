@@ -26,7 +26,7 @@ import java.util.zip.ZipException;
  *
  * @since Ant 1.8.0
  */
-interface CentralDirectoryParsingZipExtraField extends ZipExtraField {
+public interface CentralDirectoryParsingZipExtraField extends ZipExtraField {
     /**
      * Populate data from this array as if it was in central directory data.
      * @param data an array of bytes

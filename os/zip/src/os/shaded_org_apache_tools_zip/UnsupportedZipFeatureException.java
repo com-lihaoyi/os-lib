@@ -26,7 +26,7 @@ import java.util.zip.ZipException;
  * entry that uses ZIP features not supported by this library.
  * @since Ant 1.9.0
  */
-class UnsupportedZipFeatureException extends ZipException {
+public class UnsupportedZipFeatureException extends ZipException {
 
     private final Feature reason;
     private final transient ZipEntry entry;

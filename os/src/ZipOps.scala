@@ -1,6 +1,6 @@
 package os
 
-import os.shaded_org_apache_tools_zip.{shim => apache}
+import os.{shaded_org_apache_tools_zip => apache}
 
 import java.net.URI
 import java.nio.file.{FileSystem, FileSystems, Files}

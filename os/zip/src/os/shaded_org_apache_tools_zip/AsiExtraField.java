@@ -49,7 +49,7 @@ import java.util.zip.ZipException;
  * the character encoding of the file name at all, it is assumed that
  * it uses the current platform's default encoding.</p>
  */
-class AsiExtraField implements ZipExtraField, UnixStat, Cloneable {
+public class AsiExtraField implements ZipExtraField, UnixStat, Cloneable {
 
     private static final ZipShort HEADER_ID = new ZipShort(0x756E);
     private static final int      WORD = 4;

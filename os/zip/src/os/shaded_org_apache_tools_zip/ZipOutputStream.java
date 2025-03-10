@@ -73,7 +73,7 @@ import java.util.zip.ZipException;
  * user RandomAccessFile and you try to write a ZipEntry of
  * unknown size then Zip64 extensions will be disabled by default.</p>
  */
-class ZipOutputStream extends FilterOutputStream {
+public class ZipOutputStream extends FilterOutputStream {
 
     private static final int BUFFER_SIZE = 512;
     private static final int LFH_SIG_OFFSET = 0;
