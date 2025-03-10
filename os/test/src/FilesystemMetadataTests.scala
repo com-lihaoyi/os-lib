@@ -64,9 +64,11 @@ object FilesystemMetadataTests extends TestSuite {
     }
     test("isExecutable") {
       test - prep { wd =>
-        os.perms.set(wd / "File.txt", "rw-rw-rw-")
-        os.isExecutable(wd / "File.txt") ==> false
-        os.isExecutable(wd / "misc/echo") ==> true
+        if (Unix()) {
+          os.perms.set(wd / "File.txt", "rw-rw-rw-")
+          os.isExecutable(wd / "File.txt") ==> false
+          os.isExecutable(wd / "misc/echo") ==> true
+        }
       }
     }
     test("size") {
