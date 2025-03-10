@@ -26,7 +26,7 @@ package os.shaded_org_apache_tools_zip;
  * identical - unless told the opposite.</p>
  *
  */
-class UnrecognizedExtraField
+public class UnrecognizedExtraField
     implements CentralDirectoryParsingZipExtraField {
 
     /**

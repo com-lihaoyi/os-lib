@@ -41,7 +41,7 @@ import java.nio.ByteBuffer;
  * <p>All implementations should implement this interface in a
  * reentrant way.</p>
  */
-interface ZipEncoding {
+public interface ZipEncoding {
     /**
      * Check, whether the given string may be losslessly encoded using this
      * encoding.

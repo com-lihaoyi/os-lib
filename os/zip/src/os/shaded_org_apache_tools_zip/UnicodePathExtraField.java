@@ -27,7 +27,7 @@ package os.shaded_org_apache_tools_zip;
  * <p>See <a href="https://www.pkware.com/documents/casestudies/APPNOTE.TXT">PKWARE's
  * APPNOTE.TXT, section 4.6.9</a>.</p>
  */
-class UnicodePathExtraField extends AbstractUnicodeExtraField {
+public class UnicodePathExtraField extends AbstractUnicodeExtraField {
 
     public static final ZipShort UPATH_ID = new ZipShort(0x7075);
 

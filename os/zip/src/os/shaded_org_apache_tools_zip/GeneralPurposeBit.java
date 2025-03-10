@@ -23,7 +23,7 @@ package os.shaded_org_apache_tools_zip;
  *
  * @since Ant 1.9.0
  */
-final class GeneralPurposeBit implements Cloneable {
+public final class GeneralPurposeBit implements Cloneable {
     /**
      * Indicates that the file is encrypted.
      */
