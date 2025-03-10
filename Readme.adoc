@@ -1555,6 +1555,51 @@ os.isLink(wd / "misc/folder-symlink") ==> true
 os.isLink(wd / "folder1") ==> false
 ----
 
+==== `os.isReadable`
+
+[source,scala]
+----
+os.isReadable(p: Path): Boolean
+----
+
+Returns `true` if the given path is readable.
+
+[source,scala]
+----
+os.isReadable(wd / "misc/file1") ==> false
+os.isReadable(wd / "misc/file2") ==> true
+----
+
+==== `os.isWritable`
+
+[source,scala]
+----
+os.isWritable(p: Path): Boolean
+----
+
+Returns `true` if the given path is writable.
+
+[source,scala]
+----
+os.isWritable(wd / "misc/file1") ==> false
+os.isWritable(wd / "misc/file2") ==> true
+----
+
+==== `os.isExecutable`
+
+[source,scala]
+----
+os.isExecutable(p: Path): Boolean
+----
+
+Returns `true` if the given path is executable.
+
+[source,scala]
+----
+os.isExecutable(wd / "misc/file1") ==> false
+os.isExecutable(wd / "misc/file2.sh") ==> true
+----
+
 ==== `os.size`
 
 [source,scala]
