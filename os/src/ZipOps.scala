@@ -256,9 +256,8 @@ object unzip {
     } yield os.SubPath(zipEntry.getName)
   }
 
-  private lazy val S_IFMT: Int = java.lang.Integer.parseInt("0170000", 8)
   private def isSymLink(mode: Int): Boolean =
-    (mode & S_IFMT) == apache.UnixStat.LINK_FLAG
+    (mode & apache.PermissionUtils.FILE_TYPE_FLAG) == apache.UnixStat.LINK_FLAG
 
   /**
    * Extract the given zip file into the destination directory
