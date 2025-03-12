@@ -256,6 +256,101 @@ object ZipOpTests extends TestSuite {
       assert(os.list(sources).toSet == expected)
     }
 
+    test("symLinkAndPermissions") {
+      def prepare(
+          wd: os.Path,
+          zipStream: Boolean = false,
+          unzipStream: Boolean = false
+      ) = {
+        val zipFileName = "zipped.zip"
+        val source = wd / "folder2"
+        os.perms.set(source / "nestedA" / "a.txt", os.PermSet.fromString("rw-rw-rw-"))
+        os.symlink(source / "nestedA" / "link.txt", os.rel / "a.txt")
+
+        val zipped =
+          if (zipStream) {
+            os.write(
+              wd / zipFileName,
+              os.zip.stream(sources = List(source))
+            )
+            wd / zipFileName
+          } else {
+            os.zip(
+              dest = wd / zipFileName,
+              sources = List(source)
+            )
+          }
+
+        val unzipped =
+          if (unzipStream) {
+            os.unzip.stream(
+              source = os.read.inputStream(zipped),
+              dest = wd / "unzipped"
+            )
+            wd / "unzipped"
+          } else {
+            os.unzip(
+              dest = wd / "unzipped",
+              source = zipped
+            )
+          }
+
+        (source, unzipped)
+      }
+
+      def walkRel(p: os.Path) = os.walk(p).map(_.relativeTo(p))
+
+      test("zip") - prep { wd =>
+        val (source, unzipped) = prepare(wd)
+
+        assert(walkRel(source).toSet == walkRel(unzipped).toSet)
+        assert(os.walk.stream(source)
+          .filter(!os.isLink(_))
+          .forall(p => os.perms(p) == os.perms(unzipped / p.relativeTo(source))))
+        assert(
+          os.walk.stream(source)
+            .filter(os.isLink(_))
+            .forall { p =>
+              val unzippedLink = unzipped / p.relativeTo(source)
+              os.isLink(unzippedLink) &&
+              os.readLink(p) == os.readLink(unzippedLink)
+            }
+        )
+      }
+
+      test("zipStream") - prep { wd =>
+        val (source, unzipped) = prepare(wd, zipStream = true)
+
+        assert(walkRel(source).toSet == walkRel(unzipped).toSet)
+        assert(os.walk.stream(source)
+          .filter(!os.isLink(_))
+          .forall(p => os.perms(p) == os.perms(unzipped / p.relativeTo(source))))
+        assert(
+          os.walk.stream(source)
+            .filter(os.isLink(_))
+            .forall { p =>
+              val unzippedLink = unzipped / p.relativeTo(source)
+              os.isLink(unzippedLink) &&
+              os.readLink(p) == os.readLink(unzippedLink)
+            }
+        )
+      }
+
+      test("unzipStream") - prep { wd =>
+        val (source, unzipped) = prepare(wd, zipStream = true)
+
+        assert(walkRel(source).toSet == walkRel(unzipped).toSet)
+        assert(
+          os.walk.stream(source)
+            .filter(os.isLink(_))
+            .forall { p =>
+              val unzippedLink = unzipped / p.relativeTo(source)
+              os.read(p) == os.read(unzippedLink)
+            }
+        )
+      }
+    }
+
     test("unzipStream") - prep { wd =>
       // Step 1: Create an in-memory ZIP file as a stream
       val zipStreamOutput = new ByteArrayOutputStream()
