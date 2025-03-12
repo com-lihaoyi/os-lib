@@ -146,6 +146,13 @@ object zip {
     !isExcluded && isIncluded
   }
 
+  private def toFileType(file: os.Path): apache.PermissionUtils.FileType = {
+    if (os.isLink(file)) apache.PermissionUtils.FileType.SYMLINK
+    else if (os.isFile(file)) apache.PermissionUtils.FileType.REGULAR_FILE
+    else if (os.isDir(file)) apache.PermissionUtils.FileType.DIR
+    else apache.PermissionUtils.FileType.OTHER
+  }
+
   private def makeZipEntry(
       file: os.Path,
       sub: os.SubPath,
@@ -158,8 +165,8 @@ object zip {
     zipEntry.setTime(mtime)
 
     val mode = apache.PermissionUtils.modeFromPermissions(
-      os.perms(file).toSet(),
-      apache.PermissionUtils.FileType.of(file.toNIO)
+      os.perms(file, followLinks = false).toSet(),
+      toFileType(file)
     )
     zipEntry.setUnixMode(mode)
 
@@ -280,6 +287,7 @@ object unzip {
           val target = scala.io.Source.fromInputStream(zipInputStream).mkString
           val path = java.nio.file.Paths.get(target)
           val dest = if (path.isAbsolute) os.Path(path) else os.RelPath(path)
+          os.makeDir.all(newFile / os.up)
           os.symlink(newFile, dest)
         } else {
           val outputStream = os.write.outputStream(newFile, createFolders = true)
