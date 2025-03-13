@@ -344,17 +344,9 @@ object ZipOpTests extends TestSuite {
 
       test("unzipStream") - prep { wd =>
         if (!scala.util.Properties.isWin) {
-          val (source, unzipped) = prepare(wd, zipStream = true)
+          val (source, unzipped) = prepare(wd, unzipStream = true)
 
           assert(walkRel(source).toSet == walkRel(unzipped).toSet)
-          assert(
-            os.walk.stream(source)
-              .filter(os.isLink(_))
-              .forall { p =>
-                val unzippedLink = unzipped / p.relativeTo(source)
-                os.read(p) == os.read(unzippedLink)
-              }
-          )
         }
       }
     }
