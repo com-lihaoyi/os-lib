@@ -3,8 +3,13 @@ package os
 import os.{shaded_org_apache_tools_zip => apache}
 
 import java.net.URI
-import java.nio.file.{FileSystem, FileSystems, Files}
-import java.nio.file.attribute.{BasicFileAttributeView, FileTime, PosixFilePermissions}
+import java.nio.file.{FileSystem, FileSystems, Files, LinkOption}
+import java.nio.file.attribute.{
+  BasicFileAttributes,
+  BasicFileAttributeView,
+  FileTime,
+  PosixFilePermissions
+}
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
 import scala.collection.JavaConverters._
 import scala.util.matching.Regex
@@ -45,7 +50,8 @@ object zip {
       includePatterns: Seq[Regex] = List(),
       preserveMtimes: Boolean = false,
       deletePatterns: Seq[Regex] = List(),
-      compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION
+      compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION,
+      preserveLinks: Boolean = false
   ): os.Path = {
     checker.value.onWrite(dest)
     // check read preemptively in case "dest" is created
@@ -84,6 +90,7 @@ object zip {
           includePatterns,
           preserveMtimes,
           compressionLevel,
+          preserveLinks,
           f
         )
       finally f.close()
@@ -125,6 +132,7 @@ object zip {
       includePatterns: Seq[Regex],
       preserveMtimes: Boolean,
       compressionLevel: Int,
+      preserveLinks: Boolean,
       out: java.io.OutputStream
   ): Unit = {
     val zipOut = new apache.ZipOutputStream(out)
@@ -135,7 +143,7 @@ object zip {
         sources,
         excludePatterns,
         includePatterns,
-        (path, sub) => makeZipEntry(path, sub, preserveMtimes, zipOut)
+        (path, sub) => makeZipEntry(path, sub, preserveMtimes, preserveLinks, zipOut)
       )
       zipOut.finish()
     } finally {
@@ -156,10 +164,17 @@ object zip {
     !isExcluded && isIncluded
   }
 
-  private def toFileType(file: os.Path): apache.PermissionUtils.FileType = {
-    if (os.isLink(file)) apache.PermissionUtils.FileType.SYMLINK
-    else if (os.isFile(file)) apache.PermissionUtils.FileType.REGULAR_FILE
-    else if (os.isDir(file)) apache.PermissionUtils.FileType.DIR
+  private def toFileType(
+      file: os.Path,
+      followLinks: Boolean = false
+  ): apache.PermissionUtils.FileType = {
+    val attrs = if (followLinks)
+      Files.readAttributes(file.toNIO, classOf[BasicFileAttributes])
+    else Files.readAttributes(file.toNIO, classOf[BasicFileAttributes], LinkOption.NOFOLLOW_LINKS)
+
+    if (attrs.isSymbolicLink()) apache.PermissionUtils.FileType.SYMLINK
+    else if (attrs.isRegularFile()) apache.PermissionUtils.FileType.REGULAR_FILE
+    else if (attrs.isDirectory()) apache.PermissionUtils.FileType.DIR
     else apache.PermissionUtils.FileType.OTHER
   }
 
@@ -167,6 +182,7 @@ object zip {
       file: os.Path,
       sub: os.SubPath,
       preserveMtimes: Boolean,
+      preserveLinks: Boolean,
       zipOut: apache.ZipOutputStream
   ) = {
     val name =
@@ -179,14 +195,14 @@ object zip {
 
     if (!scala.util.Properties.isWin) {
       val mode = apache.PermissionUtils.modeFromPermissions(
-        os.perms(file, followLinks = false).toSet(),
-        toFileType(file)
+        os.perms(file, followLinks = !preserveLinks).toSet(),
+        toFileType(file, followLinks = !preserveLinks)
       )
       zipEntry.setUnixMode(mode)
     }
 
     val fis =
-      if (!scala.util.Properties.isWin && os.isLink(file))
+      if (preserveLinks && !scala.util.Properties.isWin && os.isLink(file))
         Some(new java.io.ByteArrayInputStream(os.readLink(file).toString().getBytes()))
       else if (os.isFile(file)) Some(os.read.inputStream(file))
       else None
@@ -214,7 +230,8 @@ object zip {
       excludePatterns: Seq[Regex] = List(),
       includePatterns: Seq[Regex] = List(),
       preserveMtimes: Boolean = false,
-      compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION
+      compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION,
+      preserveLinks: Boolean = false
   ): geny.Writable = {
     (outputStream: java.io.OutputStream) =>
       {
@@ -224,6 +241,7 @@ object zip {
           includePatterns,
           preserveMtimes,
           compressionLevel,
+          preserveLinks,
           outputStream
         )
       }
