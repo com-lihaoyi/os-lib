@@ -187,6 +187,140 @@ object ZipOpTests extends TestSuite {
       assert(os.list(sources).toSet == expected)
     }
 
+    test("symLinkAndPermissions") {
+      def prepare(
+          wd: os.Path,
+          zipStream: Boolean = false,
+          unzipStream: Boolean = false,
+          preserveLinks: Boolean = false
+      ) = {
+        val zipFileName = "zipped.zip"
+        val source = wd / "folder2"
+        val link = os.rel / "nestedA" / "link.txt"
+        if (!scala.util.Properties.isWin) {
+          os.perms.set(source / "nestedA" / "a.txt", os.PermSet.fromString("rw-rw-rw-"))
+          os.symlink(source / link, os.rel / "a.txt")
+        }
+
+        val zipped =
+          if (zipStream) {
+            os.write(
+              wd / zipFileName,
+              os.zip.stream(sources = List(source), preserveLinks = preserveLinks)
+            )
+            wd / zipFileName
+          } else {
+            os.zip(
+              dest = wd / zipFileName,
+              sources = List(source),
+              preserveLinks = preserveLinks
+            )
+          }
+
+        val unzipped =
+          if (unzipStream) {
+            os.unzip.stream(
+              source = os.read.inputStream(zipped),
+              dest = wd / "unzipped"
+            )
+            wd / "unzipped"
+          } else {
+            os.unzip(
+              dest = wd / "unzipped",
+              source = zipped
+            )
+          }
+
+        (source, unzipped, link)
+      }
+
+      def walkRel(p: os.Path) = os.walk(p).map(_.relativeTo(p))
+
+      test("zip") - prep { wd =>
+        if (!scala.util.Properties.isWin) {
+          val (source, unzipped, link) = prepare(wd, preserveLinks = false)
+
+          assert(walkRel(source).toSet == walkRel(unzipped).toSet)
+          assert(os.walk.stream(source)
+            .filter(!os.isLink(_))
+            .forall(p => os.perms(p) == os.perms(unzipped / p.relativeTo(source))))
+
+          val unzippedLink = unzipped / link
+          assert(os.isFile(unzippedLink))
+          assert(os.read(os.readLink.absolute(source / link)) == os.read(unzippedLink))
+        }
+      }
+
+      test("zipPreserveLinks") - prep { wd =>
+        if (!scala.util.Properties.isWin) {
+          val (source, unzipped, link) = prepare(wd, preserveLinks = true)
+
+          assert(walkRel(source).toSet == walkRel(unzipped).toSet)
+          assert(os.walk.stream(source)
+            .filter(!os.isLink(_))
+            .forall(p => os.perms(p) == os.perms(unzipped / p.relativeTo(source))))
+
+          val unzippedLink = unzipped / link
+          assert(os.isLink(unzippedLink))
+          assert(os.readLink(source / link) == os.readLink(unzippedLink))
+        }
+      }
+
+      test("zipStream") - prep { wd =>
+        if (!scala.util.Properties.isWin) {
+          val (source, unzipped, link) = prepare(wd, zipStream = true, preserveLinks = false)
+
+          assert(walkRel(source).toSet == walkRel(unzipped).toSet)
+          assert(os.walk.stream(source)
+            .filter(!os.isLink(_))
+            .forall(p => os.perms(p) == os.perms(unzipped / p.relativeTo(source))))
+
+          val unzippedLink = unzipped / link
+          assert(os.isFile(unzippedLink))
+          assert(os.read(os.readLink.absolute(source / link)) == os.read(unzippedLink))
+        }
+      }
+
+      test("zipStreamPreserveLinks") - prep { wd =>
+        if (!scala.util.Properties.isWin) {
+          val (source, unzipped, link) = prepare(wd, zipStream = true, preserveLinks = true)
+
+          assert(walkRel(source).toSet == walkRel(unzipped).toSet)
+          assert(os.walk.stream(source)
+            .filter(!os.isLink(_))
+            .forall(p => os.perms(p) == os.perms(unzipped / p.relativeTo(source))))
+
+          val unzippedLink = unzipped / link
+          assert(os.isLink(unzippedLink))
+          assert(os.readLink(source / link) == os.readLink(unzippedLink))
+        }
+      }
+
+      test("unzipStreamWithLinks") - prep { wd =>
+        if (!scala.util.Properties.isWin) {
+          val (source, unzipped, link) = prepare(wd, unzipStream = true, preserveLinks = true)
+
+          assert(walkRel(source).toSet == walkRel(unzipped).toSet)
+
+          val unzippedLink = unzipped / link
+          assert(os.isFile(unzippedLink))
+          assert(os.readLink(source / link).toString == os.read(unzippedLink))
+        }
+      }
+
+      test("unzipStream") - prep { wd =>
+        if (!scala.util.Properties.isWin) {
+          val (source, unzipped, link) = prepare(wd, unzipStream = true, preserveLinks = false)
+
+          assert(walkRel(source).toSet == walkRel(unzipped).toSet)
+
+          val unzippedLink = unzipped / link
+          assert(os.isFile(unzippedLink))
+          assert(os.read(os.readLink.absolute(source / link)) == os.read(unzippedLink))
+        }
+      }
+    }
+
     test("unzipStream") - prep { wd =>
       // Step 1: Create an in-memory ZIP file as a stream
       val zipStreamOutput = new ByteArrayOutputStream()
