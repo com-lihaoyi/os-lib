@@ -309,11 +309,14 @@ object ZipOpTests extends TestSuite {
         if (!scala.util.Properties.isWin) {
           val (source, unzipped, link) = prepare(wd, preserveLinks = false)
 
+          // test all files are there
           assert(walkRel(source).toSet == walkRel(unzipped).toSet)
+          // test all permissions are preserved
           assert(os.walk.stream(source)
             .filter(!os.isLink(_))
             .forall(p => os.perms(p) == os.perms(unzipped / p.relativeTo(source))))
 
+          // test symlinks are zipped as the referenced files
           val unzippedLink = unzipped / link
           assert(os.isFile(unzippedLink))
           assert(os.read(os.readLink.absolute(source / link)) == os.read(unzippedLink))
@@ -329,6 +332,7 @@ object ZipOpTests extends TestSuite {
             .filter(!os.isLink(_))
             .forall(p => os.perms(p) == os.perms(unzipped / p.relativeTo(source))))
 
+          // test symlinks are zipped as symlinks
           val unzippedLink = unzipped / link
           assert(os.isLink(unzippedLink))
           assert(os.readLink(source / link) == os.readLink(unzippedLink))
@@ -389,9 +393,9 @@ object ZipOpTests extends TestSuite {
         }
       }
 
-      test("") - prep { wd =>
+      test("existingZip") - prep { wd =>
         if (!scala.util.Properties.isWin) {
-          val (source, unzipped, link) = prepare(wd, preserveLinks = true)
+          val (source, unzipped, link) = prepare(wd)
 
           val newSource = os.pwd / "source"
           os.makeDir(newSource)
