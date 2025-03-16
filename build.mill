@@ -218,6 +218,21 @@ object os extends Module {
       PathRef(Task.dest / "unzipped" / "org/apache/tools/zip")
     }
 
+    /**
+     * Shades Apache Ant
+     * [[`org.apache.tools.zip` https://ant.apache.org/manual/api/org/apache/tools/zip/package-summary.html package]] to
+     * provide Unix file permission and symbolic link support for `os.zip` and `os.unzip`
+     *
+     * A third party dependency is needed since JDK's own
+     * [[`jdk.zipfs` https://docs.oracle.com/en/java/javase/14/docs/api/jdk.zipfs/module-summary.html]] does not support
+     * symbolic links and only supports file permissions since JDK 14.
+     *
+     * Apache Ant `org.apache.tools.zip` was chosen over Apache Commons Compress due to the former not having any
+     * third party dependency, only depending on Java core libraries while the later also depends on Apache Commons IO.
+     *
+     * To avoid classpath conflicts, the dependency is shaded and compiled from source. Only the `org.apache.tools.zip`
+     * package, not the entire Ant codebase, is needed. This only adds < 100kb to Os-Lib jar size.
+     */
     def apacheAntZipSource: T[PathRef] = Task {
       _root_.os.walk.stream(zipSrc)
         .filter(_.ext == "java")
