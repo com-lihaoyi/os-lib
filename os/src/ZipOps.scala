@@ -24,7 +24,7 @@ object zip {
   def open(path: Path): ZipRoot = {
     new ZipRoot(FileSystems.newFileSystem(
       new URI("jar", path.wrapped.toUri.toString, null),
-      Map("create" -> "true").asJava
+      Map("create" -> "true", "enablePosixFileAttributes" -> "true").asJava
     ))
   }
 
@@ -71,6 +71,8 @@ object zip {
           includePatterns,
           (path, sub) => {
             os.copy(path, opened / sub, createFolders = true)
+            if (!scala.util.Properties.isWin && Runtime.version.feature >= 14)
+              Files.setPosixFilePermissions((opened / sub).wrapped, os.perms(path).toSet())
             if (!preserveMtimes) {
               os.mtime.set(opened / sub, 0)
               // This is the only way we can properly zero out filesystem metadata within the

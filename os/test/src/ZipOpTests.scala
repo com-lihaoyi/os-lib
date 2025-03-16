@@ -388,6 +388,51 @@ object ZipOpTests extends TestSuite {
           assert(os.read(os.readLink.absolute(source / link)) == os.read(unzippedLink))
         }
       }
+
+      test("") - prep { wd =>
+        if (!scala.util.Properties.isWin) {
+          val (source, unzipped, link) = prepare(wd, preserveLinks = true)
+
+          val newSource = os.pwd / "source"
+          os.makeDir(newSource)
+
+          val newFile = os.sub / "new.txt"
+          val perms = os.PermSet.fromString("rw-rw-rw-")
+          os.write(newSource / newFile, "Contents of new.txt")
+          os.perms.set(newSource / newFile, perms)
+
+          val newLink = os.sub / "newLink.txt"
+          os.symlink(newSource / newLink, os.rel / "new.txt")
+
+          val newZipped = os.zip(
+            dest = wd / "zipped.zip",
+            sources = List(newSource / newFile, newSource / newLink)
+          )
+
+          val newUnzipped = os.unzip(
+            source = newZipped,
+            dest = wd / "newUnzipped"
+          )
+
+          assert((walkRel(source) ++ walkRel(newSource)).toSet == walkRel(newUnzipped).toSet)
+
+          if (Runtime.version.feature >= 14) {
+            assert(os.walk.stream(source)
+              .filter(!os.isLink(_))
+              .forall(p => os.perms(p) == os.perms(newUnzipped / p.relativeTo(source))))
+          }
+
+          val unzippedNewLink = newUnzipped / newLink
+          assert(os.isFile(unzippedNewLink))
+          assert(os.read(os.readLink.absolute(newSource / newLink)) == os.read(unzippedNewLink))
+
+          val unzippedNewFile = newUnzipped / newFile
+          if (Runtime.version.feature >= 14) {
+            assert(os.perms(unzippedNewFile) == perms)
+            assert(os.perms(unzippedNewLink) == perms)
+          }
+        }
+      }
     }
 
     test("unzipStream") - prep { wd =>
