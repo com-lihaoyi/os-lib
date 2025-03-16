@@ -76,14 +76,14 @@ object zip {
               // This is the only way we can properly zero out filesystem metadata within the
               // Zip file filesystem; `os.mtime.set` is not enough
               val view =
-                Files.getFileAttributeView((opened / sub).toNIO, classOf[BasicFileAttributeView])
+                Files.getFileAttributeView((opened / sub).wrapped, classOf[BasicFileAttributeView])
               view.setTimes(FileTime.fromMillis(0), FileTime.fromMillis(0), FileTime.fromMillis(0))
             }
           }
         )
       } finally opened.close()
     } else {
-      val f = Files.newOutputStream(dest.toNIO)
+      val f = Files.newOutputStream(dest.wrapped)
       try createNewZip(
           sources,
           excludePatterns,
@@ -169,8 +169,8 @@ object zip {
       followLinks: Boolean = false
   ): apache.PermissionUtils.FileType = {
     val attrs = if (followLinks)
-      Files.readAttributes(file.toNIO, classOf[BasicFileAttributes])
-    else Files.readAttributes(file.toNIO, classOf[BasicFileAttributes], LinkOption.NOFOLLOW_LINKS)
+      Files.readAttributes(file.wrapped, classOf[BasicFileAttributes])
+    else Files.readAttributes(file.wrapped, classOf[BasicFileAttributes], LinkOption.NOFOLLOW_LINKS)
 
     if (attrs.isSymbolicLink()) apache.PermissionUtils.FileType.SYMLINK
     else if (attrs.isRegularFile()) apache.PermissionUtils.FileType.REGULAR_FILE
