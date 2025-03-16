@@ -261,7 +261,7 @@ object ZipOpTests extends TestSuite {
           wd: os.Path,
           zipStream: Boolean = false,
           unzipStream: Boolean = false,
-          preserveLinks: Boolean = false
+          followLinks: Boolean = true
       ) = {
         val zipFileName = "zipped.zip"
         val source = wd / "folder2"
@@ -275,14 +275,14 @@ object ZipOpTests extends TestSuite {
           if (zipStream) {
             os.write(
               wd / zipFileName,
-              os.zip.stream(sources = List(source), preserveLinks = preserveLinks)
+              os.zip.stream(sources = List(source), followLinks = followLinks)
             )
             wd / zipFileName
           } else {
             os.zip(
               dest = wd / zipFileName,
               sources = List(source),
-              preserveLinks = preserveLinks
+              followLinks = followLinks
             )
           }
 
@@ -307,7 +307,7 @@ object ZipOpTests extends TestSuite {
 
       test("zip") - prep { wd =>
         if (!scala.util.Properties.isWin) {
-          val (source, unzipped, link) = prepare(wd, preserveLinks = false)
+          val (source, unzipped, link) = prepare(wd, followLinks = true)
 
           // test all files are there
           assert(walkRel(source).toSet == walkRel(unzipped).toSet)
@@ -325,7 +325,7 @@ object ZipOpTests extends TestSuite {
 
       test("zipPreserveLinks") - prep { wd =>
         if (!scala.util.Properties.isWin) {
-          val (source, unzipped, link) = prepare(wd, preserveLinks = true)
+          val (source, unzipped, link) = prepare(wd, followLinks = false)
 
           assert(walkRel(source).toSet == walkRel(unzipped).toSet)
           assert(os.walk.stream(source)
@@ -341,7 +341,7 @@ object ZipOpTests extends TestSuite {
 
       test("zipStream") - prep { wd =>
         if (!scala.util.Properties.isWin) {
-          val (source, unzipped, link) = prepare(wd, zipStream = true, preserveLinks = false)
+          val (source, unzipped, link) = prepare(wd, zipStream = true, followLinks = true)
 
           assert(walkRel(source).toSet == walkRel(unzipped).toSet)
           assert(os.walk.stream(source)
@@ -356,7 +356,7 @@ object ZipOpTests extends TestSuite {
 
       test("zipStreamPreserveLinks") - prep { wd =>
         if (!scala.util.Properties.isWin) {
-          val (source, unzipped, link) = prepare(wd, zipStream = true, preserveLinks = true)
+          val (source, unzipped, link) = prepare(wd, zipStream = true, followLinks = false)
 
           assert(walkRel(source).toSet == walkRel(unzipped).toSet)
           assert(os.walk.stream(source)
@@ -371,7 +371,7 @@ object ZipOpTests extends TestSuite {
 
       test("unzipStreamWithLinks") - prep { wd =>
         if (!scala.util.Properties.isWin) {
-          val (source, unzipped, link) = prepare(wd, unzipStream = true, preserveLinks = true)
+          val (source, unzipped, link) = prepare(wd, unzipStream = true, followLinks = false)
 
           assert(walkRel(source).toSet == walkRel(unzipped).toSet)
 
@@ -383,7 +383,7 @@ object ZipOpTests extends TestSuite {
 
       test("unzipStream") - prep { wd =>
         if (!scala.util.Properties.isWin) {
-          val (source, unzipped, link) = prepare(wd, unzipStream = true, preserveLinks = false)
+          val (source, unzipped, link) = prepare(wd, unzipStream = true, followLinks = true)
 
           assert(walkRel(source).toSet == walkRel(unzipped).toSet)
 

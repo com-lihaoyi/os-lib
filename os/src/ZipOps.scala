@@ -47,7 +47,7 @@ object zip {
    * @param preserveMtimes Whether to preserve modification times (mtimes) of the files.
    * @param deletePatterns A list of regular expression patterns to delete files from an existing ZIP archive before appending new ones.
    * @param compressionLevel number from 0-9, where 0 is no compression and 9 is best compression. Defaults to -1 (default compression).
-   * @param perserveLinks Whether to store symbolic links as symbolic links instead of the referenced files. Default to false. Setting this to true has no effect when modifying a zip file in place.
+   * @param followLinks Whether to store symbolic links as the referenced files. Default to true. Setting this to false has no effect when modifying a zip file in place.
    * @return The path to the created ZIP archive.
    */
   def apply(
@@ -58,7 +58,7 @@ object zip {
       preserveMtimes: Boolean = false,
       deletePatterns: Seq[Regex] = List(),
       compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION,
-      preserveLinks: Boolean = false
+      followLinks: Boolean = true
   ): os.Path = {
     checker.value.onWrite(dest)
     // check read preemptively in case "dest" is created
@@ -99,7 +99,7 @@ object zip {
           includePatterns,
           preserveMtimes,
           compressionLevel,
-          preserveLinks,
+          followLinks,
           f
         )
       finally f.close()
@@ -141,7 +141,7 @@ object zip {
       includePatterns: Seq[Regex],
       preserveMtimes: Boolean,
       compressionLevel: Int,
-      preserveLinks: Boolean,
+      resolveLinks: Boolean,
       out: java.io.OutputStream
   ): Unit = {
     val zipOut = new apache.ZipOutputStream(out)
@@ -152,7 +152,7 @@ object zip {
         sources,
         excludePatterns,
         includePatterns,
-        (path, sub) => makeZipEntry(path, sub, preserveMtimes, preserveLinks, zipOut)
+        (path, sub) => makeZipEntry(path, sub, preserveMtimes, resolveLinks, zipOut)
       )
       zipOut.finish()
     } finally {
@@ -191,7 +191,7 @@ object zip {
       file: os.Path,
       sub: os.SubPath,
       preserveMtimes: Boolean,
-      preserveLinks: Boolean,
+      followLinks: Boolean,
       zipOut: apache.ZipOutputStream
   ) = {
     val name =
@@ -204,14 +204,14 @@ object zip {
 
     if (!scala.util.Properties.isWin) {
       val mode = apache.PermissionUtils.modeFromPermissions(
-        os.perms(file, followLinks = !preserveLinks).toSet(),
-        toFileType(file, followLinks = !preserveLinks)
+        os.perms(file, followLinks = followLinks).toSet(),
+        toFileType(file, followLinks = followLinks)
       )
       zipEntry.setUnixMode(mode)
     }
 
     val fis =
-      if (preserveLinks && !scala.util.Properties.isWin && os.isLink(file))
+      if (!followLinks && !scala.util.Properties.isWin && os.isLink(file))
         Some(new java.io.ByteArrayInputStream(os.readLink(file).toString().getBytes()))
       else if (os.isFile(file)) Some(os.read.inputStream(file))
       else None
@@ -233,7 +233,7 @@ object zip {
    * @param includePatterns  A list of regular expression patterns to include files in the ZIP archive. Defaults to an empty list (includes all files).
    * @param preserveMtimes   Whether to preserve modification times (mtimes) of the files.
    * @param compressionLevel number from 0-9, where 0 is no compression and 9 is best compression. Defaults to -1 (default compression).
-   * @param perserveLinks Whether to store symbolic links as symbolic links instead of the referenced files. Default to false. Setting this to true has no effect when modifying a zip file in place.
+   * @param followLinks Whether to store symbolic links as the referenced files. Default to true.
    * @return A geny.Writable object for writing the ZIP data.
    */
   def stream(
@@ -242,7 +242,7 @@ object zip {
       includePatterns: Seq[Regex] = List(),
       preserveMtimes: Boolean = false,
       compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION,
-      preserveLinks: Boolean = false
+      followLinks: Boolean = false
   ): geny.Writable = {
     (outputStream: java.io.OutputStream) =>
       {
@@ -252,7 +252,7 @@ object zip {
           includePatterns,
           preserveMtimes,
           compressionLevel,
-          preserveLinks,
+          followLinks,
           outputStream
         )
       }
