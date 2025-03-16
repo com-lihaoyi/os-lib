@@ -34,13 +34,20 @@ object zip {
    * If `dest` already exists and is a zip, performs modifications to `dest` in place
    * rather than creating a new zip.
    *
+   * When adding new files to an existing zip,
+   * - UNIX file permissions will be preserved if Java Runtime Version >= 14
+   * - if using Java Runtime Version < 14, UNIX file permissions are not preserved, even for existing zip entries
+   * - symbolics links will always be stored as the referenced files
+   * - existing symbolic links stored the zip might lose their symbolic link file type field
+   *
    * @param dest      The path to the destination ZIP file.
    * @param sources      A list of paths to files and directories to be zipped. Defaults to an empty list.
    * @param excludePatterns  A list of regular expression patterns to exclude files from the ZIP archive. Defaults to an empty list.
    * @param includePatterns  A list of regular expression patterns to include files in the ZIP archive. Defaults to an empty list (includes all files).
    * @param preserveMtimes Whether to preserve modification times (mtimes) of the files.
    * @param deletePatterns A list of regular expression patterns to delete files from an existing ZIP archive before appending new ones.
-   * @param compressionLevel number from 0-9, where 0 is no compression and 9 is best compression. Defaults to -1 (default compression)
+   * @param compressionLevel number from 0-9, where 0 is no compression and 9 is best compression. Defaults to -1 (default compression).
+   * @param perserveLinks Whether to store symbolic links as symbolic links instead of the referenced files. Default to false. Setting this to true has no effect when modifying a zip file in place.
    * @return The path to the created ZIP archive.
    */
   def apply(
@@ -225,6 +232,8 @@ object zip {
    * @param excludePatterns  A list of regular expression patterns to exclude files during zipping. Defaults to an empty list.
    * @param includePatterns  A list of regular expression patterns to include files in the ZIP archive. Defaults to an empty list (includes all files).
    * @param preserveMtimes   Whether to preserve modification times (mtimes) of the files.
+   * @param compressionLevel number from 0-9, where 0 is no compression and 9 is best compression. Defaults to -1 (default compression).
+   * @param perserveLinks Whether to store symbolic links as symbolic links instead of the referenced files. Default to false. Setting this to true has no effect when modifying a zip file in place.
    * @return A geny.Writable object for writing the ZIP data.
    */
   def stream(
