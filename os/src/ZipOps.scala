@@ -97,8 +97,18 @@ object zip {
   ): Unit = {
     sources.foreach { source =>
       if (os.isDir(source.src)) {
-        for (path <- os.walk(source.src)) {
-          if (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) {
+        val contents = os.walk(source.src)
+        if (contents.isEmpty)
+          source.dest
+            .filter(_ => shouldInclude(source.src.toString + "/", excludePatterns, includePatterns))
+            .foreach(makeZipEntry0(source.src, _))
+        for (path <- contents) {
+          if (
+            (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) ||
+            (os.isDir(path) &&
+              os.walk.stream(path).headOption.isEmpty &&
+              shouldInclude(path.toString + "/", excludePatterns, includePatterns))
+          ) {
             makeZipEntry0(path, source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src))
           }
         }
@@ -125,6 +135,7 @@ object zip {
         includePatterns,
         (path, sub) => makeZipEntry(path, sub, preserveMtimes, zipOut)
       )
+      zipOut.finish()
     } finally {
       zipOut.close()
     }
@@ -149,29 +160,21 @@ object zip {
       preserveMtimes: Boolean,
       zipOut: ZipOutputStream
   ) = {
+    val name =
+      if (os.isDir(file)) sub.toString + "/"
+      else sub.toString
+    val zipEntry = new ZipEntry(name)
 
-    val mtimeOpt = if (preserveMtimes) Some(os.mtime(file)) else None
+    val mtime = if (preserveMtimes) os.mtime(file) else 0
+    zipEntry.setTime(mtime)
 
     val fis = if (os.isFile(file)) Some(os.read.inputStream(file)) else None
-    try makeZipEntry0(sub, fis, mtimeOpt, zipOut)
-    finally fis.foreach(_.close())
-  }
 
-  private def makeZipEntry0(
-      sub: os.SubPath,
-      is: Option[java.io.InputStream],
-      preserveMtimes: Option[Long],
-      zipOut: ZipOutputStream
-  ) = {
-    val zipEntry = new ZipEntry(sub.toString)
-
-    preserveMtimes match {
-      case Some(mtime) => zipEntry.setTime(mtime)
-      case None => zipEntry.setTime(0)
-    }
-
-    zipOut.putNextEntry(zipEntry)
-    is.foreach(os.Internals.transfer(_, zipOut, close = false))
+    try {
+      zipOut.putNextEntry(zipEntry)
+      fis.foreach(os.Internals.transfer(_, zipOut, close = false))
+      zipOut.closeEntry()
+    } finally fis.foreach(_.close())
   }
 
   /**
