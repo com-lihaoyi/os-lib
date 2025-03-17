@@ -13,6 +13,7 @@ import java.nio.file.attribute.{
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
 import scala.collection.JavaConverters._
 import scala.util.matching.Regex
+import scala.util.Properties.isWin
 
 object zip {
 
@@ -78,7 +79,7 @@ object zip {
           includePatterns,
           (path, sub) => {
             os.copy(path, opened / sub, createFolders = true)
-            if (!scala.util.Properties.isWin && Runtime.version.feature >= 14)
+            if (!isWin && Runtime.version.feature >= 14)
               Files.setPosixFilePermissions((opened / sub).wrapped, os.perms(path).toSet())
             if (!preserveMtimes) {
               os.mtime.set(opened / sub, 0)
@@ -202,7 +203,7 @@ object zip {
     val mtime = if (preserveMtimes) os.mtime(file) else 0
     zipEntry.setTime(mtime)
 
-    if (!scala.util.Properties.isWin) {
+    if (!isWin) {
       val mode = apache.PermissionUtils.modeFromPermissions(
         os.perms(file, followLinks = followLinks).toSet(),
         toFileType(file, followLinks = followLinks)
@@ -211,7 +212,7 @@ object zip {
     }
 
     val fis =
-      if (!followLinks && !scala.util.Properties.isWin && os.isLink(file))
+      if (!followLinks && !isWin && os.isLink(file))
         Some(new java.io.ByteArrayInputStream(os.readLink(file).toString().getBytes()))
       else if (os.isFile(file)) Some(os.read.inputStream(file))
       else None
@@ -321,13 +322,13 @@ object unzip {
       for ((zipEntry, zipInputStream) <- zipEntryInputStreams) {
         val newFile = dest / os.SubPath(zipEntry.getName)
         val mode = zipEntry.getUnixMode
-        val perms = if (mode > 0 && !scala.util.Properties.isWin) {
+        val perms = if (mode > 0 && !isWin) {
           os.PermSet.fromSet(apache.PermissionUtils.permissionsFromMode(mode))
         } else null
 
         if (zipEntry.isDirectory) {
           os.makeDir.all(newFile, perms = perms)
-        } else if (!scala.util.Properties.isWin && isSymLink(mode)) {
+        } else if (!isWin && isSymLink(mode)) {
           val target = scala.io.Source.fromInputStream(zipInputStream).mkString
           val path = java.nio.file.Paths.get(target)
           val dest = if (path.isAbsolute) os.Path(path) else os.RelPath(path)
@@ -337,7 +338,7 @@ object unzip {
           val outputStream = os.write.outputStream(newFile, createFolders = true)
           os.Internals.transfer(zipInputStream, outputStream, close = false)
           outputStream.close()
-          if (!scala.util.Properties.isWin && perms != null) os.perms.set(newFile, perms)
+          if (!isWin && perms != null) os.perms.set(newFile, perms)
         }
       }
     } finally {
