@@ -327,7 +327,9 @@ object ZipOpTests extends TestSuite {
         if (!scala.util.Properties.isWin) {
           val (source, unzipped, link) = prepare(wd, followLinks = false)
 
+          // test all files are there
           assert(walkRel(source).toSet == walkRel(unzipped).toSet)
+          // test all permissions are preserved
           assert(os.walk.stream(source)
             .filter(!os.isLink(_))
             .forall(p => os.perms(p) == os.perms(unzipped / p.relativeTo(source))))
@@ -343,11 +345,14 @@ object ZipOpTests extends TestSuite {
         if (!scala.util.Properties.isWin) {
           val (source, unzipped, link) = prepare(wd, zipStream = true, followLinks = true)
 
+          // test all files are there
           assert(walkRel(source).toSet == walkRel(unzipped).toSet)
+          // test all permissions are preserved
           assert(os.walk.stream(source)
             .filter(!os.isLink(_))
             .forall(p => os.perms(p) == os.perms(unzipped / p.relativeTo(source))))
 
+          // test symlinks are zipped as the referenced files
           val unzippedLink = unzipped / link
           assert(os.isFile(unzippedLink))
           assert(os.read(os.readLink.absolute(source / link)) == os.read(unzippedLink))
@@ -358,11 +363,14 @@ object ZipOpTests extends TestSuite {
         if (!scala.util.Properties.isWin) {
           val (source, unzipped, link) = prepare(wd, zipStream = true, followLinks = false)
 
+          // test all files are there
           assert(walkRel(source).toSet == walkRel(unzipped).toSet)
+          // test all permissions are preserved
           assert(os.walk.stream(source)
             .filter(!os.isLink(_))
             .forall(p => os.perms(p) == os.perms(unzipped / p.relativeTo(source))))
 
+          // test symlinks are zipped as symlinks
           val unzippedLink = unzipped / link
           assert(os.isLink(unzippedLink))
           assert(os.readLink(source / link) == os.readLink(unzippedLink))
@@ -373,6 +381,7 @@ object ZipOpTests extends TestSuite {
         if (!scala.util.Properties.isWin) {
           val (source, unzipped, link) = prepare(wd, unzipStream = true, followLinks = false)
 
+          // test all files are there
           assert(walkRel(source).toSet == walkRel(unzipped).toSet)
 
           val unzippedLink = unzipped / link
@@ -385,8 +394,10 @@ object ZipOpTests extends TestSuite {
         if (!scala.util.Properties.isWin) {
           val (source, unzipped, link) = prepare(wd, unzipStream = true, followLinks = true)
 
+          // test all files are there
           assert(walkRel(source).toSet == walkRel(unzipped).toSet)
 
+          // test symlinks zipped as the referenced files are unzipped correctly
           val unzippedLink = unzipped / link
           assert(os.isFile(unzippedLink))
           assert(os.read(os.readLink.absolute(source / link)) == os.read(unzippedLink))
@@ -418,18 +429,22 @@ object ZipOpTests extends TestSuite {
             dest = wd / "newUnzipped"
           )
 
+          // test all files are there
           assert((walkRel(source) ++ walkRel(newSource)).toSet == walkRel(newUnzipped).toSet)
 
+          // test permissions of existing zip entries are preserved
           if (Runtime.version.feature >= 14) {
             assert(os.walk.stream(source)
               .filter(!os.isLink(_))
               .forall(p => os.perms(p) == os.perms(newUnzipped / p.relativeTo(source))))
           }
 
+          // test existing symlinks zipped as the referenced files are unzipped
           val unzippedNewLink = newUnzipped / newLink
           assert(os.isFile(unzippedNewLink))
           assert(os.read(os.readLink.absolute(newSource / newLink)) == os.read(unzippedNewLink))
 
+          // test permissions of newly added files are preserved
           val unzippedNewFile = newUnzipped / newFile
           if (Runtime.version.feature >= 14) {
             assert(os.perms(unzippedNewFile) == perms)
