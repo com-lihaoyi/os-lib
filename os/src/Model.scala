@@ -215,7 +215,7 @@ case class SubprocessException(result: CommandResult) extends Exception(result.t
  * be "interpolated" directly into a subprocess call.
  */
 case class Shellable(value: Seq[String])
-object Shellable {
+object Shellable extends os.GeneratedTupleConversions[Shellable] {
   implicit def StringShellable(s: String): Shellable = Shellable(Seq(s))
   implicit def CharSequenceShellable(cs: CharSequence): Shellable = Shellable(Seq(cs.toString))
 
@@ -232,6 +232,8 @@ object Shellable {
 
   implicit def ArrayShellable[T](s: Array[T])(implicit f: T => Shellable): Shellable =
     Shellable(s.toIndexedSeq.flatMap(f(_).value))
+
+  protected def flatten(vs: Shellable*): Shellable = IterableShellable(vs)
 }
 
 /**
@@ -279,5 +281,32 @@ object PosixStatInfo {
       posixAttrs.owner,
       PermSet.fromSet(posixAttrs.permissions)
     )
+  }
+}
+
+/**
+ * Defines hooks for path based operations.
+ *
+ * This, in conjunction with [[checker]], can be used to implement custom checks like
+ *  - restricting an operation to some path(s)
+ *  - logging an operation
+ */
+@experimental
+trait Checker {
+
+  /** A hook for a read operation on `path`. */
+  def onRead(path: ReadablePath): Unit
+
+  /** A hook for a write operation on `path`. */
+  def onWrite(path: Path): Unit
+}
+
+@experimental
+object Checker {
+
+  /** A no-op [[Checker]]. */
+  object Nop extends Checker {
+    def onRead(path: ReadablePath): Unit = ()
+    def onWrite(path: Path): Unit = ()
   }
 }

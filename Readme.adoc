@@ -1,5 +1,8 @@
 = OS-Lib
-:version: 0.9.3
+:version: 0.11.4
+:toc-placement: preamble
+:toclevels: 3
+:toc:
 :link-geny: https://github.com/com-lihaoyi/geny
 :link-oslib: https://github.com/com-lihaoyi/os-lib
 :link-oslib-gitter: https://gitter.im/lihaoyi/os-lib
@@ -8,7 +11,7 @@
 :idprefix:
 :idseparator: -
 
-image:{link-oslib}/actions/workflows/build.yml/badge.svg[Build Status,link={link-oslib}/actions]
+image:{link-oslib}/actions/workflows/run-tests.yml/badge.svg[Build Status,link={link-oslib}/actions]
 image:https://badges.gitter.im/Join%20Chat.svg[Gitter Chat,link={link-oslib-gitter}]
 image:https://img.shields.io/badge/patreon-sponsor-ff69b4.svg[Patreon,link=https://www.patreon.com/lihaoyi]
 image:https://javadoc.io/badge2/com.lihaoyi/os-lib_3/scaladoc.svg[API Docs (Scala 3),link=https://javadoc.io/doc/com.lihaoyi/os-lib_3]
@@ -16,7 +19,7 @@ image:https://javadoc.io/badge2/com.lihaoyi/os-lib_3/scaladoc.svg[API Docs (Scal
 [source,scala]
 ----
 // Make sure working directory exists and is empty
-val wd = os.pwd/"out"/"splash"
+val wd = os.pwd/"out/splash"
 os.remove.all(wd)
 os.makeDir.all(wd)
 
@@ -176,9 +179,9 @@ val largestThree = os.walk(wd)
   .take(3)
 
 largestThree ==> Seq(
-  (711, wd / "misc" / "binary.png"),
+  (711, wd / "misc/binary.png"),
   (81, wd / "Multi Line.txt"),
-  (22, wd / "folder1" / "one.txt")
+  (22, wd / "folder1/one.txt")
 )
 ----
 
@@ -187,7 +190,7 @@ largestThree ==> Seq(
 [source,scala]
 ----
 // Move all files inside the "misc" folder out of it
-import os.{GlobSyntax, /}
+import os./
 os.list(wd / "misc").map(os.move.matching { case p/"misc"/x => p/x } )
 ----
 
@@ -226,7 +229,7 @@ read from if the source supports seeking.
 [source,scala]
 ----
 os.read(wd / "File.txt") ==> "I am cow"
-os.read(wd / "folder1" / "one.txt") ==> "Contents of folder one"
+os.read(wd / "folder1/one.txt") ==> "Contents of folder one"
 os.read(wd / "Multi Line.txt") ==>
   """I am cow
     |Hear me moo
@@ -249,7 +252,7 @@ supports seeking.
 [source,scala]
 ----
 os.read.bytes(wd / "File.txt") ==> "I am cow".getBytes
-os.read.bytes(wd / "misc" / "binary.png").length ==> 711
+os.read.bytes(wd / "misc/binary.png").length ==> 711
 ----
 
 ==== `os.read.chunks`
@@ -433,9 +436,9 @@ os.write.append(wd / "File.txt", ",\nI weigh twice as much as you")
 os.read(wd / "File.txt") ==>
   "I am cow, hear me moo,\nI weigh twice as much as you"
 
-os.read.bytes(wd / "misc" / "binary.png").length ==> 711
-os.write.append(wd / "misc" / "binary.png", Array[Byte](1, 2, 3))
-os.read.bytes(wd / "misc" / "binary.png").length ==> 714
+os.read.bytes(wd / "misc/binary.png").length ==> 711
+os.write.append(wd / "misc/binary.png", Array[Byte](1, 2, 3))
+os.read.bytes(wd / "misc/binary.png").length ==> 714
 ----
 
 ==== `os.write.over`
@@ -532,10 +535,10 @@ them. You can disable sorted by passing in the flag `sort = false`.
 
 [source,scala]
 ----
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
 os.list(wd / "folder2") ==> Seq(
-  wd / "folder2" / "nestedA",
-  wd / "folder2" / "nestedB"
+  wd / "folder2/nestedA",
+  wd / "folder2/nestedB"
 )
 ----
 
@@ -595,35 +598,35 @@ if `preOrder = false`.
 
 [source,scala]
 ----
-os.walk(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.walk(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
 
 os.walk(wd / "folder1", includeTarget = true) ==> Seq(
   wd / "folder1",
-  wd / "folder1" / "one.txt"
+  wd / "folder1/one.txt"
 )
 
 os.walk(wd / "folder2") ==> Seq(
-  wd / "folder2" / "nestedA",
-  wd / "folder2" / "nestedA" / "a.txt",
-  wd / "folder2" / "nestedB",
-  wd / "folder2" / "nestedB" / "b.txt"
+  wd / "folder2/nestedA",
+  wd / "folder2/nestedA/a.txt",
+  wd / "folder2/nestedB",
+  wd / "folder2/nestedB/b.txt"
 )
 
 os.walk(wd / "folder2", preOrder = false) ==> Seq(
-  wd / "folder2" / "nestedA" / "a.txt",
-  wd / "folder2" / "nestedA",
-  wd / "folder2" / "nestedB" / "b.txt",
-  wd / "folder2" / "nestedB"
+  wd / "folder2/nestedA/a.txt",
+  wd / "folder2/nestedA",
+  wd / "folder2/nestedB/b.txt",
+  wd / "folder2/nestedB"
 )
 
 os.walk(wd / "folder2", maxDepth = 1) ==> Seq(
-  wd / "folder2" / "nestedA",
-  wd / "folder2" / "nestedB"
+  wd / "folder2/nestedA",
+  wd / "folder2/nestedB"
 )
 
 os.walk(wd / "folder2", skip = _.last == "nestedA") ==> Seq(
-  wd / "folder2" / "nestedB",
-  wd / "folder2" / "nestedB" / "b.txt"
+  wd / "folder2/nestedB",
+  wd / "folder2/nestedB/b.txt"
 )
 ----
 
@@ -652,11 +655,11 @@ val filesSortedBySize = os.walk.attrs(wd / "misc", followLinks = true)
   .collect{case (p, attrs) if attrsisFile => p}
 
 filesSortedBySize ==> Seq(
-  wd / "misc" / "echo",
-  wd / "misc" / "file-symlink",
-  wd / "misc" / "echo_with_wd",
-  wd / "misc" / "folder-symlink" / "one.txt",
-  wd / "misc" / "binary.png"
+  wd / "misc/echo",
+  wd / "misc/file-symlink",
+  wd / "misc/echo_with_wd",
+  wd / "misc/folder-symlink/one.txt",
+  wd / "misc/binary.png"
 )
 ----
 
@@ -729,10 +732,10 @@ os.exists(wd / "File.txt") ==> true
 os.exists(wd / "folder1") ==> true
 os.exists(wd / "doesnt-exist") ==> false
 
-os.exists(wd / "misc" / "file-symlink") ==> true
-os.exists(wd / "misc" / "folder-symlink") ==> true
-os.exists(wd / "misc" / "broken-symlink") ==> false
-os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> true
+os.exists(wd / "misc/file-symlink") ==> true
+os.exists(wd / "misc/folder-symlink") ==> true
+os.exists(wd / "misc/broken-symlink") ==> false
+os.exists(wd / "misc/broken-symlink", followLinks = false) ==> true
 ----
 
 ==== `os.move`
@@ -748,13 +751,13 @@ path already exists, or is within the source path.
 
 [source,scala]
 ----
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
-os.move(wd / "folder1" / "one.txt", wd / "folder1" / "first.txt")
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "first.txt")
+os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
+os.move(wd / "folder1/one.txt", wd / "folder1/first.txt")
+os.list(wd / "folder1") ==> Seq(wd / "folder1/first.txt")
 
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
-os.move(wd / "folder2" / "nestedA", wd / "folder2" / "nestedC")
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedB", wd / "folder2" / "nestedC")
+os.list(wd / "folder2") ==> Seq(wd / "folder2/nestedA", wd / "folder2/nestedB")
+os.move(wd / "folder2/nestedA", wd / "folder2/nestedC")
+os.list(wd / "folder2") ==> Seq(wd / "folder2/nestedB", wd / "folder2/nestedC")
 
 os.read(wd / "File.txt") ==> "I am cow"
 os.move(wd / "Multi Line.txt", wd / "File.txt", replaceExisting = true)
@@ -780,19 +783,19 @@ e.g. to rename all `.txt` files within a folder tree to `.data`:
 ----
 import os.{GlobSyntax, /}
 os.walk(wd / "folder2") ==> Seq(
-  wd / "folder2" / "nestedA",
-  wd / "folder2" / "nestedA" / "a.txt",
-  wd / "folder2" / "nestedB",
-  wd / "folder2" / "nestedB" / "b.txt"
+  wd / "folder2/nestedA",
+  wd / "folder2/nestedA/a.txt",
+  wd / "folder2/nestedB",
+  wd / "folder2/nestedB/b.txt"
 )
 
 os.walk(wd/'folder2).collect(os.move.matching{case p/g"$x.txt" => p/g"$x.data"})
 
 os.walk(wd / "folder2") ==> Seq(
-  wd / "folder2" / "nestedA",
-  wd / "folder2" / "nestedA" / "a.data",
-  wd / "folder2" / "nestedB",
-  wd / "folder2" / "nestedB" / "b.data"
+  wd / "folder2/nestedA",
+  wd / "folder2/nestedA/a.data",
+  wd / "folder2/nestedB",
+  wd / "folder2/nestedB/b.data"
 )
 ----
 
@@ -807,9 +810,9 @@ Move the given file or folder _into_ the destination folder
 
 [source,scala]
 ----
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
 os.move.into(wd / "File.txt", wd / "folder1")
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "File.txt", wd / "folder1" / "one.txt")
+os.list(wd / "folder1") ==> Seq(wd / "folder1/File.txt", wd / "folder1/one.txt")
 ----
 
 ==== `os.move.over`
@@ -824,9 +827,9 @@ folder than may already be present at that path
 
 [source,scala]
 ----
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.list(wd / "folder2") ==> Seq(wd / "folder2/nestedA", wd / "folder2/nestedB")
 os.move.over(wd / "folder1", wd / "folder2")
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
+os.list(wd / "folder2") ==> Seq(wd / "folder2/one.txt")
 ----
 
 ==== `os.copy`
@@ -843,16 +846,16 @@ within the source path.
 
 [source,scala]
 ----
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
-os.copy(wd / "folder1" / "one.txt", wd / "folder1" / "first.txt")
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "first.txt", wd / "folder1" / "one.txt")
+os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
+os.copy(wd / "folder1/one.txt", wd / "folder1/first.txt")
+os.list(wd / "folder1") ==> Seq(wd / "folder1/first.txt", wd / "folder1/one.txt")
 
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
-os.copy(wd / "folder2" / "nestedA", wd / "folder2" / "nestedC")
+os.list(wd / "folder2") ==> Seq(wd / "folder2/nestedA", wd / "folder2/nestedB")
+os.copy(wd / "folder2/nestedA", wd / "folder2/nestedC")
 os.list(wd / "folder2") ==> Seq(
-  wd / "folder2" / "nestedA",
-  wd / "folder2" / "nestedB",
-  wd / "folder2" / "nestedC"
+  wd / "folder2/nestedA",
+  wd / "folder2/nestedB",
+  wd / "folder2/nestedC"
 )
 
 os.read(wd / "File.txt") ==> "I am cow"
@@ -889,9 +892,9 @@ Copy the given file or folder _into_ the destination folder
 
 [source,scala]
 ----
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
+os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
 os.copy.into(wd / "File.txt", wd / "folder1")
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "File.txt", wd / "folder1" / "one.txt")
+os.list(wd / "folder1") ==> Seq(wd / "folder1/File.txt", wd / "folder1/one.txt")
 ----
 
 ==== `os.copy.over`
@@ -906,9 +909,9 @@ overwrite it instead of erroring out.
 
 [source,scala]
 ----
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.list(wd / "folder2") ==> Seq(wd / "folder2/nestedA", wd / "folder2/nestedB")
 os.copy.over(wd / "folder1", wd / "folder2")
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt")
+os.list(wd / "folder2") ==> Seq(wd / "folder2/one.txt")
 ----
 
 ==== `os.copy` with `mergeFolders`
@@ -920,10 +923,10 @@ you can use the `mergeFolders` option of <<os-copy>>.
 
 [source,scala]
 ----
-os.list(wd / "folder1") ==> Seq(wd / "folder1" / "one.txt")
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
+os.list(wd / "folder2") ==> Seq(wd / "folder2/nestedA", wd / "folder2/nestedB")
 os.copy(wd / "folder1", wd / "folder2", mergeFolders = true)
-os.list(wd / "folder2") ==> Seq(wd / "folder2" / "one.txt", wd / "folder2" / "nestedA", wd / "folder2" / "nestedB")
+os.list(wd / "folder2") ==> Seq(wd / "folder2/one.txt", wd / "folder2/nestedA", wd / "folder2/nestedB")
 ----
 
 ==== `os.makeDir`
@@ -969,8 +972,8 @@ to error out in that case by passing in `acceptLinkedDirectory = false`
 [source,scala]
 ----
 os.exists(wd / "new_folder") ==> false
-os.makeDir.all(wd / "new_folder" / "inner" / "deep")
-os.exists(wd / "new_folder" / "inner" / "deep") ==> true
+os.makeDir.all(wd / "new_folder/inner/deep")
+os.exists(wd / "new_folder/inner/deep") ==> true
 ----
 
 ==== `os.remove`
@@ -982,9 +985,9 @@ os.remove(target: Path, checkExists: Boolean = false): Boolean
 ----
 
 Remove the target file or folder. Folders need to be empty to be removed; if you
-want to remove a folder tree recursively, use <<os-remove-all>>. 
+want to remove a folder tree recursively, use <<os-remove-all>>.
 Returns `true` if the file was present before.
-It will fail with an exception when the file is missing but `checkExists` is `true`, 
+It will fail with an exception when the file is missing but `checkExists` is `true`,
 or when the directory to remove is not empty.
 
 [source,scala]
@@ -993,10 +996,10 @@ os.exists(wd / "File.txt") ==> true
 os.remove(wd / "File.txt")
 os.exists(wd / "File.txt") ==> false
 
-os.exists(wd / "folder1" / "one.txt") ==> true
-os.remove(wd / "folder1" / "one.txt")
+os.exists(wd / "folder1/one.txt") ==> true
+os.remove(wd / "folder1/one.txt")
 os.remove(wd / "folder1")
-os.exists(wd / "folder1" / "one.txt") ==> false
+os.exists(wd / "folder1/one.txt") ==> false
 os.exists(wd / "folder1") ==> false
 ----
 
@@ -1005,17 +1008,17 @@ destination:
 
 [source,scala]
 ----
-os.remove(wd / "misc" / "file-symlink")
-os.exists(wd / "misc" / "file-symlink", followLinks = false) ==> false
+os.remove(wd / "misc/file-symlink")
+os.exists(wd / "misc/file-symlink", followLinks = false) ==> false
 os.exists(wd / "File.txt", followLinks = false) ==> true
 
-os.remove(wd / "misc" / "folder-symlink")
-os.exists(wd / "misc" / "folder-symlink", followLinks = false) ==> false
+os.remove(wd / "misc/folder-symlink")
+os.exists(wd / "misc/folder-symlink", followLinks = false) ==> false
 os.exists(wd / "folder1", followLinks = false) ==> true
-os.exists(wd / "folder1" / "one.txt", followLinks = false) ==> true
+os.exists(wd / "folder1/one.txt", followLinks = false) ==> true
 
-os.remove(wd / "misc" / "broken-symlink")
-os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
+os.remove(wd / "misc/broken-symlink")
+os.exists(wd / "misc/broken-symlink", followLinks = false) ==> false
 ----
 
 If you wish to remove the destination of a symlink, use
@@ -1025,7 +1028,7 @@ If you wish to remove the destination of a symlink, use
 
 [source,scala]
 ----
-os.remove.all(target: Path): Unit
+os.remove.all(target: Path, ignoreErrors: Boolean = false): Unit
 ----
 
 Remove the target file or folder; if it is a folder and not empty, recursively
@@ -1033,9 +1036,9 @@ removing all it's contents before deleting it.
 
 [source,scala]
 ----
-os.exists(wd / "folder1" / "one.txt") ==> true
+os.exists(wd / "folder1/one.txt") ==> true
 os.remove.all(wd / "folder1")
-os.exists(wd / "folder1" / "one.txt") ==> false
+os.exists(wd / "folder1/one.txt") ==> false
 os.exists(wd / "folder1") ==> false
 ----
 
@@ -1044,21 +1047,27 @@ destination:
 
 [source,scala]
 ----
-os.remove.all(wd / "misc" / "file-symlink")
-os.exists(wd / "misc" / "file-symlink", followLinks = false) ==> false
+os.remove.all(wd / "misc/file-symlink")
+os.exists(wd / "misc/file-symlink", followLinks = false) ==> false
 os.exists(wd / "File.txt", followLinks = false) ==> true
 
-os.remove.all(wd / "misc" / "folder-symlink")
-os.exists(wd / "misc" / "folder-symlink", followLinks = false) ==> false
+os.remove.all(wd / "misc/folder-symlink")
+os.exists(wd / "misc/folder-symlink", followLinks = false) ==> false
 os.exists(wd / "folder1", followLinks = false) ==> true
-os.exists(wd / "folder1" / "one.txt", followLinks = false) ==> true
+os.exists(wd / "folder1/one.txt", followLinks = false) ==> true
 
-os.remove.all(wd / "misc" / "broken-symlink")
-os.exists(wd / "misc" / "broken-symlink", followLinks = false) ==> false
+os.remove.all(wd / "misc/broken-symlink")
+os.exists(wd / "misc/broken-symlink", followLinks = false) ==> false
 ----
 
 If you wish to remove the destination of a symlink, use
 <<os-readlink>>.
+
+``os.remove.all`` removes nested files and folders one at a time, and any failure
+in removing a file (e.g. due to permissions) or folder (e.g. due to someone concurrently
+creating a file within it) causes an error to be thrown and terminates the removal early.
+You can pass `ignoreErrors = false` to continue with the deletion of other files
+even if some files or folders failed to be removed.
 
 ==== `os.hardlink`
 
@@ -1121,22 +1130,22 @@ Returns the immediate destination of the given symbolic link.
 
 [source,scala]
 ----
-os.readLink(wd / "misc" / "file-symlink") ==> os.up / "File.txt"
-os.readLink(wd / "misc" / "folder-symlink") ==> os.up / "folder1"
-os.readLink(wd / "misc" / "broken-symlink") ==> os.rel / "broken"
-os.readLink(wd / "misc" / "broken-abs-symlink") ==> os.root / "doesnt" / "exist"
+os.readLink(wd / "misc/file-symlink") ==> os.up / "File.txt"
+os.readLink(wd / "misc/folder-symlink") ==> os.up / "folder1"
+os.readLink(wd / "misc/broken-symlink") ==> os.rel / "broken"
+os.readLink(wd / "misc/broken-abs-symlink") ==> os.root / "doesnt/exist"
 ----
 
 Note that symbolic links can be either absolute ``os.Path``s or relative
-``os.RelPath``s, represented by `os.FilePath`. You can also use `os.readLink.all`
+``os.RelPath``s, represented by `os.FilePath`. You can also use `os.readLink.absolute`
 to automatically resolve relative symbolic links to their absolute destination:
 
 [source,scala]
 ----
-os.readLink.absolute(wd / "misc" / "file-symlink") ==> wd / "File.txt"
-os.readLink.absolute(wd / "misc" / "folder-symlink") ==> wd / "folder1"
-os.readLink.absolute(wd / "misc" / "broken-symlink") ==> wd / "misc" / "broken"
-os.readLink.absolute(wd / "misc" / "broken-abs-symlink") ==> os.root / "doesnt" / "exist"
+os.readLink.absolute(wd / "misc/file-symlink") ==> wd / "File.txt"
+os.readLink.absolute(wd / "misc/folder-symlink") ==> wd / "folder1"
+os.readLink.absolute(wd / "misc/broken-symlink") ==> wd / "misc/broken"
+os.readLink.absolute(wd / "misc/broken-abs-symlink") ==> os.root / "doesnt/exist"
 ----
 
 ==== `os.followLink`
@@ -1152,9 +1161,9 @@ symbolic link in the given path is broken)
 
 [source,scala]
 ----
-os.followLink(wd / "misc" / "file-symlink") ==> Some(wd / "File.txt")
-os.followLink(wd / "misc" / "folder-symlink") ==> Some(wd / "folder1")
-os.followLink(wd / "misc" / "broken-symlink") ==> None
+os.followLink(wd / "misc/file-symlink") ==> Some(wd / "File.txt")
+os.followLink(wd / "misc/folder-symlink") ==> Some(wd / "folder1")
+os.followLink(wd / "misc/broken-symlink") ==> None
 ----
 
 ==== `os.temp`
@@ -1212,6 +1221,249 @@ os.write(tempDir / "file", "Hello")
 os.list(tempDir) ==> Seq(tempDir / "file")
 ----
 
+=== Zip & Unzip Files
+
+==== `os.zip`
+
+[source,scala]
+----
+def apply(dest: os.Path,
+          sources: Seq[ZipSource] = List(),
+          excludePatterns: Seq[Regex] = List(),
+          includePatterns: Seq[Regex] = List(),
+          preserveMtimes: Boolean = false,
+          deletePatterns: Seq[Regex] = List(),
+          compressionLevel: Int = -1 /* 0-9 */): os.Path
+----
+
+The zip object provides functionality to create or modify zip archives. It supports:
+
+- Zipping Files and Directories: You can zip both individual files and entire directories.
+- Appending to Existing Archives: Files can be appended to an existing zip archive.
+- Exclude Patterns (-x): You can specify files or patterns to exclude while zipping.
+- Include Patterns (-i): You can include specific files or patterns while zipping.
+- Delete Patterns (-d): You can delete specific files from an existing zip archive.
+- Configuring whether or not to preserve filesyste mtimes and permissions
+
+This will create a new zip archive at `dest` containing `file1.txt` and everything
+inside `sources`. If `dest` already exists as a zip, the files will be appended to the
+existing zip, and any existing zip entries matching `deletePatterns` will be removed.
+
+Note that `os.zip` doesn't support creating/unpacking symlinks or filesystem permissions
+in Zip files, because the underlying `java.util.zip.Zip*Stream` doesn't support them.
+
+===== Zipping Files and Folders
+
+The example below demonstrates the core workflows: creating a zip, appending to it, and
+unzipping it:
+
+[source,scala]
+----
+// Zipping files and folders in a new zip file
+val zipFileName = "zip-file-test.zip"
+val zipFile1: os.Path = os.zip(
+  destination = wd / zipFileName,
+  sourcePaths = Seq(
+    wd / "File.txt",
+    wd / "folder1"
+  )
+)
+
+// Adding files and folders to an existing zip file
+os.zip(
+  destination = zipFile1,
+  sourcePaths = Seq(
+    wd / "folder2",
+    wd / "Multi Line.txt"
+  )
+)
+
+// Unzip file to a destination folder
+val unzippedFolder = os.unzip(
+  source = wd / zipFileName,
+  destination = wd / "unzipped folder"
+)
+
+val paths = os.walk(unzippedFolder)
+val expected = Seq(
+  // Files get included in the zip root using their name
+  wd / "unzipped folder/File.txt",
+  wd / "unzipped folder/Multi Line.txt",
+  // Folder contents get included relative to the source root
+  wd / "unzipped folder/nestedA",
+  wd / "unzipped folder/nestedB",
+  wd / "unzipped folder/one.txt",
+  wd / "unzipped folder/nestedA/a.txt",
+  wd / "unzipped folder/nestedB/b.txt",
+)
+assert(paths.sorted == expected)
+----
+
+===== Renaming files in the zip
+
+You can also pass in a mapping to `os.zip` to specify exactly where in the zip each
+input source file or folder should go:
+
+```scala
+val zipFileName = "zip-file-test.zip"
+val zipFile1: os.Path = os.zip(
+  destination = wd / zipFileName,
+  sourcePaths = List(
+    // renaming files and folders
+    wd / "File.txt" -> os.sub / "renamed-file.txt",
+    wd / "folder1" -> os.sub / "renamed-folder"
+  )
+)
+
+val unzippedFolder = os.unzip(
+  source = zipFile1,
+  destination = wd / "unzipped folder"
+)
+
+val paths = os.walk(unzippedFolder)
+val expected = Seq(
+  wd / "unzipped folder/renamed-file.txt",
+  wd / "unzipped folder/renamed-folder",
+  wd / "unzipped folder/renamed-folder/one.txt",
+)
+assert(paths.sorted == expected)
+```
+
+===== Excluding/Including Files in Zip
+
+You can specify files or folders to be excluded or included when creating the zip:
+
+[source,scala]
+----
+os.zip(
+  os.Path("/path/to/destination.zip"),
+  List(os.Path("/path/to/folder")),
+  excludePatterns = List(".*\\.log".r, "temp/.*".r),  // Exclude log files and "temp" folder
+  includePatterns = List(".*\\.txt".r)              // Include only .txt files
+)
+
+----
+
+This will include only `.txt` files, excluding any `.log` files and anything inside
+the `temp` folder.
+
+==== `os.zip.stream`
+
+You can use `os.zip.stream` to write the final zip to an `OutputStream` rather than a
+concrete `os.Path`. `os.zip.stream` returns a `geny.Writable`, which has a `writeBytesToStream`
+method:
+
+```scala
+val zipFileName = "zipStreamFunction.zip"
+
+val stream = os.write.outputStream(wd / "zipStreamFunction.zip")
+
+val writable = zip.stream(sources = Seq(wd / "File.txt"))
+
+writable.writeBytesTo(stream)
+stream.close()
+
+val unzippedFolder = os.unzip(
+  source = wd / zipFileName,
+  dest = wd / "zipStreamFunction"
+)
+
+val paths = os.walk(unzippedFolder)
+assert(paths == Seq(unzippedFolder / "File.txt"))
+```
+
+This can be useful for streaming the zipped data to places which are not files:
+over the network, over a pipe, etc.
+
+==== `os.unzip`
+
+===== Unzipping Files
+[source,scala]
+
+----
+os.unzip(os.Path("/path/to/archive.zip"), Some(os.Path("/path/to/destination")))
+----
+
+This extracts the contents of `archive.zip` to the specified destination.
+
+
+===== Excluding Files While Unzipping
+You can exclude certain files from being extracted using patterns:
+
+[source,scala]
+----
+os.unzip(
+  os.Path("/path/to/archive.zip"),
+  Some(os.Path("/path/to/destination")),
+  excludePatterns = List(".*\\.log".r, "temp/.*".r)  // Exclude log files and the "temp" folder
+)
+----
+
+===== `os.unzip.list`
+You can list the contents of the zip file without extracting them:
+
+[source,scala]
+----
+os.unzip.list(os.Path("/path/to/archive.zip"))
+----
+
+This will print all the file paths contained in the zip archive.
+
+==== `os.unzip.stream`
+
+You can unzip a zip file from any arbitrary `java.io.InputStream` containing its binary data
+using the `os.unzip.stream` method:
+
+```scala
+val readableZipStream: java.io.InputStream = ???
+
+// Unzipping the stream to the destination folder
+os.unzip.stream(
+  source = readableZipStream,
+  dest = unzippedFolder
+)
+```
+
+This can be useful if the zip file does not exist on disk, e.g. if it is received over the network
+or produced in-memory by application logic.
+
+OS-Lib also provides the `os.unzip.streamRaw` API, which is a lower level API used internally
+within `os.unzip.stream` but can also be used directly if lower-level control is necessary.
+
+==== `os.zip.open`
+
+```scala
+os.zip.open(path: Path): ZipRoot
+```
+
+`os.zip.open` allows you to treat zip files as filesystems, using normal `os.*` operations
+on them. This provides a move flexible way to manipulate the contents of the zip in a fine-grained
+manner when the normal `os.zip` or `os.unzip` operations do not suffice.
+
+```scala
+val zipFile = os.zip.open(wd / "zip-test.zip")
+try {
+  os.copy(wd / "File.txt", zipFile / "File.txt")
+  os.copy(wd / "folder1", zipFile / "folder1")
+  os.copy(wd / "folder2", zipFile / "folder2")
+}finally zipFile.close()
+
+val zipFile2 = os.zip.open(wd / "zip-test.zip")
+try{
+  os.list(zipFile2) ==> Vector(zipFile2 / "File.txt", zipFile2 / "folder1", zipFile2 / "folder2")
+  os.remove.all(zipFile2 / "folder2")
+  os.remove(zipFile2 / "File.txt")
+}finally zipFile2.close()
+
+val zipFile3 = os.zip.open(wd / "zip-test.zip")
+try os.list(zipFile3) ==> Vector(zipFile3 / "folder1")
+finally zipFile3.close()
+```
+
+`os.zip.open` returns a `ZipRoot`, which is identical to `os.Path` except it references the root
+of the zip file rather than a bare path on the filesystem. Note that you need to call `ZipRoot#close()`
+when you are done with it to avoid leaking filesystem resources.
+
 === Filesystem Metadata
 
 ==== `os.stat`
@@ -1261,9 +1513,9 @@ pass in `followLinks = false` to not do so.
 os.isFile(wd / "File.txt") ==> true
 os.isFile(wd / "folder1") ==> false
 
-os.isFile(wd / "misc" / "file-symlink") ==> true
-os.isFile(wd / "misc" / "folder-symlink") ==> false
-os.isFile(wd / "misc" / "file-symlink", followLinks = false) ==> false
+os.isFile(wd / "misc/file-symlink") ==> true
+os.isFile(wd / "misc/folder-symlink") ==> false
+os.isFile(wd / "misc/file-symlink", followLinks = false) ==> false
 ----
 
 ==== `os.isDir`
@@ -1281,9 +1533,9 @@ pass in `followLinks = false` to not do so.
 os.isDir(wd / "File.txt") ==> false
 os.isDir(wd / "folder1") ==> true
 
-os.isDir(wd / "misc" / "file-symlink") ==> false
-os.isDir(wd / "misc" / "folder-symlink") ==> true
-os.isDir(wd / "misc" / "folder-symlink", followLinks = false) ==> false
+os.isDir(wd / "misc/file-symlink") ==> false
+os.isDir(wd / "misc/folder-symlink") ==> true
+os.isDir(wd / "misc/folder-symlink", followLinks = false) ==> false
 ----
 
 ==== `os.isLink`
@@ -1298,8 +1550,8 @@ default, pass in `followLinks = false` to not do so.
 
 [source,scala]
 ----
-os.isLink(wd / "misc" / "file-symlink") ==> true
-os.isLink(wd / "misc" / "folder-symlink") ==> true
+os.isLink(wd / "misc/file-symlink") ==> true
+os.isLink(wd / "misc/folder-symlink") ==> true
 os.isLink(wd / "folder1") ==> false
 ----
 
@@ -1335,12 +1587,12 @@ os.mtime(wd / "File.txt") ==> 0
 
 os.mtime.set(wd / "File.txt", 90000)
 os.mtime(wd / "File.txt") ==> 90000
-os.mtime(wd / "misc" / "file-symlink") ==> 90000
+os.mtime(wd / "misc/file-symlink") ==> 90000
 
-os.mtime.set(wd / "misc" / "file-symlink", 70000)
+os.mtime.set(wd / "misc/file-symlink", 70000)
 os.mtime(wd / "File.txt") ==> 70000
-os.mtime(wd / "misc" / "file-symlink") ==> 70000
-assert(os.mtime(wd / "misc" / "file-symlink", followLinks = false) != 40000)
+os.mtime(wd / "misc/file-symlink") ==> 70000
+assert(os.mtime(wd / "misc/file-symlink", followLinks = false) != 40000)
 ----
 
 === Filesystem Permissions
@@ -1421,8 +1673,9 @@ os.owner.set(wd / "File.txt", originalOwner)
 
 === Spawning Subprocesses
 
-Subprocess are spawned using `+os.proc(command: os.Shellable*).foo(...)+` calls,
-where the `command: Shellable*` sets up the basic command you wish to run and
+Subprocess are spawned using `+os.call(cmd: os.Shellable, ...)+` or
+`+os.spawn(cmd: os.Shellable, ...)+` calls,
+where the `cmd: Shellable` sets up the basic command you wish to run and
 `+.foo(...)+` specifies how you want to run it. `os.Shellable` represents a value
 that can make up part of your subprocess command, and the following values can
 be used as ``os.Shellable``s:
@@ -1433,6 +1686,7 @@ be used as ``os.Shellable``s:
 * `os.RelPath`
 * `T: Numeric`
 * ``Iterable[T]``s of any of the above
+* ``TupleN[T1, T2, ...Tn]``s of any of the above
 
 Most of the subprocess commands also let you redirect the subprocess's
 `stdin`/`stdout`/`stderr` streams via `os.ProcessInput` or `os.ProcessOutput`
@@ -1446,8 +1700,11 @@ the subprocess via `os.SubProcess#stdin`, and if used on its stdout it lets the
 parent process read from the subprocess via `os.SubProcess#stdout`
 and `os.SubProcess#stderr`.
 * `os.Inherit`: inherits the stream from the parent process. This lets the
-subprocess read directly from the paren process's standard input or write
-directly to the parent process's standard output or error
+subprocess read directly from the parent process's standard input or write
+directly to the parent process's standard output or error. `os.Inherit`
+can be redirected on a threadlocal basis via `os.Inherit.in`, `.out`, or `.err`.
+* `os.InheritRaw`: identical to `os.Inherit`, but without being affected by
+redirects.
 * `os.Path`: connects the subprocess's stream to the given filesystem
 path, reading its standard input from a file or writing its standard
 output/error to the file.
@@ -1461,12 +1718,12 @@ Often, if you are only interested in capturing the standard output of the
 subprocess but want any errors sent to the console, you might set `stderr =
 os.Inherit` while leaving `stdout = os.Pipe`.
 
-==== `os.proc.call`
+==== `os.call`
 
 [source,scala]
 ----
-os.proc(command: os.Shellable*)
-  .call(cwd: Path = null,
+os.call(cmd: os.Shellable,
+        cwd: Path = null,
         env: Map[String, String] = null,
         stdin: ProcessInput = Pipe,
         stdout: ProcessOutput = Pipe,
@@ -1474,8 +1731,12 @@ os.proc(command: os.Shellable*)
         mergeErrIntoOut: Boolean = false,
         timeout: Long = Long.MaxValue,
         check: Boolean = true,
-        propagateEnv: Boolean = true): os.CommandResult
+        propagateEnv: Boolean = true,
+        shutdownGracePeriod: Long = 100,
+        destroyOnExit: Boolean = true): os.CommandResult
 ----
+
+_Also callable via `os.proc(cmd).call(...)`_
 
 Invokes the given subprocess like a function, passing in input and returning a
 `CommandResult`. You can then call `result.exitCode` to see how it exited, or
@@ -1487,6 +1748,8 @@ is run:
 
 * `cwd`: the working directory of the subprocess
 * `env`: any additional environment variables you wish to set in the subprocess
+  in addition to those passed via `propagateEnv`. You can also set their values 
+  to `null` to remove specific variables.
 * `stdin`: any data you wish to pass to the subprocess's standard input
 * `stdout`/`stderr`: these are ``os.Redirect``s that let you configure how the
 processes output/error streams are configured.
@@ -1502,7 +1765,7 @@ Note that redirecting `stdout`/`stderr` elsewhere means that the respective
 
 [source,scala]
 ----
-val res = os.proc('ls, wd/"folder2").call()
+val res = os.call(cmd = ('ls, wd/"folder2"))
 
 res.exitCode ==> 0
 
@@ -1525,13 +1788,13 @@ res.out.bytes
 
 // Non-zero exit codes throw an exception by default
 val thrown = intercept[os.SubprocessException]{
-  os.proc('ls, "doesnt-exist").call(cwd = wd)
+  os.call(cmd = ('ls, "doesnt-exist"), cwd = wd)
 }
 
 assert(thrown.result.exitCode != 0)
 
 // Though you can avoid throwing by setting `check = false`
-val fail = os.proc('ls, "doesnt-exist").call(cwd = wd, check = false)
+val fail = os.call(cmd = ('ls, "doesnt-exist"), cwd = wd, check = false)
 
 assert(fail.exitCode != 0)
 
@@ -1541,11 +1804,11 @@ fail.out.text() ==> ""
 assert(fail.err.text().contains("No such file or directory"))
 
 // You can pass in data to a subprocess' stdin
-val hash = os.proc("shasum", "-a", "256").call(stdin = "Hello World")
+val hash = os.call(cmd = ("shasum", "-a", "256"), stdin = "Hello World")
 hash.out.trim() ==> "a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e  -"
 
 // Taking input from a file and directing output to another file
-os.proc("base64").call(stdin = wd / "File.txt", stdout = wd / "File.txt.b64")
+os.call(cmd = ("base64"), stdin = wd / "File.txt", stdout = wd / "File.txt.b64")
 
 os.read(wd / "File.txt.b64") ==> "SSBhbSBjb3c="
 ----
@@ -1564,7 +1827,8 @@ of `os.proc.call` in a streaming fashion, either on groups of bytes:
 [source,scala]
 ----
 var lineCount = 1
-os.proc('find, ".").call(
+os.call(
+  cmd = ('find, "."),
   cwd = wd,
   stdout = os.ProcessOutput(
     (buf, len) => lineCount += buf.slice(0, len).count(_ == '\n')
@@ -1578,7 +1842,8 @@ Or on lines of output:
 ----
 lineCount ==> 22
 var lineCount = 1
-os.proc('find, ".").call(
+os.call(
+  cmd = ('find, "."),
   cwd = wd,
   stdout = os.ProcessOutput.Readlines(
     line => lineCount += 1
@@ -1587,21 +1852,25 @@ os.proc('find, ".").call(
 lineCount ==> 22
 ----
 
-==== `os.proc.spawn`
+==== `os.spawn`
 
 [source,scala]
 ----
-os.proc(command: os.Shellable*)
-  .spawn(cwd: Path = null,
+os.spawn(cmd: os.Shellable,
+         cwd: Path = null,
          env: Map[String, String] = null,
          stdin: os.ProcessInput = os.Pipe,
          stdout: os.ProcessOutput = os.Pipe,
          stderr: os.ProcessOutput = os.Pipe,
          mergeErrIntoOut: Boolean = false,
-         propagateEnv: Boolean = true): os.SubProcess
+         propagateEnv: Boolean = true,
+         shutdownGracePeriod: Long = 100,
+         destroyOnExit: Boolean = true): os.SubProcess
 ----
 
-The most flexible of the `os.proc` calls, `os.proc.spawn` simply configures and
+_Also callable via `os.proc(cmd).spawn(...)`_
+
+The most flexible of the `os.proc` calls, `os.spawn` simply configures and
 starts a subprocess, and returns it as a `os.SubProcess`. `os.SubProcess` is a
 simple wrapper around `java.lang.Process`, which provides `stdin`, `stdout`, and
 `stderr` streams for you to interact with however you like. e.g. You can sending
@@ -1613,10 +1882,7 @@ as the stdin of a second spawned process.
 Note that if you provide `ProcessOutput` callbacks to `stdout`/`stderr`, the
 calls to those callbacks take place on newly spawned threads that execute in
 parallel with the main thread. Thus make sure any data processing you do in
-those callbacks is thread safe! For simpler cases, it may be easier to use
-`os.proc.stream` which triggers it's `onOut`/`onErr` callbacks
-all on the calling thread, avoiding needing to think about multithreading and
-concurrency issues.
+those callbacks is thread safe!
 
 `stdin`, `stdout` and `stderr` are ``java.lang.OutputStream``s and
 ``java.lang.InputStream``s enhanced with the `.writeLine(s: String)`/`.readLine()`
@@ -1625,8 +1891,10 @@ methods for easy reading and writing of character and line-based data.
 [source,scala]
 ----
 // Start a long-lived python process which you can communicate with
-val sub = os.proc("python", "-u", "-c", "while True: print(eval(raw_input()))")
-            .spawn(cwd = wd)
+val sub = os.spawn(
+  cmd = ("python", "-u", "-c", "while True: print(eval(raw_input()))"),
+  cwd = wd
+)
 
 // Sending some text to the subprocess
 sub.stdin.write("1 + 2")
@@ -1648,10 +1916,23 @@ sub.stdout.read() ==> '8'.toByte
 sub.destroy()
 
 // You can chain multiple subprocess' stdin/stdout together
-val curl = os.proc("curl", "-L" , "https://git.io/fpfTs").spawn(stderr = os.Inherit)
-val gzip = os.proc("gzip", "-n").spawn(stdin = curl.stdout)
-val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
+val curl = os.spawn(cmd = ("curl", "-L" , "https://git.io/fpfTs"), stderr = os.Inherit)
+val gzip = os.spawn(cmd = ("gzip", "-n"), stdin = curl.stdout)
+val sha = os.spawn(cmd = ("shasum", "-a", "256"), stdin = gzip.stdout)
 sha.stdout.trim ==> "acc142175fa520a1cb2be5b97cbbe9bea092e8bba3fe2e95afa645615908229e  -"
+----
+
+==== Customizing the default environment
+
+Client-server CLI applications sometimes want to run subprocesses on the server based on the environment of the client.
+It is possible to customize the default environment passed to subprocesses by setting the `os.SubProcess.env` threadlocal:
+
+[source,scala]
+----
+val clientEnvironment: Map[String, String] = ???
+os.SubProcess.env.withValue(clientEnvironment) {
+  os.call(command) // clientEnvironment is passed by default instead of the system environment
+}
 ----
 
 == Spawning Pipelines of Subprocesses
@@ -1682,13 +1963,13 @@ val yes10 = os.proc("yes")
 ----
 
 This feature is implemented inside the library and will terminate any process reading the
-stdin of other process in pipeline on every IO error. This behavior can be disabled via the 
-`handleBrokenPipe` flag on `call` and `spawn` methods. Note that Windows does not support 
-broken pipe behaviour, so a command like`yes` would run forever. `handleBrokenPipe` is set 
+stdin of other process in pipeline on every IO error. This behavior can be disabled via the
+`handleBrokenPipe` flag on `call` and `spawn` methods. Note that Windows does not support
+broken pipe behaviour, so a command like`yes` would run forever. `handleBrokenPipe` is set
 to false by default on Windows.
 
 Both `call` and `spawn` correspond in their behavior to their counterparts in the `os.proc`,
-but `spawn` returns the `os.ProcessPipeline` instance instead. It offers the same 
+but `spawn` returns the `os.ProcessPipeline` instance instead. It offers the same
 `API` as `SubProcess`, but will operate on the set of processes instead of a single one.
 
 `Pipefail` is enabled by default, so if any of the processes in the pipeline fails, the whole
@@ -1744,15 +2025,15 @@ Here is an example of use from the Ammonite REPL:
 
 @ os.watch.watch(Seq(os.pwd / "out"), paths => println("paths changed: " + paths.mkString(", ")))
 
-@ os.write(os.pwd / "out" / "i am", "cow")
+@ os.write(os.pwd / "out/i am", "cow")
 
 paths changed: /Users/lihaoyi/Github/Ammonite/out/i am
 
-@ os.move(os.pwd / "out" / "i am", os.pwd / "out" / "hear me")
+@ os.move(os.pwd / "out/i am", os.pwd / "out/hear me")
 
 paths changed: /Users/lihaoyi/Github/Ammonite/out/i am,/Users/lihaoyi/Github/Ammonite/out/hear me
 
-@ os.remove.all(os.pwd / "out" / "version")
+@ os.remove.all(os.pwd / "out/version")
 
 paths changed: /Users/lihaoyi/Github/Ammonite/out/version/log,/Users/lihaoyi/Github/Ammonite/out/version/meta.json,/Users/lihaoyi/Github/Ammonite/out/version
 ----
@@ -1786,14 +2067,20 @@ Absolute paths can be created in a few ways:
 // from the pwd) is called `wd`
 val wd = os.pwd
 
-// A path nested inside `wd`
+// A path nested inside `wd` in multiple segments
 wd / "folder" / "file"
 
+// The RHS of `/` can have multiple segments if-and-only-if it is a literal string
+wd / "folder/file"
+
+// Literal syntax for absolute `os.Path`
+val p: os.Path = "/folder/file"
+
 // A path starting from the root
-os.root / "folder" / "file"
+os.root / "folder/file"
 
 // A path with spaces or other special characters
-wd / "My Folder" / "My File.txt"
+wd / "My Folder/My File.txt"
 
 // Up one level from the wd
 wd / os.up
@@ -1802,8 +2089,18 @@ wd / os.up
 wd / os.up / os.up
 ----
 
-Note that there are no in-built operations to change the `os.pwd`. In general,
-you should not need to: simply defining a new path, e.g.
+When constructing ``os.Path``s, the right-hand-side of the `/` operator must be either a non-literal
+a string expression containing a single path segment or a literal string containing one-or-more
+path segments. If a non-literal string expression on the RHS contains multiple segments, you need
+to wrap the RHS in an explicit `os.RelPath(...)` or `os.SubPath(...)` constructor to tell OS-Lib
+how to interpret it. The single-segment limitation is intended to avoid the developer accidentally
+introducing https://en.wikipedia.org/wiki/Directory_traversal_attack[Directory Traversal Attacks]
+or other related bugs when naively constructing paths out of dynamic and potentially untrusted
+inputs, which is not an issue for literal string since the string value is directly written in
+the source code and immediately visible.
+
+`os.pwd` can be modified in certain scopes via the `os.dynamicPwd` dynamic variable, but
+best practice is not to change it. Instead simply define a new path, e.g.
 
 [source,scala]
 ----
@@ -1837,16 +2134,19 @@ before the relative path is applied. They can be created in the following ways:
 
 [source,scala]
 ----
-// The path "folder/file"
+// The path "folder/file" in multiple segments
 val rel1 = os.rel / "folder" / "file"
-val rel2 = os.rel / "folder" / "file"
+// RHS of `/` can have multiple segments if-and-only-if it is a literal string
+val rel2 = os.rel / "folder/file"
+// Literal syntax for `os.RelPath`
+val rel3: os.RelPath = "folder/file"
 
 // The path "file"
-val rel3 = os.rel / "file"
+val rel4 = os.rel / "file"
 
 // The relative difference between two paths
-val target = os.pwd / "target" / "file"
-assert((target.relativeTo(os.pwd)) == os.rel / "target" / "file")
+val target = os.pwd / "target/file"
+assert((target.relativeTo(os.pwd)) == os.rel / "target/file")
 
 // `up`s get resolved automatically
 val minus = os.pwd.relativeTo(target)
@@ -1859,17 +2159,17 @@ combined with absolute paths in order to create new absolute paths. e.g.
 
 [source,scala]
 ----
-val target = os.pwd / "target" / "file"
+val target = os.pwd / "target/file"
 val difference = target.relativeTo(os.pwd)
-val newBase = os.root / "code" / "server"
-assert(newBase / difference == os.root / "code" / "server" / "target" / "file")
+val newBase = os.root / "code/server"
+assert(newBase / difference == os.root / "code/server/target/file")
 ----
 
 `os.up` is a relative path that comes in-built:
 
 [source,scala]
 ----
-val target = os.root / "target" / "file"
+val target = os.root / "target/file"
 assert(target / os.up == os.root / "target")
 ----
 
@@ -1878,10 +2178,10 @@ canonical manner:
 
 [source,scala]
 ----
-assert((os.root / "folder" / "file" / os.up).toString == "/folder")
+assert((os.root / "folder/file" / os.up).toString == "/folder")
 // not "/folder/file/.."
 
-assert((os.rel / "folder" / "file" / os.up).toString == "folder")
+assert((os.rel / "folder/file" / os.up).toString == "folder")
 // not "folder/file/.."
 ----
 
@@ -1902,31 +2202,34 @@ They can be created in the following ways:
 
 [source,scala]
 ----
-// The path "folder/file"
+// The path "folder/file" in multiple segments
 val sub1 = os.sub / "folder" / "file"
-val sub2 = os.sub / "folder" / "file"
+// RHS of `/` can have multiple segments if-and-only-if it is a literal string
+val sub2 = os.sub / "folder/file"
+// Literal syntax for `os.SubPath`
+val sub2: os.Subpath = "folder/file"
 
 // The relative difference between two paths
-val target = os.pwd / "out" / "scratch" / "file"
-assert((target subRelativeTo os.pwd) == os.sub / "out" / "scratch" / "file")
+val target = os.pwd / "out/scratch/file"
+assert((target subRelativeTo os.pwd) == os.sub / "out/scratch/file")
 
 // Converting os.RelPath to os.SubPath
-val rel3 = os.rel / "folder" / "file"
-val sub3 = rel3.asSubPath
+val rel3 = os.rel / "folder/file"
+val sub4 = rel3.asSubPath
 ----
 
 ``os.SubPath``s are useful for representing paths within a particular
 folder or directory. You can combine them with absolute ``os.Path``s to
-resolve paths within them, without needing to worry about https://en.wikipedia.org/wiki/Directory_traversal_attack[Directory
-Traversal Attacks]
+resolve paths within them, without needing to worry about
+https://en.wikipedia.org/wiki/Directory_traversal_attack[Directory Traversal Attacks]
 du to accidentally accessing paths outside the destination folder.
 
 [source,scala]
 ----
-val target = os.pwd / "target" / "file"
+val target = os.pwd / "target/file"
 val difference = target.relativeTo(os.pwd)
-val newBase = os.root / "code" / "server"
-assert(newBase / difference == os.root / "code" / "server" / "target" / "file")
+val newBase = os.root / "code/server"
+assert(newBase / difference == os.root / "code/server/target/file")
 ----
 
 Attempting to construct an `os.SubPath` with `..` segments results in an
@@ -1934,7 +2237,7 @@ exception being thrown:
 
 [source,scala]
 ----
-val target = os.pwd / "out" / "scratch" /
+val target = os.pwd / "out/scratch" /
 
 // `up`s are not allowed in sub paths
 intercept[Exception](os.pwd subRelativeTo target)
@@ -1974,10 +2277,10 @@ val relStr = "hello/cow/world/.."
 val absStr = "/hello/world"
 
 assert(
-  RelPath(relStr) == "hello" / "cow",
+  RelPath(relStr) == "hello/cow",
   // Path(...) also allows paths starting with ~,
   // which is expanded to become your home directory
-  Path(absStr) == os.root / "hello" / "world"
+  Path(absStr) == os.root / "hello/world"
 )
 
 // You can also pass in java.io.File and java.nio.file.Path
@@ -1986,9 +2289,9 @@ val relIoFile = new java.io.File(relStr)
 val absNioFile = java.nio.file.Paths.get(absStr)
 
 assert(
-  RelPath(relIoFile) ==  "hello" / "cow",
-  Path(absNioFile) == os.root / "hello" / "world",
-  Path(relIoFile, root / "base") == os.root / "base" / "hello" / "cow"
+  RelPath(relIoFile) ==  "hello/cow",
+  Path(absNioFile) == os.root / "hello/world",
+  Path(relIoFile, root / "base") == os.root / "base/hello/cow"
 )
 ----
 
@@ -2022,8 +2325,8 @@ parse it :
 val relStr = "hello/cow/world/.."
 val absStr = "/hello/world"
 assert(
-  FilePath(relStr) == "hello" / "cow",
-  FilePath(absStr) == os.root / "hello" / "world"
+  FilePath(relStr) == "hello/cow",
+  FilePath(absStr) == os.root / "hello/world"
 )
 ----
 
@@ -2041,9 +2344,9 @@ val relStr = "hello/cow/world/.."
 val absStr = "/hello/world"
 val basePath: FilePath = FilePath(relStr)
 assert(
-  os.Path(relStr,   os.root / "base") == os.root / "base" / "hello" / "cow",
-  os.Path(absStr,   os.root / "base") == os.root / "hello" / "world",
-  os.Path(basePath, os.root / "base") == os.root / "base" / "hello" / "cow",
+  os.Path(relStr,   os.root / "base") == os.root / "base/hello/cow",
+  os.Path(absStr,   os.root / "base") == os.root / "hello/world",
+  os.Path(basePath, os.root / "base") == os.root / "base/hello/cow",
   os.Path(".", os.pwd).last != ""
 )
 ----
@@ -2064,14 +2367,14 @@ explicitly choose to convert relative paths to absolute using some base.
 
 ==== Roots and filesystems
 
-If you are using a system that supports different roots of paths, e.g. Windows, 
-you can use the argument of `os.root` to specify which root you want to use. 
+If you are using a system that supports different roots of paths, e.g. Windows,
+you can use the argument of `os.root` to specify which root you want to use.
 If not specified, the default root will be used (usually, C on Windows, / on Unix).
 
 [source,scala]
 ----
-val root = os.root('C:\') / "Users" / "me"
-assert(root == os.Path("C:\Users\me"))
+val root = os.root("C:\\") / "Users/me"
+assert(root == os.Path("C:\\Users\\me"))
 ----
 
 Additionally, custom filesystems can be specified by passing a `FileSystem` to
@@ -2087,11 +2390,11 @@ val fs = FileSystems.newFileSystem(uri, env);
 val path = os.root("/", fs) / "dir"
 ----
 
-Note that the jar file system operations suchs as writing to a file are supported 
-only on JVM 11+. Depending on the filesystem, some operations may not be supported - 
-for example, running an `os.proc` with pwd in a jar file won't work. You may also 
-meet limitations imposed by the implementations - in jar file system, the files are 
-created only after the file system is closed. Until that, the ones created in your 
+Note that the jar file system operations suchs as writing to a file are supported
+only on JVM 11+. Depending on the filesystem, some operations may not be supported -
+for example, running an `os.proc` with pwd in a jar file won't work. You may also
+meet limitations imposed by the implementations - in jar file system, the files are
+created only after the file system is closed. Until that, the ones created in your
 program are kept in memory.
 
 ==== `os.ResourcePath`
@@ -2103,7 +2406,7 @@ default, the path used to load resources is absolute, using the
 
 [source,scala]
 ----
-val contents = os.read(os.resource / "test" / "ammonite" / "ops" / "folder" / "file.txt")
+val contents = os.read(os.resource / "test/ammonite/ops/folder/file.txt")
 assert(contents.contains("file contents lols"))
 ----
 
@@ -2112,7 +2415,7 @@ You can also pass in a classloader explicitly to the resource call:
 [source,scala]
 ----
 val cl = getClass.getClassLoader
-val contents2 = os.read(os.resource(cl)/ "test" / "ammonite" / "ops" / "folder" / "file.txt")
+val contents2 = os.read(os.resource(cl)/ "test/ammonite/ops/folder/file.txt")
 assert(contents2.contains("file contents lols"))
 ----
 
@@ -2123,10 +2426,10 @@ current class.
 [source,scala]
 ----
 val cls = classOf[test.os.Testing]
-val contents = os.read(os.resource(cls) / "folder" / "file.txt")
+val contents = os.read(os.resource(cls) / "folder/file.txt")
 assert(contents.contains("file contents lols"))
 
-val contents2 = os.read(os.resource(getClass) / "folder" / "file.txt")
+val contents2 = os.read(os.resource(getClass) / "folder/file.txt")
 assert(contents2.contains("file contents lols"))
 ----
 
@@ -2158,9 +2461,9 @@ By default, the following types of values can be used where-ever ``os.Source``s
 are required:
 
 * Any `geny.Writable` data type:
- ** `Array[Byte]`
- ** `java.lang.String` (these are treated as UTF-8)
- ** `java.io.InputStream`
+** `Array[Byte]`
+** `java.lang.String` (these are treated as UTF-8)
+** `java.io.InputStream`
 * `java.nio.channels.SeekableByteChannel`
 * Any `TraversableOnce[T]` of the above: e.g. `Seq[String]`,
 `List[Array[Byte]]`, etc.
@@ -2221,6 +2524,95 @@ string, int or set representations of the `os.PermSet` via:
 
 == Changelog
 
+=== 0.11.4
+
+* Add ability to instrument path based operations using hooks  https://github.com/com-lihaoyi/os-lib/pull/325[#325]
+* Add compile-time validation of literal paths containing ".." https://github.com/com-lihaoyi/os-lib/pull/329[#329]
+* Add literal string syntax for `os.Path`, `os.SubPath`, and `os.RelPath` https://github.com/com-lihaoyi/os-lib/pull/353[#353]
+
+[#0-11-3]
+=== 0.11.3
+
+* `SubProcess` spawning operations now take an `destroyOnExit = true` flag to try and shut them
+  down when the host JVM exits, `SubProcess#destroy` now takes a configurable
+  `(shutdownGracePeriod: Long, async: Boolean)` flags to configure the behavior (superseding
+  the old `destroy()`/`destroyForcibly()` methods), and `timeoutGracePeriod` has been renamed to
+  `shutdownGracePeriod` https://github.com/com-lihaoyi/os-lib/pull/324[#324]
+
+[#0-11-2]
+=== 0.11.2
+
+* Use `java.nio.files.Files.newOutputStream` instead of `java.io.FileOutputStream` to
+  try and avoid problems with windows open file deletion https://github.com/com-lihaoyi/os-lib/pull/323[#323]
+
+[#0-11-1]
+=== 0.11.1
+
+* Propagate content length from filesystem through `geny.Writable` and `os.Source`
+https://github.com/com-lihaoyi/os-lib/pull/320[#320]
+
+[#0-11-0]
+=== 0.11.0
+
+* Added APIs to <<Zip & Unzip Files>> via `os.zip`, `os.unzip`, `os.zip.stream`, `os.unzip.stream`,
+`os.unzip.list`, `os.unzip.streamRaw`, `os.zip.open` https://github.com/com-lihaoyi/os-lib/pull/317[#317]
+
+* Minimum officially supported Java version raised from 8 to 11
+
+[#0-10-7]
+=== 0.10.7
+
+* Allow multi-segment paths segments for literals https://github.com/com-lihaoyi/os-lib/pull/297: You
+can now write `os.pwd / "foo/bar/qux"` rather than `os.pwd / "foo" / "bar" / "qux"`. Note that this
+is only allowed for string literals, and non-literal path segments still need to be wrapped e.g.
+`def myString = "foo/bar/qux"; os.pwd / os.SubPath(myString)` for security and safety purposes
+
+[#0-10-6]
+=== 0.10.6
+
+* Make `os.pwd` modifiable via the `os.dynamicPwd` dynamic variable https://github.com/com-lihaoyi/os-lib/pull/298
+
+[#0-10-5]
+=== 0.10.5
+
+* Introduce `os.SubProcess.env` `DynamicVariable` to override default `env`
+(https://github.com/com-lihaoyi/os-lib/pull/295)
+
+
+[#0-10-4]
+=== 0.10.4
+
+* Add a lightweight syntax for `os.call()` and `os.spawn` APIs
+(https://github.com/com-lihaoyi/os-lib/pull/292)
+* Add a configurable grace period when subprocesses timeout and have to
+be terminated to give a chance for shutdown logic to run
+(https://github.com/com-lihaoyi/os-lib/pull/286)
+
+[#0-10-3]
+=== 0.10.3
+
+* `os.Inherit` now can be redirected on a threadlocal basis via `os.Inherit.in`, `.out`, or `.err`.
+`os.InheritRaw` is available if you do not want the redirects to take effect
+
+
+[#0-10-2]
+=== 0.10.2
+
+* Support `os.proc` on Scala Native (https://github.com/com-lihaoyi/os-lib/pull/257)
+
+[#0-10-1]
+=== 0.10.1
+
+* Fix `os.copy` and `os.move` directories to root (#267)
+
+[#0-10-0]
+=== 0.10.0
+
+* Support for Scala-Native 0.5.0
+* Dropped support for Scala 2.11.x
+* Minimum version of Scala 3 increased to 3.3.1
+
+
 [#0-9-3]
 === 0.9.3 - 2024-01-01
 
@@ -2228,6 +2620,7 @@ string, int or set representations of the `os.PermSet` via:
 * Fix propagateEnv = false to not propagate env (#238)
 * Make os.home a def (#239)
 
+[#0-9-2]
 === 0.9.2 - 2023-11-05
 
 * Added new convenience API to create pipes between processes with `.pipeTo`
@@ -2238,11 +2631,13 @@ string, int or set representations of the `os.PermSet` via:
 * Dependency updates: sourcecode 0.3.1
 * Tooling updates: acyclic 0.3.9, Mill 0.11.5, mill-mima 0.0.24, mill-vcs-version 0.4.0, scalafmt 3.7.15
 
+[#0-9-1]
 === 0.9.1 - 2023-03-07
 
 * Refined return types when constructing paths with `/` and get rid of long `ThisType#ThisType` cascades.
 * Added a new `PathConvertible` to support `URI`s when constructing paths.
 
+[#0-9-0]
 === 0.9.0 - 2022-11-28
 
 * `os.proc` now also supports `CharSequence(s)` as `Shellable`
@@ -2252,64 +2647,79 @@ string, int or set representations of the `os.PermSet` via:
 * Enabled MiMa checks to CI setup and officially support early semantic versioning since this release
 * Documentation improvements
 
+
+=== Older releases
+:leveloffset: +1
+
+[discrete]
 === 0.8.1 - 2022-01-31
 
 * Added support for Scala Native on Scala 3
 
+[discrete]
 === 0.8.0 - 2021-12-11
 
 * Avoid throwing an exception when sorting identical paths {link-oslib}/pull/90[#90]
 * Make `os.remove` behave more like `Files.deleteIfExists` {link-oslib}/pull/89[#89]
 * Make `.ext` on empty paths return `""` rather than crashing {link-oslib}/pull/87[#87]
 
+[discrete]
 === 0.7.8 - 2021-05-27
 
 * Restored binary compatibility in `os.copy` and `os.copy.into` to os-lib versions before 0.7.5
 
+[discrete]
 === 0.7.7 - 2021-05-14
 
 * Add support for Scala 3.0.0
 
+[discrete]
 === 0.7.6 - 2021-04-28
 
 * Add support for Scala 3.0.0-RC3
 
+[discrete]
 === 0.7.5 - 2021-04-21
 
 * Re-added support for Scala 2.11
 * Added new option `mergeFolders` to `os.copy`
 * os.copy now honors `followLinks` when copying symbolic links to directories
 
+[discrete]
 === 0.7.4
 
 * Add support for Scala 3.0.0-RC2
 
+[discrete]
 === 0.7.3
 
 * Add support for Scala 3.0.0-RC1
 * Migration of the CI system from Travis CI to GitHub Actions
 
+[discrete]
 === 0.7.2
 
 * Add support for Scala 3.0.0-M3
 
+[discrete]
 === 0.7.1
 
 * Improve performance of `os.write` by buffering output stream to files
 
-=== Older versions
-
-==== 0.6.2
+[discrete]
+=== 0.6.2
 
 * Moved the `os.Bytes`, `os.StreamValue` (now named `ByteData`) interfaces into
 `geny` package, for sharing with Requests-Scala
 * Add `os.read.stream` function, that returns a `geny.Readable`
 
-==== 0.5.0
+[discrete]
+=== 0.5.0
 
 * `os.Source` now supports any data type that is `geny.Writable`
 
-==== 0.4.2
+[discrete]
+=== 0.4.2
 
 * Added a new <<os-subpath>> data type, for safer handling of
 sub-paths within a directory.
@@ -2331,20 +2741,24 @@ by default {link-oslib}/issues/15[#15], use
 * `os.stat.full` has been superseded by `os.stat` and `os.stat.posix`
 * Removed `os.BasicStatInfo`, which has been superseded by `os.StatInfo`
 
-==== 0.3.0
+[discrete]
+=== 0.3.0
 
 * Support for Scala 2.13.0 final
 
-==== 0.2.8
+[discrete]
+=== 0.2.8
 
 * `os.ProcessOutput` trait is no longer sealed
 
-==== 0.2.7
+[discrete]
+=== 0.2.7
 
 * Narrow return type of `readLink.absolute` from `FilePath` to `Path`
 * Fix handling of standaline `\r` in `os.SubProcess#stdout.readLine`
 
-==== 0.2.6
+[discrete]
+=== 0.2.6
 
 * Remove `os.StatInfo#name`, `os.BasicStatInfo#name` and `os.FullStatInfo#name`,
 since it is just the last path segment of the stat call and doesn't properly
@@ -2354,7 +2768,8 @@ to the `skip` predicate.
 * Add `os.BasePath#baseName`, which returns the section of the path before the
 `os.BasePath#ext` extension.
 
-==== 0.2.5
+[discrete]
+=== 0.2.5
 
 * New `os.readLink`/`os.readLink.absolute` methods to read the contents of
 symbolic links without dereferencing them.
@@ -2378,10 +2793,12 @@ channels
 * Reversed the order of arguments in `os.symlink` and `os.hardlink`, to match
 the order of the underlying java NIO functions.
 
-==== 0.2.2
+[discrete]
+=== 0.2.2
 
 * Allow chaining of multiple subprocesses `stdin`/`stdout`
 
-==== 0.2.0
+[discrete]
+=== 0.2.0
 
 * First release

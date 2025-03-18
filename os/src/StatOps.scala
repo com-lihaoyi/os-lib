@@ -74,6 +74,7 @@ object mtime extends Function1[Path, Long] {
    */
   object set {
     def apply(p: Path, millis: Long) = {
+      checker.value.onWrite(p)
       Files.setLastModifiedTime(p.wrapped, FileTime.fromMillis(millis))
     }
   }

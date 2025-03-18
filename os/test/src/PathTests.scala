@@ -2,16 +2,140 @@ package test.os
 
 import java.nio.file.Paths
 import java.io.File
-
 import os._
-import os.Path.{driveRoot}
+import os.Path.driveRoot
 import utest.{assert => _, _}
+
 import java.net.URI
 object PathTests extends TestSuite {
+  private def nonCanonicalLiteral(providedLiteral: String, sanitizedLiteral: String) =
+    s"Literal path sequence [$providedLiteral] used in OS-Lib must be in a canonical form, please use [$sanitizedLiteral] instead"
+  private def removeLiteralErr(literal: String) =
+    s"Literal path sequence [$literal] doesn't affect path being formed, please remove it"
+
   val tests = Tests {
+    test("Literals") {
+      test("implicitConstructors") {
+        test("valid") {
+          val p: os.Path = "/hello/world"
+          val s: os.SubPath = "hello/world"
+          val r: os.RelPath = "../hello/world"
+          assert(p == os.Path("/hello/world"))
+          assert(s == os.SubPath("hello/world"))
+          assert(r == os.RelPath("../hello/world"))
+        }
+        test("invalidLiteral") {
+          val err1 = compileError("""val p: os.Path = "hello/world" """)
+          assert(err1.msg.contains("Invalid absolute path literal: \"hello/world\""))
+
+          val err2 = compileError("""val s: os.SubPath = "../hello/world" """)
+          assert(err2.msg.contains("Invalid subpath literal: \"../hello/world\""))
+
+          val err3 = compileError("""val s: os.SubPath = "/hello/world" """)
+          assert(err3.msg.contains("Invalid subpath literal: \"/hello/world\""))
+
+          val err4 = compileError("""val r: os.RelPath = "/hello/world" """)
+          assert(err4.msg.contains("Invalid relative path literal: \"/hello/world\""))
+        }
+        test("nonLiteral") {
+          val err1 = compileError("""val str = "hello/world"; val p: os.Path = str """)
+          assert(err1.msg.contains("Invalid absolute path literal: str"))
+
+          val err2 = compileError("""val str = "/hello/world"; val s: os.SubPath = str """)
+          assert(err2.msg.contains("Invalid subpath literal: str"))
+
+          val err3 = compileError("""val str = "/hello/world"; val r: os.RelPath = str""")
+          assert(err3.msg.contains("Invalid relative path literal: str"))
+        }
+      }
+      test("Basic") {
+        assert(rel / "src" / "Main/.scala" == rel / "src" / "Main" / ".scala")
+        assert(root / "core/src/test" == root / "core" / "src" / "test")
+        assert(root / "core/src/test" == root / "core" / "src/test")
+      }
+      test("literals with [..]") {
+
+        assert(rel / "src" / ".." == rel / "src" / os.up)
+        assert(root / "src" / ".." == root / "src" / os.up)
+        assert(root / "hello" / ".." / "world" == root / "hello" / os.up / "world")
+        assert(root / "hello" / "../world" == root / "hello" / os.up / "world")
+      }
+
+      test("Compile errors") {
+
+        compileError("""root / "src/../foo"""").check("", nonCanonicalLiteral("src/../foo", "foo"))
+        compileError("""root / "hello/../world"""").check(
+          "",
+          nonCanonicalLiteral("hello/../world", "world")
+        )
+        compileError("""root / "src/../foo/bar"""").check(
+          "",
+          nonCanonicalLiteral("src/../foo/bar", "foo/bar")
+        )
+        compileError("""root / "src/../foo/bar/.."""").check(
+          "",
+          nonCanonicalLiteral("src/../foo/bar/..", "foo")
+        )
+        compileError("""root / "src/../foo/../bar/."""").check(
+          "",
+          nonCanonicalLiteral("src/../foo/../bar/.", "bar")
+        )
+        compileError("""root / "src/foo/./.."""").check(
+          "",
+          nonCanonicalLiteral("src/foo/./..", "src")
+        )
+        compileError("""root / "src/foo//./.."""").check(
+          "",
+          nonCanonicalLiteral("src/foo//./..", "src")
+        )
+
+        compileError("""root / "src/.."""").check("", removeLiteralErr("src/.."))
+        compileError("""root / "src/../foo/.."""").check("", removeLiteralErr("src/../foo/.."))
+        compileError("""root / "src/foo/../.."""").check("", removeLiteralErr("src/foo/../.."))
+        compileError("""root / "src/foo/./../.."""").check("", removeLiteralErr("src/foo/./../.."))
+        compileError("""root / "src/./foo/./../.."""").check(
+          "",
+          removeLiteralErr("src/./foo/./../..")
+        )
+        compileError("""root / "src///foo/./../.."""").check(
+          "",
+          removeLiteralErr("src///foo/./../..")
+        )
+
+        compileError("""root / "/" """).check("", removeLiteralErr("/"))
+        compileError("""root / "/ " """).check("", nonCanonicalLiteral("/ ", " "))
+        compileError("""root / " /" """).check("", nonCanonicalLiteral(" /", " "))
+        compileError("""root / "//" """).check("", removeLiteralErr("//"))
+
+        compileError("""root / "foo/" """).check("", nonCanonicalLiteral("foo/", "foo"))
+        compileError("""root / "foo//" """).check("", nonCanonicalLiteral("foo//", "foo"))
+
+        compileError("""root / "foo/bar/" """).check("", nonCanonicalLiteral("foo/bar/", "foo/bar"))
+        compileError("""root / "foo/bar//" """).check(
+          "",
+          nonCanonicalLiteral("foo/bar//", "foo/bar")
+        )
+
+        compileError("""root / "/foo" """).check("", nonCanonicalLiteral("/foo", "foo"))
+        compileError("""root / "//foo" """).check("", nonCanonicalLiteral("//foo", "foo"))
+
+        compileError("""root / "//foo/" """).check("", nonCanonicalLiteral("//foo/", "foo"))
+
+        compileError(""" rel / "src" / "" """).check("", removeLiteralErr(""))
+        compileError(""" rel / "src" / "." """).check("", removeLiteralErr("."))
+
+        compileError(""" root / "src/"  """).check("", nonCanonicalLiteral("src/", "src"))
+        compileError(""" root / "src/." """).check("", nonCanonicalLiteral("src/.", "src"))
+
+        compileError(""" root / "" """).check("", removeLiteralErr(""))
+        compileError(""" root / "." """).check("", removeLiteralErr("."))
+
+      }
+    }
     test("Basic") {
       val base = rel / "src" / "main" / "scala"
       val subBase = sub / "src" / "main" / "scala"
+
       test("Transform posix paths") {
         // verify posix string format of driveRelative path
         assert(posix(root / "omg") == posix(Paths.get("/omg").toAbsolutePath))
@@ -279,29 +403,37 @@ object PathTests extends TestSuite {
       }
     }
     test("Errors") {
+      def nonLiteral(s: String) = s
+
       test("InvalidChars") {
-        val ex = intercept[PathError.InvalidSegment](rel / "src" / "Main/.scala")
+        val ex = intercept[PathError.InvalidSegment](rel / "src" / nonLiteral("Main/.scala"))
 
         val PathError.InvalidSegment("Main/.scala", msg1) = ex
 
-        assert(msg1.contains("[/] is not a valid character to appear in a path segment"))
+        assert(
+          msg1.contains(
+            "[/] is not a valid character to appear in a non-literal path segment. If you are " +
+              "dealing with dynamic path-strings coming from external sources, use the " +
+              "Path(...)/RelPath(...)/SubPath(...) constructor calls to convert them."
+          )
+        )
 
-        val ex2 = intercept[PathError.InvalidSegment](root / "hello" / ".." / "world")
+        val ex2 = intercept[PathError.InvalidSegment](root / "hello" / nonLiteral("..") / "world")
 
         val PathError.InvalidSegment("..", msg2) = ex2
 
         assert(msg2.contains("use the `up` segment from `os.up`"))
       }
       test("InvalidSegments") {
-        intercept[PathError.InvalidSegment] { root / "core/src/test" }
-        intercept[PathError.InvalidSegment] { root / "" }
-        intercept[PathError.InvalidSegment] { root / "." }
-        intercept[PathError.InvalidSegment] { root / ".." }
+        intercept[PathError.InvalidSegment] { root / nonLiteral("core/src/test") }
+        intercept[PathError.InvalidSegment] { root / nonLiteral("") }
+        intercept[PathError.InvalidSegment] { root / nonLiteral(".") }
+        intercept[PathError.InvalidSegment] { root / nonLiteral("..") }
       }
       test("EmptySegment") {
-        intercept[PathError.InvalidSegment](rel / "src" / "")
-        intercept[PathError.InvalidSegment](rel / "src" / ".")
-        intercept[PathError.InvalidSegment](rel / "src" / "..")
+        intercept[PathError.InvalidSegment](rel / "src" / nonLiteral(""))
+        intercept[PathError.InvalidSegment](rel / "src" / nonLiteral("."))
+        intercept[PathError.InvalidSegment](rel / "src" / nonLiteral(".."))
       }
       test("CannotRelativizeAbsAndRel") {
         val abs = pwd
@@ -433,6 +565,14 @@ object PathTests extends TestSuite {
       val p = Path("/omg") // driveRelative path does not throw exception.
       System.err.printf("p[%s]\n", posix(p))
       assert(posix(p) contains "/omg")
+    }
+    test("dynamicPwd") {
+      val x = os.pwd
+      val y = os.dynamicPwd.withValue(os.pwd / "hello") {
+        os.pwd
+      }
+
+      assert(x / "hello" == y)
     }
   }
   // compare absolute paths

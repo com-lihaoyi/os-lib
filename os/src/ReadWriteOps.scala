@@ -27,6 +27,7 @@ object write {
       createFolders: Boolean = false,
       openOptions: Seq[OpenOption] = Seq(CREATE, WRITE)
   ) = {
+    checker.value.onWrite(target)
     if (createFolders) makeDir.all(target / RelPath.up, perms)
     if (perms != null && !exists(target)) {
       val permArray =
@@ -34,6 +35,7 @@ object write {
         else Array(PosixFilePermissions.asFileAttribute(perms.toSet()))
       java.nio.file.Files.createFile(target.toNIO, permArray: _*)
     }
+
     java.nio.file.Files.newOutputStream(
       target.toNIO,
       openOptions.toArray: _*
@@ -52,6 +54,7 @@ object write {
       perms: PermSet,
       offset: Long
   ) = {
+    checker.value.onWrite(target)
 
     import collection.JavaConverters._
     val permArray: Array[FileAttribute[_]] =
@@ -165,6 +168,7 @@ object write {
    */
   object channel extends Function1[Path, SeekableByteChannel] {
     def write(p: Path, options: Seq[StandardOpenOption]) = {
+      checker.value.onWrite(p)
       java.nio.file.Files.newByteChannel(p.toNIO, options.toArray: _*)
     }
     def apply(p: Path): SeekableByteChannel = {
@@ -211,6 +215,7 @@ object write {
  */
 object truncate {
   def apply(p: Path, size: Long): Unit = {
+    checker.value.onWrite(p)
     val channel = FileChannel.open(p.toNIO, StandardOpenOption.WRITE)
     try channel.truncate(size)
     finally channel.close()
@@ -241,15 +246,21 @@ object read extends Function1[ReadablePath, String] {
    * Opens a [[java.io.InputStream]] to read from the given file
    */
   object inputStream extends Function1[ReadablePath, java.io.InputStream] {
-    def apply(p: ReadablePath): java.io.InputStream = p.getInputStream
+    def apply(p: ReadablePath): java.io.InputStream = {
+      checker.value.onRead(p)
+      p.getInputStream
+    }
   }
 
   object stream extends Function1[ReadablePath, geny.Readable] {
-    def apply(p: ReadablePath): geny.Readable = new geny.Readable {
-      def readBytesThrough[T](f: java.io.InputStream => T): T = {
-        val is = p.getInputStream
-        try f(is)
-        finally is.close()
+    def apply(p: ReadablePath): geny.Readable = {
+      new geny.Readable {
+        override def contentLength: Option[Long] = p.toSource.contentLength
+        def readBytesThrough[T](f: java.io.InputStream => T): T = {
+          val is = os.read.inputStream(p)
+          try f(is)
+          finally is.close()
+        }
       }
     }
   }
@@ -258,7 +269,10 @@ object read extends Function1[ReadablePath, String] {
    * Opens a [[SeekableByteChannel]] to read from the given file.
    */
   object channel extends Function1[Path, SeekableByteChannel] {
-    def apply(p: Path): SeekableByteChannel = p.toSource.getChannel()
+    def apply(p: Path): SeekableByteChannel = {
+      checker.value.onRead(p)
+      p.toSource.getChannel()
+    }
   }
 
   /**
@@ -269,7 +283,7 @@ object read extends Function1[ReadablePath, String] {
   object bytes extends Function1[ReadablePath, Array[Byte]] {
     def apply(arg: ReadablePath): Array[Byte] = {
       val out = new java.io.ByteArrayOutputStream()
-      val stream = arg.getInputStream
+      val stream = os.read.inputStream(arg)
       try Internals.transfer(stream, out)
       finally stream.close()
       out.toByteArray
@@ -277,7 +291,7 @@ object read extends Function1[ReadablePath, String] {
     def apply(arg: Path, offset: Long, count: Int): Array[Byte] = {
       val arr = new Array[Byte](count)
       val buf = ByteBuffer.wrap(arr)
-      val channel = arg.toSource.getChannel()
+      val channel = os.read.channel(arg)
       try {
         channel.position(offset)
         val finalCount = channel.read(buf)
@@ -358,7 +372,7 @@ object read extends Function1[ReadablePath, String] {
       def apply(arg: ReadablePath, charSet: Codec) = {
         new geny.Generator[String] {
           def generate(handleItem: String => Generator.Action) = {
-            val is = arg.getInputStream
+            val is = os.read.inputStream(arg)
             val isr = new InputStreamReader(is, charSet.decoder)
             val buf = new BufferedReader(isr)
             var currentAction: Generator.Action = Generator.Continue
