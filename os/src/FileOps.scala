@@ -41,8 +41,7 @@ object makeDir extends Function1[Path, Unit] {
    * destination path already containts a directory
    */
   object all extends Function1[Path, Unit] {
-    def apply(path: Path): Unit = apply(path, null, true)
-    def apply(path: Path, perms: PermSet = null, acceptLinkedDirectory: Boolean = true): Unit = {
+    def apply(path: Path, @unroll perms: PermSet = null, @unroll acceptLinkedDirectory: Boolean = true): Unit = {
       checker.value.onWrite(path)
       // We special case calling makeDir.all on a symlink to a directory;
       // normally createDirectories blows up noisily, when really what most
@@ -272,8 +271,7 @@ object copy {
  * does nothing if there aren't any
  */
 object remove extends Function1[Path, Boolean] {
-  def apply(target: Path): Boolean = apply(target, false)
-  def apply(target: Path, checkExists: Boolean = false): Boolean = {
+  def apply(target: Path, @unroll checkExists: Boolean = false): Boolean = {
     checker.value.onWrite(target)
     if (checkExists) {
       Files.delete(target.wrapped)
@@ -284,8 +282,7 @@ object remove extends Function1[Path, Boolean] {
   }
 
   object all extends Function1[Path, Unit] {
-    def apply(target: Path): Unit = apply(target, ignoreErrors = false)
-    def apply(target: Path, ignoreErrors: Boolean = false): Unit = {
+    def apply(target: Path, @unroll ignoreErrors: Boolean = false): Unit = {
       require(target.segmentCount != 0, s"Cannot remove a root directory: $target")
       checker.value.onWrite(target)
 
@@ -308,8 +305,7 @@ object remove extends Function1[Path, Boolean] {
  * Checks if a file or folder exists at the given path.
  */
 object exists extends Function1[Path, Boolean] {
-  def apply(p: Path): Boolean = Files.exists(p.wrapped)
-  def apply(p: Path, followLinks: Boolean = true): Boolean = {
+  def apply(p: Path,  @unroll followLinks: Boolean = true): Boolean = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
     Files.exists(p.wrapped, opts: _*)
   }

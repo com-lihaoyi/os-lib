@@ -6,7 +6,7 @@ import os.SubProcess.InputStream
 import java.io.IOException
 import java.util.concurrent.LinkedBlockingQueue
 import ProcessOps._
-
+import scala.annotation.unroll
 object call {
 
   /**
@@ -26,7 +26,7 @@ object call {
       check: Boolean = true,
       propagateEnv: Boolean = true,
       shutdownGracePeriod: Long = 100,
-      destroyOnExit: Boolean = true
+      @unroll destroyOnExit: Boolean = true
   ): CommandResult = {
     os.proc(cmd).call(
       cwd = cwd,
@@ -43,37 +43,6 @@ object call {
     )
   }
 
-  // Bincompat Forwarder
-  def apply(
-      cmd: Shellable,
-      env: Map[String, String],
-      // Make sure `cwd` only comes after `env`, so `os.call("foo", path)` is a compile error
-      // since the correct syntax is `os.call(("foo", path))`
-      cwd: Path,
-      stdin: ProcessInput,
-      stdout: ProcessOutput,
-      stderr: ProcessOutput,
-      mergeErrIntoOut: Boolean,
-      timeout: Long,
-      check: Boolean,
-      propagateEnv: Boolean,
-      timeoutGracePeriod: Long
-  ): CommandResult = {
-    call(
-      cmd = cmd,
-      cwd = cwd,
-      env = env,
-      stdin = stdin,
-      stdout = stdout,
-      stderr = stderr,
-      mergeErrIntoOut = mergeErrIntoOut,
-      timeout = timeout,
-      check = check,
-      propagateEnv = propagateEnv,
-      shutdownGracePeriod = timeoutGracePeriod,
-      destroyOnExit = true
-    )
-  }
 }
 object spawn {
 
@@ -91,8 +60,8 @@ object spawn {
       stderr: ProcessOutput = os.Inherit,
       mergeErrIntoOut: Boolean = false,
       propagateEnv: Boolean = true,
-      shutdownGracePeriod: Long = 100,
-      destroyOnExit: Boolean = true
+      @unroll shutdownGracePeriod: Long = 100,
+      @unroll destroyOnExit: Boolean = true
   ): SubProcess = {
     os.proc(cmd).spawn(
       cwd = cwd,
@@ -104,33 +73,6 @@ object spawn {
       propagateEnv = propagateEnv,
       shutdownGracePeriod = shutdownGracePeriod,
       destroyOnExit = destroyOnExit
-    )
-  }
-
-  // Bincompat Forwarder
-  def apply(
-      cmd: Shellable,
-      // Make sure `cwd` only comes after `env`, so `os.spawn("foo", path)` is a compile error
-      // since the correct syntax is `os.spawn(("foo", path))`
-      env: Map[String, String],
-      cwd: Path,
-      stdin: ProcessInput,
-      stdout: ProcessOutput,
-      stderr: ProcessOutput,
-      mergeErrIntoOut: Boolean,
-      propagateEnv: Boolean
-  ): SubProcess = {
-    spawn(
-      cmd = cmd,
-      cwd = cwd,
-      env = env,
-      stdin = stdin,
-      stdout = stdout,
-      stderr = stderr,
-      mergeErrIntoOut = mergeErrIntoOut,
-      propagateEnv = propagateEnv,
-      shutdownGracePeriod = 100,
-      destroyOnExit = true
     )
   }
 }
