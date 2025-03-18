@@ -11,6 +11,7 @@ import java.nio.file.{Path => _, _}
 import java.nio.file.attribute.{FileAttribute, PosixFilePermission, PosixFilePermissions}
 
 import scala.util.Try
+import scala.annotation.unroll
 
 /**
  * Create a single directory at the specified path. Optionally takes in a
@@ -40,8 +41,7 @@ object makeDir extends Function1[Path, Unit] {
    * destination path already containts a directory
    */
   object all extends Function1[Path, Unit] {
-    def apply(path: Path): Unit = apply(path, null, true)
-    def apply(path: Path, perms: PermSet = null, acceptLinkedDirectory: Boolean = true): Unit = {
+    def apply(path: Path, @unroll perms: PermSet = null, @unroll acceptLinkedDirectory: Boolean = true): Unit = {
       checker.value.onWrite(path)
       // We special case calling makeDir.all on a symlink to a directory;
       // normally createDirectories blows up noisily, when really what most
@@ -181,7 +181,7 @@ object copy {
       replaceExisting: Boolean = false,
       copyAttributes: Boolean = false,
       createFolders: Boolean = false,
-      mergeFolders: Boolean = false
+      @unroll mergeFolders: Boolean = false
   ): Unit = {
     checker.value.onRead(from)
     checker.value.onWrite(to)
@@ -213,29 +213,6 @@ object copy {
     if (stat(from, followLinks = followLinks).isDir) for (p <- walk(from)) copyOne(p)
   }
 
-  /** This overload is only to keep binary compatibility with older os-lib versions. */
-  @deprecated(
-    "Use os.copy(from, to, followLinks, replaceExisting, copyAttributes, " +
-      "createFolders, mergeFolders) instead",
-    "os-lib 0.7.5"
-  )
-  def apply(
-      from: Path,
-      to: Path,
-      followLinks: Boolean,
-      replaceExisting: Boolean,
-      copyAttributes: Boolean,
-      createFolders: Boolean
-  ): Unit = apply(
-    from = from,
-    to = to,
-    followLinks = followLinks,
-    replaceExisting = replaceExisting,
-    copyAttributes = copyAttributes,
-    createFolders = createFolders,
-    mergeFolders = false
-  )
-
   /**
    * Copy a file into a particular folder, rather
    * than into a particular path
@@ -248,7 +225,7 @@ object copy {
         replaceExisting: Boolean = false,
         copyAttributes: Boolean = false,
         createFolders: Boolean = false,
-        mergeFolders: Boolean = false
+        @unroll mergeFolders: Boolean = false
     ): Unit = {
       os.copy(
         from,
@@ -260,29 +237,6 @@ object copy {
         mergeFolders
       )
     }
-
-    /** This overload is only to keep binary compatibility with older os-lib versions. */
-    @deprecated(
-      "Use os.copy.into(from, to, followLinks, replaceExisting, copyAttributes, " +
-        "createFolders, mergeFolders) instead",
-      "os-lib 0.7.5"
-    )
-    def apply(
-        from: Path,
-        to: Path,
-        followLinks: Boolean,
-        replaceExisting: Boolean,
-        copyAttributes: Boolean,
-        createFolders: Boolean
-    ): Unit = apply(
-      from = from,
-      to = to,
-      followLinks = followLinks,
-      replaceExisting = replaceExisting,
-      copyAttributes = copyAttributes,
-      createFolders = createFolders,
-      mergeFolders = false
-    )
   }
 
   /**
@@ -317,8 +271,7 @@ object copy {
  * does nothing if there aren't any
  */
 object remove extends Function1[Path, Boolean] {
-  def apply(target: Path): Boolean = apply(target, false)
-  def apply(target: Path, checkExists: Boolean = false): Boolean = {
+  def apply(target: Path, @unroll checkExists: Boolean = false): Boolean = {
     checker.value.onWrite(target)
     if (checkExists) {
       Files.delete(target.wrapped)
@@ -329,8 +282,7 @@ object remove extends Function1[Path, Boolean] {
   }
 
   object all extends Function1[Path, Unit] {
-    def apply(target: Path): Unit = apply(target, ignoreErrors = false)
-    def apply(target: Path, ignoreErrors: Boolean = false): Unit = {
+    def apply(target: Path, @unroll ignoreErrors: Boolean = false): Unit = {
       require(target.segmentCount != 0, s"Cannot remove a root directory: $target")
       checker.value.onWrite(target)
 
@@ -353,8 +305,7 @@ object remove extends Function1[Path, Boolean] {
  * Checks if a file or folder exists at the given path.
  */
 object exists extends Function1[Path, Boolean] {
-  def apply(p: Path): Boolean = Files.exists(p.wrapped)
-  def apply(p: Path, followLinks: Boolean = true): Boolean = {
+  def apply(p: Path,  @unroll followLinks: Boolean = true): Boolean = {
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
     Files.exists(p.wrapped, opts: _*)
   }
