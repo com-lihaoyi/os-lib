@@ -8,6 +8,7 @@ import java.nio.file.attribute.{
   BasicFileAttributes,
   BasicFileAttributeView,
   FileTime,
+  PosixFilePermission,
   PosixFilePermissions
 }
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
@@ -188,6 +189,15 @@ object zip {
     else apache.PermissionUtils.FileType.OTHER
   }
 
+  // In zip, symlink info and posix permissions are stored together thus to store symlinks as
+  // symlinks on Windows some permissions need to be set as well. Use 644/"rw-r--r--" as the default.
+  private lazy val defaultPermissions = Set(
+    PosixFilePermission.OWNER_READ,
+    PosixFilePermission.OWNER_WRITE,
+    PosixFilePermission.GROUP_READ,
+    PosixFilePermission.OTHERS_READ
+  ).asJava
+
   private def makeZipEntry(
       file: os.Path,
       sub: os.SubPath,
@@ -203,16 +213,20 @@ object zip {
     val mtime = if (preserveMtimes) os.mtime(file) else 0
     zipEntry.setTime(mtime)
 
-    if (!isWin) {
+    val symlink = !followLinks && os.isLink(file)
+
+    if (!isWin || symlink) {
+      val perms =
+        if (isWin) defaultPermissions else os.perms(file, followLinks = followLinks).toSet()
       val mode = apache.PermissionUtils.modeFromPermissions(
-        os.perms(file, followLinks = followLinks).toSet(),
+        perms,
         toFileType(file, followLinks = followLinks)
       )
       zipEntry.setUnixMode(mode)
     }
 
     val fis =
-      if (!followLinks && !isWin && os.isLink(file))
+      if (symlink)
         Some(new java.io.ByteArrayInputStream(os.readLink(file).toString().getBytes()))
       else if (os.isFile(file)) Some(os.read.inputStream(file))
       else None
