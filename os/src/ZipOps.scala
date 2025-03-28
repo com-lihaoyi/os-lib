@@ -3,7 +3,7 @@ package os
 import os.{shaded_org_apache_tools_zip => apache}
 
 import java.net.URI
-import java.nio.file.{FileSystem, FileSystems, Files, LinkOption}
+import java.nio.file.{FileSystem, FileSystemException, FileSystems, Files, LinkOption}
 import java.nio.file.attribute.{
   BasicFileAttributes,
   BasicFileAttributeView,
@@ -342,12 +342,23 @@ object unzip {
 
         if (zipEntry.isDirectory) {
           os.makeDir.all(newFile, perms = perms)
-        } else if (!isWin && isSymLink(mode)) {
+        } else if (isSymLink(mode)) {
           val target = scala.io.Source.fromInputStream(zipInputStream).mkString
           val path = java.nio.file.Paths.get(target)
           val dest = if (path.isAbsolute) os.Path(path) else os.RelPath(path)
           os.makeDir.all(newFile / os.up)
-          os.symlink(newFile, dest)
+          try {
+            os.symlink(newFile, dest)
+          } catch {
+            case _: FileSystemException => {
+              System.err.println(
+                s"Failed to create symbolic link ${zipEntry.getName} -> ${target}.\n" +
+                (if (isWin) "On Windows this might be due to lack of sufficient privilege or file system support.\n" else "") +
+                "This zip entry will be unzipped as a text file containing the target path."
+              )
+              os.write(newFile, target)
+            }
+          }
         } else {
           val outputStream = os.write.outputStream(newFile, createFolders = true)
           os.Internals.transfer(zipInputStream, outputStream, close = false)
