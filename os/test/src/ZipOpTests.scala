@@ -454,6 +454,37 @@ object ZipOpTests extends TestSuite {
       }
     }
 
+    test("zipSymlink") - prep { wd =>
+      val zipFileName = "zipped.zip"
+      val source = wd / "folder1"
+      val linkName = "link.txt"
+      val link = os.rel / linkName
+
+      os.symlink(source / link, os.rel / "one.txt")
+
+      val zipped = os.zip(
+        dest = wd / zipFileName,
+        sources = List(source),
+        followLinks = false
+      )
+
+      val unzipped = os.unzip(
+        source = zipped,
+        dest = wd / "unzipped"
+      )
+
+      import os.{shaded_org_apache_tools_zip => apache}
+      val zipFile = new apache.ZipFile(zipped.toIO)
+      val entry = zipFile.getEntry(linkName)
+
+      // check if zipped correctly as symlink
+      assert(
+        (entry.getUnixMode & apache.PermissionUtils.FILE_TYPE_FLAG) == apache.UnixStat.LINK_FLAG
+      )
+      assert(os.isLink(unzipped / link))
+      assert(os.readLink(unzipped / link) == os.readLink(source / link))
+    }
+
     test("unzipStream") - prep { wd =>
       // Step 1: Create an in-memory ZIP file as a stream
       val zipStreamOutput = new ByteArrayOutputStream()
