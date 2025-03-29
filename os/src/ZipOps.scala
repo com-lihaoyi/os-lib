@@ -353,8 +353,10 @@ object unzip {
             case _: FileSystemException => {
               System.err.println(
                 s"Failed to create symbolic link ${zipEntry.getName} -> ${target}.\n" +
-                (if (isWin) "On Windows this might be due to lack of sufficient privilege or file system support.\n" else "") +
-                "This zip entry will be unzipped as a text file containing the target path."
+                  (if (isWin)
+                     "On Windows this might be due to lack of sufficient privilege or file system support.\n"
+                   else "") +
+                  "This zip entry will instead be unzipped as a file containing the target path."
               )
               os.write(newFile, target)
             }
