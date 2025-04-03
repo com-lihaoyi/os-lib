@@ -60,6 +60,9 @@ object PathTests extends TestSuite {
         assert(root / "hello" / ".." / "world" == root / "hello" / os.up / "world")
         assert(root / "hello" / "../world" == root / "hello" / os.up / "world")
       }
+      test("literal [.]") {
+        assert(root / "." == root)
+      }
 
       test("Compile errors") {
 
@@ -122,13 +125,11 @@ object PathTests extends TestSuite {
         compileError("""root / "//foo/" """).check("", nonCanonicalLiteral("//foo/", "foo"))
 
         compileError(""" rel / "src" / "" """).check("", removeLiteralErr(""))
-        compileError(""" rel / "src" / "." """).check("", removeLiteralErr("."))
 
         compileError(""" root / "src/"  """).check("", nonCanonicalLiteral("src/", "src"))
         compileError(""" root / "src/." """).check("", nonCanonicalLiteral("src/.", "src"))
 
         compileError(""" root / "" """).check("", removeLiteralErr(""))
-        compileError(""" root / "." """).check("", removeLiteralErr("."))
 
       }
     }
