@@ -35,15 +35,18 @@ object PathChunk extends PathChunkMacros {
       }
     }.reverse
   private[os] def segmentsFromStringLiteralValidation(literal: String): Array[String] = {
-    val stringSegments = segmentsFromString(literal)
-    val validSegmnts = reduceUps(validLiteralSegments(stringSegments))
-    val sanitizedLiteral = validSegmnts.mkString("/")
-    if (validSegmnts.isEmpty) throw InvalidSegment(
-      literal,
-      s"Literal path sequence [$literal] doesn't affect path being formed, please remove it"
-    )
-    if (literal != sanitizedLiteral) throw NonCanonicalLiteral(literal, sanitizedLiteral)
-    stringSegments
+    if (literal == ".") Array.empty
+    else {
+      val stringSegments = segmentsFromString(literal)
+      val validSegments = reduceUps(validLiteralSegments(stringSegments))
+      val sanitizedLiteral = validSegments.mkString("/")
+      if (validSegments.isEmpty) throw InvalidSegment(
+        literal,
+        s"Literal path sequence [$literal] doesn't affect path being formed, please remove it"
+      )
+      if (literal != sanitizedLiteral) throw NonCanonicalLiteral(literal, sanitizedLiteral)
+      stringSegments
+    }
   }
   private def validLiteralSegments(segments: Array[String]): Array[String] = {
     val AllowedLiteralSegment = ".."
