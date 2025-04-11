@@ -17,13 +17,13 @@
  */
 
 // taken from https://github.com/apache/ant/blob/ecfca50b0133c576021dd088f855ee878a6b8e66/src/main/org/apache/tools/ant/util/PermissionUtils.java
+// removed imports not from Java core libraries and code that uses them
 package os.shaded_org_apache_tools_zip;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.PosixFileAttributeView;
 import java.nio.file.attribute.PosixFilePermission;
 import java.util.EnumSet;
 import java.util.Set;
