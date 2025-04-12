@@ -118,16 +118,13 @@ object zip {
     sources.foreach { source =>
       if (os.isDir(source.src)) {
         val contents = os.walk(source.src)
-        if (contents.isEmpty)
-          source.dest
-            .filter(_ => shouldInclude(source.src.toString + "/", excludePatterns, includePatterns))
-            .foreach(makeZipEntry0(source.src, _))
+        source.dest
+          .filter(_ => shouldInclude(source.src.toString + "/", excludePatterns, includePatterns))
+          .foreach(makeZipEntry0(source.src, _))
         for (path <- contents) {
           if (
             (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) ||
-            (os.isDir(path) &&
-              os.walk.stream(path).headOption.isEmpty &&
-              shouldInclude(path.toString + "/", excludePatterns, includePatterns))
+            (os.isDir(path) && shouldInclude(path.toString + "/", excludePatterns, includePatterns))
           ) {
             makeZipEntry0(path, source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src))
           }
@@ -330,19 +327,38 @@ object unzip {
     val zipFile = new apache.ZipFile(source.toIO)
     val zipEntryInputStreams = zipFile.getEntries.asScala
       .filter(ze => os.zip.shouldInclude(ze.getName, excludePatterns, includePatterns))
-      .map(ze => (ze, zipFile.getInputStream(ze)))
+      .map(ze => {
+        val mode = ze.getUnixMode
+        (
+          ze,
+          os.SubPath(ze.getName),
+          mode,
+          isSymLink(mode),
+          zipFile.getInputStream(ze)
+        )
+      })
+      .toList
+      .sortBy { case (_, path, _, isSymLink, _) =>
+        // Unzipping symbolic links last.
+        // Enclosing directories are unzipped before their contents.
+        // This makes sure directory permissions are applied correctly.
+        (isSymLink, path)
+      }
 
     try {
-      for ((zipEntry, zipInputStream) <- zipEntryInputStreams) {
-        val newFile = dest / os.SubPath(zipEntry.getName)
-        val mode = zipEntry.getUnixMode
+      for ((zipEntry, path, mode, isSymLink, zipInputStream) <- zipEntryInputStreams) {
+        val newFile = dest / path
         val perms = if (mode > 0 && !isWin) {
           os.PermSet.fromSet(apache.PermissionUtils.permissionsFromMode(mode))
         } else null
 
         if (zipEntry.isDirectory) {
           os.makeDir.all(newFile, perms = perms)
-        } else if (isSymLink(mode)) {
+          if (perms != null && os.perms(newFile) != perms) {
+            // because of umask
+            os.perms.set(newFile, perms)
+          }
+        } else if (isSymLink) {
           val target = scala.io.Source.fromInputStream(zipInputStream).mkString
           val path = java.nio.file.Paths.get(target)
           val dest = if (path.isAbsolute) os.Path(path) else os.RelPath(path)
@@ -377,6 +393,11 @@ object unzip {
 
   /**
    * Unzips a ZIP data stream represented by a geny.Readable and extracts it to a destination directory.
+   *
+   * File permissions and symbolic links are not supported since permissions and symlink mode are stored
+   * as external attributes which reside in the central directory located at the end of the zip archive.
+   * For more a more detailed explanation see the `ZipArchiveInputStream` vs `ZipFile` section at
+   * [[https://commons.apache.org/proper/commons-compress/zip.html]]
    *
    * @param source          A geny.Readable object representing the ZIP data stream.
    * @param dest     The path to the destination directory for extracted files.
