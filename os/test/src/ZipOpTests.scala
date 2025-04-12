@@ -267,6 +267,7 @@ object ZipOpTests extends TestSuite {
         val source = wd / "folder2"
         val link = os.rel / "nestedA" / "link.txt"
         if (!scala.util.Properties.isWin) {
+          os.perms.set(source / "nestedA", os.PermSet.fromString("rwxrwxrwx"))
           os.perms.set(source / "nestedA" / "a.txt", os.PermSet.fromString("rw-rw-rw-"))
           os.symlink(source / link, os.rel / "a.txt")
         }
