@@ -412,6 +412,11 @@ object ZipOpTests extends TestSuite {
           val newSource = os.pwd / "source"
           os.makeDir(newSource)
 
+          val newDir = newSource / "new" / "dir"
+          os.makeDir.all(newDir)
+          os.perms.set(newDir, os.PermSet.fromString("rwxrwxrwx"))
+          os.write.over(newDir / "a.txt", "Contents of a.txt")
+
           val newFile = os.sub / "new.txt"
           val perms = os.PermSet.fromString("rw-rw-rw-")
           os.write(newSource / newFile, "Contents of new.txt")
@@ -422,7 +427,7 @@ object ZipOpTests extends TestSuite {
 
           val newZipped = os.zip(
             dest = wd / "zipped.zip",
-            sources = List(newSource / newFile, newSource / newLink)
+            sources = List(newSource)
           )
 
           val newUnzipped = os.unzip(
