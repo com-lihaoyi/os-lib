@@ -404,7 +404,7 @@ object unzip {
    * File permissions and symbolic links are not supported since permissions and symlink mode are stored
    * as external attributes which reside in the central directory located at the end of the zip archive.
    * For more a more detailed explanation see the `ZipArchiveInputStream` vs `ZipFile` section at
-   * [[https://commons.apache.org/proper/commons-compress/zip.html]]
+   * [[https://commons.apache.org/proper/commons-compress/zip.html]].
    *
    * @param source          A geny.Readable object representing the ZIP data stream.
    * @param dest     The path to the destination directory for extracted files.

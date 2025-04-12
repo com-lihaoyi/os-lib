@@ -1435,6 +1435,9 @@ os.unzip.stream(
 This can be useful if the zip file does not exist on disk, e.g. if it is received over the network
 or produced in-memory by application logic.
 
+File permissions and symbolic links are not supported since permissions and symlink mode are stored as external attributes which might reside in the central directory located at the end of the zip archive.
+For more a more detailed explanation see the `ZipArchiveInputStream` vs `ZipFile` section at https://commons.apache.org/proper/commons-compress/zip.html.
+
 OS-Lib also provides the `os.unzip.streamRaw` API, which is a lower level API used internally
 within `os.unzip.stream` but can also be used directly if lower-level control is necessary.
 
