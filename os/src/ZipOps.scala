@@ -79,15 +79,22 @@ object zip {
           excludePatterns,
           includePatterns,
           (path, sub) => {
-            os.copy(path, opened / sub, createFolders = true)
+            val dest = opened / sub
+
+            if (os.isDir(path))
+              os.makeDir.all(dest)
+            else
+              os.copy(path, dest, createFolders = true)
+
             if (!isWin && Runtime.version.feature >= 14)
-              Files.setPosixFilePermissions((opened / sub).wrapped, os.perms(path).toSet())
+              Files.setPosixFilePermissions(dest.wrapped, os.perms(path).toSet())
+
             if (!preserveMtimes) {
-              os.mtime.set(opened / sub, 0)
+              os.mtime.set(dest, 0)
               // This is the only way we can properly zero out filesystem metadata within the
               // Zip file filesystem; `os.mtime.set` is not enough
               val view =
-                Files.getFileAttributeView((opened / sub).wrapped, classOf[BasicFileAttributeView])
+                Files.getFileAttributeView(dest.wrapped, classOf[BasicFileAttributeView])
               view.setTimes(FileTime.fromMillis(0), FileTime.fromMillis(0), FileTime.fromMillis(0))
             }
           }
