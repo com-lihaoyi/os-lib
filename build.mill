@@ -23,6 +23,7 @@ object Deps {
   val acyclic = ivy"com.lihaoyi:::acyclic:0.3.18"
   val jna = ivy"net.java.dev.jna:jna:5.15.0"
   val geny = ivy"com.lihaoyi::geny::1.1.1"
+  val ant = ivy"org.apache.ant:ant:1.10.15"
   val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
   val utest = ivy"com.lihaoyi::utest::0.8.4"
   val expecty = ivy"com.eed3si9n.expecty::expecty::0.16.0"
@@ -78,13 +79,7 @@ trait MiMaChecks extends Mima {
   )
 }
 
-trait OsLibModule
-    extends CrossScalaModule
-    with PublishModule
-    with AcyclicModule
-    with SafeDeps
-    with PlatformScalaModule { outer =>
-
+trait OsLibPublishModule extends PublishModule {
   def publishVersion = VcsVersion.vcsState().format()
   def pomSettings = PomSettings(
     description = artifactName(),
@@ -99,6 +94,14 @@ trait OsLibModule
       Developer("lihaoyi", "Li Haoyi", "https://github.com/lihaoyi")
     )
   )
+}
+
+trait OsLibModule
+    extends OsLibPublishModule
+    with CrossScalaModule
+    with AcyclicModule
+    with SafeDeps
+    with PlatformScalaModule { outer =>
 
   trait OsLibTestModule extends ScalaModule with TestModule.Utest with SafeDeps {
     def ivyDeps = Agg(Deps.utest, Deps.sourcecode)
@@ -169,6 +172,8 @@ object os extends Module {
 
   object jvm extends Cross[OsJvmModule](scalaVersions)
   trait OsJvmModule extends OsModule with MiMaChecks {
+    def moduleDeps = super.moduleDeps ++ Seq(os.zip)
+
     object test extends ScalaTests with OsLibTestModule {
       override def ivyDeps = T { super.ivyDeps() ++ Agg(Deps.expecty) }
 
@@ -192,6 +197,55 @@ object os extends Module {
     }
 
     object nohometest extends ScalaTests with OsLibTestModule
+  }
+
+  object zip extends JavaModule with OsLibPublishModule {
+    def apacheAntZipOriginalSource: T[PathRef] = Task(persistent = true) {
+      if (!_root_.os.exists(Task.dest / "unzipped")) {
+        val antVersion = Deps.ant.version
+        _root_.os.unzip.stream(
+          requests.get.stream(
+            s"https://repo1.maven.org/maven2/org/apache/ant/ant/$antVersion/ant-$antVersion-sources.jar"
+          ),
+          Task.dest / "unzipped"
+        )
+      }
+
+      PathRef(Task.dest / "unzipped" / "org/apache/tools/zip")
+    }
+
+    /**
+     * Shades Apache Ant
+     * [[`org.apache.tools.zip` https://ant.apache.org/manual/api/org/apache/tools/zip/package-summary.html package]] to
+     * provide Unix file permission and symbolic link support for `os.zip` and `os.unzip`
+     *
+     * A third party dependency is needed since JDK's own
+     * [[`jdk.zipfs` https://docs.oracle.com/en/java/javase/14/docs/api/jdk.zipfs/module-summary.html]] does not support
+     * symbolic links and only supports file permissions since JDK 14.
+     *
+     * Apache Ant `org.apache.tools.zip` was chosen over Apache Commons Compress due to the former not having any
+     * third party dependency, only depending on Java core libraries while the later also depends on Apache Commons IO.
+     *
+     * To avoid classpath conflicts, the dependency is shaded and compiled from source. Only the `org.apache.tools.zip`
+     * package, not the entire Ant codebase, is needed. This only adds < 100kb to Os-Lib jar size.
+     */
+    def generatedSources = T {
+      val pkg = "os.shaded_org_apache_tools_zip"
+      val zipSrc = T.dest / "os/shaded_org_apache_tools_zip"
+      _root_.os.makeDir.all(zipSrc)
+
+      // Move from "package org.apache.tools.zip" to "package os.shaded_org_apache_tools_zip"
+      // Make all classes package private (private [os]) by removing any `public` access modifier
+      _root_.os.walk.stream(apacheAntZipOriginalSource().path)
+        .filter(_.ext == "java")
+        .foreach { p =>
+          val content = _root_.os.read(p)
+            .replaceAll("org.apache.tools.zip", pkg)
+          _root_.os.write(zipSrc / p.last, content)
+        }
+
+      Seq(PathRef(T.dest))
+    }
   }
 
   /*object native extends Cross[OsNativeModule](scalaVersions)

@@ -1,11 +1,20 @@
 package os
 
+import os.{shaded_org_apache_tools_zip => apache}
+
 import java.net.URI
-import java.nio.file.{FileSystem, FileSystems, Files}
-import java.nio.file.attribute.{BasicFileAttributeView, FileTime, PosixFilePermissions}
+import java.nio.file.{FileSystem, FileSystemException, FileSystems, Files, LinkOption}
+import java.nio.file.attribute.{
+  BasicFileAttributes,
+  BasicFileAttributeView,
+  FileTime,
+  PosixFilePermission,
+  PosixFilePermissions
+}
 import java.util.zip.{ZipEntry, ZipFile, ZipInputStream, ZipOutputStream}
 import scala.collection.JavaConverters._
 import scala.util.matching.Regex
+import scala.util.Properties.isWin
 
 object zip {
 
@@ -17,15 +26,21 @@ object zip {
   def open(path: Path): ZipRoot = {
     new ZipRoot(FileSystems.newFileSystem(
       new URI("jar", path.wrapped.toUri.toString, null),
-      Map("create" -> "true").asJava
+      Map("create" -> "true", "enablePosixFileAttributes" -> "true").asJava
     ))
   }
 
   /**
    * Zips the provided list of files and directories into a single ZIP archive.
    *
+   * Unix file permissions will be preserved when creating a new zip, i.e. when `dest` does not already exists.
+   *
    * If `dest` already exists and is a zip, performs modifications to `dest` in place
-   * rather than creating a new zip.
+   * rather than creating a new zip. In that case,
+   * - Unix file permissions will be preserved if Java Runtime Version >= 14
+   * - if using Java Runtime Version < 14, Unix file permissions are not preserved, even for existing zip entries
+   * - symbolics links will always be stored as the referenced files
+   * - existing symbolic links stored in the zip might lose their symbolic link file type field and become broken
    *
    * @param dest      The path to the destination ZIP file.
    * @param sources      A list of paths to files and directories to be zipped. Defaults to an empty list.
@@ -33,7 +48,8 @@ object zip {
    * @param includePatterns  A list of regular expression patterns to include files in the ZIP archive. Defaults to an empty list (includes all files).
    * @param preserveMtimes Whether to preserve modification times (mtimes) of the files.
    * @param deletePatterns A list of regular expression patterns to delete files from an existing ZIP archive before appending new ones.
-   * @param compressionLevel number from 0-9, where 0 is no compression and 9 is best compression. Defaults to -1 (default compression)
+   * @param compressionLevel number from 0-9, where 0 is no compression and 9 is best compression. Defaults to -1 (default compression).
+   * @param followLinks Whether to store symbolic links as the referenced files. Default to `true`. Setting this to `false` has no effect when modifying a zip file in place.
    * @return The path to the created ZIP archive.
    */
   def apply(
@@ -43,7 +59,8 @@ object zip {
       includePatterns: Seq[Regex] = List(),
       preserveMtimes: Boolean = false,
       deletePatterns: Seq[Regex] = List(),
-      compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION
+      compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION,
+      followLinks: Boolean = true
   ): os.Path = {
     checker.value.onWrite(dest)
     // check read preemptively in case "dest" is created
@@ -62,26 +79,36 @@ object zip {
           excludePatterns,
           includePatterns,
           (path, sub) => {
-            os.copy(path, opened / sub, createFolders = true)
+            val dest = opened / sub
+
+            if (os.isDir(path))
+              os.makeDir.all(dest)
+            else
+              os.copy(path, dest, createFolders = true)
+
+            if (!isWin && Runtime.version.feature >= 14)
+              Files.setPosixFilePermissions(dest.wrapped, os.perms(path).toSet())
+
             if (!preserveMtimes) {
-              os.mtime.set(opened / sub, 0)
+              os.mtime.set(dest, 0)
               // This is the only way we can properly zero out filesystem metadata within the
               // Zip file filesystem; `os.mtime.set` is not enough
               val view =
-                Files.getFileAttributeView((opened / sub).toNIO, classOf[BasicFileAttributeView])
+                Files.getFileAttributeView(dest.wrapped, classOf[BasicFileAttributeView])
               view.setTimes(FileTime.fromMillis(0), FileTime.fromMillis(0), FileTime.fromMillis(0))
             }
           }
         )
       } finally opened.close()
     } else {
-      val f = Files.newOutputStream(dest.toNIO)
+      val f = Files.newOutputStream(dest.wrapped)
       try createNewZip(
           sources,
           excludePatterns,
           includePatterns,
           preserveMtimes,
           compressionLevel,
+          followLinks,
           f
         )
       finally f.close()
@@ -98,16 +125,13 @@ object zip {
     sources.foreach { source =>
       if (os.isDir(source.src)) {
         val contents = os.walk(source.src)
-        if (contents.isEmpty)
-          source.dest
-            .filter(_ => shouldInclude(source.src.toString + "/", excludePatterns, includePatterns))
-            .foreach(makeZipEntry0(source.src, _))
+        source.dest
+          .filter(_ => shouldInclude(source.src.toString + "/", excludePatterns, includePatterns))
+          .foreach(makeZipEntry0(source.src, _))
         for (path <- contents) {
           if (
             (os.isFile(path) && shouldInclude(path.toString, excludePatterns, includePatterns)) ||
-            (os.isDir(path) &&
-              os.walk.stream(path).headOption.isEmpty &&
-              shouldInclude(path.toString + "/", excludePatterns, includePatterns))
+            (os.isDir(path) && shouldInclude(path.toString + "/", excludePatterns, includePatterns))
           ) {
             makeZipEntry0(path, source.dest.getOrElse(os.sub) / path.subRelativeTo(source.src))
           }
@@ -123,9 +147,10 @@ object zip {
       includePatterns: Seq[Regex],
       preserveMtimes: Boolean,
       compressionLevel: Int,
+      resolveLinks: Boolean,
       out: java.io.OutputStream
   ): Unit = {
-    val zipOut = new ZipOutputStream(out)
+    val zipOut = new apache.ZipOutputStream(out)
     zipOut.setLevel(compressionLevel)
 
     try {
@@ -133,7 +158,7 @@ object zip {
         sources,
         excludePatterns,
         includePatterns,
-        (path, sub) => makeZipEntry(path, sub, preserveMtimes, zipOut)
+        (path, sub) => makeZipEntry(path, sub, preserveMtimes, resolveLinks, zipOut)
       )
       zipOut.finish()
     } finally {
@@ -154,21 +179,61 @@ object zip {
     !isExcluded && isIncluded
   }
 
+  private def toFileType(
+      file: os.Path,
+      followLinks: Boolean = false
+  ): apache.PermissionUtils.FileType = {
+    val attrs = if (followLinks)
+      Files.readAttributes(file.wrapped, classOf[BasicFileAttributes])
+    else Files.readAttributes(file.wrapped, classOf[BasicFileAttributes], LinkOption.NOFOLLOW_LINKS)
+
+    if (attrs.isSymbolicLink()) apache.PermissionUtils.FileType.SYMLINK
+    else if (attrs.isRegularFile()) apache.PermissionUtils.FileType.REGULAR_FILE
+    else if (attrs.isDirectory()) apache.PermissionUtils.FileType.DIR
+    else apache.PermissionUtils.FileType.OTHER
+  }
+
+  // In zip, symlink info and posix permissions are stored together thus to store symlinks as
+  // symlinks on Windows some permissions need to be set as well. Use 644/"rw-r--r--" as the default.
+  private lazy val defaultPermissions = Set(
+    PosixFilePermission.OWNER_READ,
+    PosixFilePermission.OWNER_WRITE,
+    PosixFilePermission.GROUP_READ,
+    PosixFilePermission.OTHERS_READ
+  ).asJava
+
   private def makeZipEntry(
       file: os.Path,
       sub: os.SubPath,
       preserveMtimes: Boolean,
-      zipOut: ZipOutputStream
+      followLinks: Boolean,
+      zipOut: apache.ZipOutputStream
   ) = {
     val name =
       if (os.isDir(file)) sub.toString + "/"
       else sub.toString
-    val zipEntry = new ZipEntry(name)
+    val zipEntry = new apache.ZipEntry(name)
 
     val mtime = if (preserveMtimes) os.mtime(file) else 0
     zipEntry.setTime(mtime)
 
-    val fis = if (os.isFile(file)) Some(os.read.inputStream(file)) else None
+    val symlink = !followLinks && os.isLink(file)
+
+    if (!isWin || symlink) {
+      val perms =
+        if (isWin) defaultPermissions else os.perms(file, followLinks = followLinks).toSet()
+      val mode = apache.PermissionUtils.modeFromPermissions(
+        perms,
+        toFileType(file, followLinks = followLinks)
+      )
+      zipEntry.setUnixMode(mode)
+    }
+
+    val fis =
+      if (symlink)
+        Some(new java.io.ByteArrayInputStream(os.readLink(file).toString().getBytes()))
+      else if (os.isFile(file)) Some(os.read.inputStream(file))
+      else None
 
     try {
       zipOut.putNextEntry(zipEntry)
@@ -186,6 +251,8 @@ object zip {
    * @param excludePatterns  A list of regular expression patterns to exclude files during zipping. Defaults to an empty list.
    * @param includePatterns  A list of regular expression patterns to include files in the ZIP archive. Defaults to an empty list (includes all files).
    * @param preserveMtimes   Whether to preserve modification times (mtimes) of the files.
+   * @param compressionLevel number from 0-9, where 0 is no compression and 9 is best compression. Defaults to -1 (default compression).
+   * @param followLinks Whether to store symbolic links as the referenced files. Default to true.
    * @return A geny.Writable object for writing the ZIP data.
    */
   def stream(
@@ -193,7 +260,8 @@ object zip {
       excludePatterns: Seq[Regex] = List(),
       includePatterns: Seq[Regex] = List(),
       preserveMtimes: Boolean = false,
-      compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION
+      compressionLevel: Int = java.util.zip.Deflater.DEFAULT_COMPRESSION,
+      followLinks: Boolean = false
   ): geny.Writable = {
     (outputStream: java.io.OutputStream) =>
       {
@@ -203,6 +271,7 @@ object zip {
           includePatterns,
           preserveMtimes,
           compressionLevel,
+          followLinks,
           outputStream
         )
       }
@@ -244,6 +313,9 @@ object unzip {
     } yield os.SubPath(zipEntry.getName)
   }
 
+  private def isSymLink(mode: Int): Boolean =
+    (mode & apache.PermissionUtils.FILE_TYPE_FLAG) == apache.UnixStat.LINK_FLAG
+
   /**
    * Extract the given zip file into the destination directory
    *
@@ -257,12 +329,82 @@ object unzip {
       excludePatterns: Seq[Regex] = List(),
       includePatterns: Seq[Regex] = List()
   ): os.Path = {
-    stream(os.read.stream(source), dest, excludePatterns, includePatterns)
+    checker.value.onWrite(dest)
+
+    val zipFile = new apache.ZipFile(source.toIO)
+    val zipEntryInputStreams = zipFile.getEntries.asScala
+      .filter(ze => os.zip.shouldInclude(ze.getName, excludePatterns, includePatterns))
+      .map(ze => {
+        val mode = ze.getUnixMode
+        (
+          ze,
+          os.SubPath(ze.getName),
+          mode,
+          isSymLink(mode),
+          zipFile.getInputStream(ze)
+        )
+      })
+      .toList
+      .sortBy { case (_, path, _, isSymLink, _) =>
+        // Unzipping symbolic links last.
+        // Enclosing directories are unzipped before their contents.
+        // This makes sure directory permissions are applied correctly.
+        (isSymLink, path)
+      }
+
+    try {
+      for ((zipEntry, path, mode, isSymLink, zipInputStream) <- zipEntryInputStreams) {
+        val newFile = dest / path
+        val perms = if (mode > 0 && !isWin) {
+          os.PermSet.fromSet(apache.PermissionUtils.permissionsFromMode(mode))
+        } else null
+
+        if (zipEntry.isDirectory) {
+          os.makeDir.all(newFile, perms = perms)
+          if (perms != null && os.perms(newFile) != perms) {
+            // because of umask
+            os.perms.set(newFile, perms)
+          }
+        } else if (isSymLink) {
+          val target = scala.io.Source.fromInputStream(zipInputStream).mkString
+          val path = java.nio.file.Paths.get(target)
+          val dest = if (path.isAbsolute) os.Path(path) else os.RelPath(path)
+          os.makeDir.all(newFile / os.up)
+          try {
+            os.symlink(newFile, dest)
+          } catch {
+            case _: FileSystemException => {
+              System.err.println(
+                s"Failed to create symbolic link ${zipEntry.getName} -> ${target}.\n" +
+                  (if (isWin)
+                     "On Windows this might be due to lack of sufficient privilege or file system support.\n"
+                   else "") +
+                  "This zip entry will instead be unzipped as a file containing the target path."
+              )
+              os.write(newFile, target)
+            }
+          }
+        } else {
+          val outputStream = os.write.outputStream(newFile, createFolders = true)
+          os.Internals.transfer(zipInputStream, outputStream, close = false)
+          outputStream.close()
+          if (!isWin && perms != null) os.perms.set(newFile, perms)
+        }
+      }
+    } finally {
+      zipFile.close()
+    }
+
     dest
   }
 
   /**
    * Unzips a ZIP data stream represented by a geny.Readable and extracts it to a destination directory.
+   *
+   * File permissions and symbolic links are not supported since permissions and symlink mode are stored
+   * as external attributes which reside in the central directory located at the end of the zip archive.
+   * For more a more detailed explanation see the `ZipArchiveInputStream` vs `ZipFile` section at
+   * [[https://commons.apache.org/proper/commons-compress/zip.html]].
    *
    * @param source          A geny.Readable object representing the ZIP data stream.
    * @param dest     The path to the destination directory for extracted files.

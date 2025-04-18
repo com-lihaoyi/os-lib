@@ -1233,7 +1233,8 @@ def apply(dest: os.Path,
           includePatterns: Seq[Regex] = List(),
           preserveMtimes: Boolean = false,
           deletePatterns: Seq[Regex] = List(),
-          compressionLevel: Int = -1 /* 0-9 */): os.Path
+          compressionLevel: Int = -1, /* 0-9 */
+          followLinks: Boolean = true): os.Path
 ----
 
 The zip object provides functionality to create or modify zip archives. It supports:
@@ -1243,14 +1244,19 @@ The zip object provides functionality to create or modify zip archives. It suppo
 - Exclude Patterns (-x): You can specify files or patterns to exclude while zipping.
 - Include Patterns (-i): You can include specific files or patterns while zipping.
 - Delete Patterns (-d): You can delete specific files from an existing zip archive.
-- Configuring whether or not to preserve filesyste mtimes and permissions
+- Symbolic Links (-y): You can configure to zip symbolic links as symbolic links on Linux/Unix by setting `followLinks = false`. Symbolic links are zipped as the referenced files by default on Linux/Unix, and always on Windows.
+- Configuring whether or not to preserve filesyste mtimes.
+- Preserving Unix file permissions.
 
 This will create a new zip archive at `dest` containing `file1.txt` and everything
 inside `sources`. If `dest` already exists as a zip, the files will be appended to the
 existing zip, and any existing zip entries matching `deletePatterns` will be removed.
 
-Note that `os.zip` doesn't support creating/unpacking symlinks or filesystem permissions
-in Zip files, because the underlying `java.util.zip.Zip*Stream` doesn't support them.
+When modifying an existing zip file,
+- Unix file permissions will be preserved if Java Runtime Version >= 14.
+- If using Java Runtime Version < 14, Unix file permissions are not preserved, even for existing zip entries.
+- Symbolics links will always be stored as the referenced files.
+- Existing symbolic links stored in the zip might lose their symbolic link file type field and become broken.
 
 ===== Zipping Files and Folders
 
@@ -1375,6 +1381,8 @@ assert(paths == Seq(unzippedFolder / "File.txt"))
 This can be useful for streaming the zipped data to places which are not files:
 over the network, over a pipe, etc.
 
+File permissions will be preserved. Symbolic links will be zipped as the referenced files by default on Linux/Unix, and always on Windows. To zip them as symbolic links on Linux/Unix, set `followLinks = false`.
+
 ==== `os.unzip`
 
 ===== Unzipping Files
@@ -1384,7 +1392,7 @@ over the network, over a pipe, etc.
 os.unzip(os.Path("/path/to/archive.zip"), Some(os.Path("/path/to/destination")))
 ----
 
-This extracts the contents of `archive.zip` to the specified destination.
+This extracts the contents of `archive.zip` to the specified destination. It supports preserving file permissions and symbolic links.
 
 
 ===== Excluding Files While Unzipping
@@ -1407,7 +1415,7 @@ You can list the contents of the zip file without extracting them:
 os.unzip.list(os.Path("/path/to/archive.zip"))
 ----
 
-This will print all the file paths contained in the zip archive.
+This will print all the file paths contained in the zip archive. File permissions and symbolic links will not be preserved.
 
 ==== `os.unzip.stream`
 
@@ -1426,6 +1434,9 @@ os.unzip.stream(
 
 This can be useful if the zip file does not exist on disk, e.g. if it is received over the network
 or produced in-memory by application logic.
+
+File permissions and symbolic links are not supported since permissions and symlink mode are stored as external attributes which might reside in the central directory located at the end of the zip archive.
+For more a more detailed explanation see the `ZipArchiveInputStream` vs `ZipFile` section at https://commons.apache.org/proper/commons-compress/zip.html.
 
 OS-Lib also provides the `os.unzip.streamRaw` API, which is a lower level API used internally
 within `os.unzip.stream` but can also be used directly if lower-level control is necessary.
@@ -1463,6 +1474,8 @@ finally zipFile3.close()
 `os.zip.open` returns a `ZipRoot`, which is identical to `os.Path` except it references the root
 of the zip file rather than a bare path on the filesystem. Note that you need to call `ZipRoot#close()`
 when you are done with it to avoid leaking filesystem resources.
+
+File permissions are only supported for Java Runtime Version >= 14. Symbolic links are not supported. Using `os.zip.open` on a zip archive that contains symbolic links might break the links.
 
 === Filesystem Metadata
 
@@ -1793,7 +1806,7 @@ is run:
 
 * `cwd`: the working directory of the subprocess
 * `env`: any additional environment variables you wish to set in the subprocess
-  in addition to those passed via `propagateEnv`. You can also set their values 
+  in addition to those passed via `propagateEnv`. You can also set their values
   to `null` to remove specific variables.
 * `stdin`: any data you wish to pass to the subprocess's standard input
 * `stdout`/`stderr`: these are ``os.Redirect``s that let you configure how the
