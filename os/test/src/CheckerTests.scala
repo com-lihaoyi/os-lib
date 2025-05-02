@@ -20,19 +20,19 @@ object CheckerTests extends TestSuite {
       }
     }
     test("walk") - prepChecker { wd =>
-      os.walk(wd) //ok
+      os.walk(wd) // ok
       intercept[ReadDenied] {
         os.walk(rd)
       }
-      os.walk.stream(wd) //ok
+      os.walk.stream(wd) // ok
       intercept[ReadDenied] {
         os.walk.stream(rd)
       }
-      os.walk.attrs(wd) //ok
+      os.walk.attrs(wd) // ok
       intercept[ReadDenied] {
         os.walk.attrs(rd)
       }
-      os.walk.stream.attrs(wd) //ok
+      os.walk.stream.attrs(wd) // ok
       intercept[ReadDenied] {
         os.walk.stream.attrs(rd)
       }
