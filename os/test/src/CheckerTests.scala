@@ -9,6 +9,35 @@ object CheckerTests extends TestSuite {
     // restricted directory
     val rd = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "restricted"
 
+    test("list") - prepChecker { wd =>
+      os.list(wd) // ok
+      intercept[ReadDenied] {
+        os.list(rd)
+      }
+      os.list.stream(wd) // ok
+      intercept[ReadDenied] {
+        os.list.stream(rd)
+      }
+    }
+    test("walk") - prepChecker { wd =>
+      os.walk(wd) //ok
+      intercept[ReadDenied] {
+        os.walk(rd)
+      }
+      os.walk.stream(wd) //ok
+      intercept[ReadDenied] {
+        os.walk.stream(rd)
+      }
+      os.walk.attrs(wd) //ok
+      intercept[ReadDenied] {
+        os.walk.attrs(rd)
+      }
+      os.walk.stream.attrs(wd) //ok
+      intercept[ReadDenied] {
+        os.walk.stream.attrs(rd)
+      }
+    }
+
     test("stat") {
       test("mtime") - prepChecker { wd =>
         val before = os.mtime(rd / "File.txt")
