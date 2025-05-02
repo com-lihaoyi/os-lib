@@ -30,6 +30,7 @@ object list extends Function1[Path, IndexedSeq[Path]] {
   object stream extends Function1[Path, geny.Generator[Path]] {
     def apply(arg: Path) = new Generator[Path] {
       def generate(handleItem: Path => Generator.Action) = {
+        checker.value.onRead(arg)
         val ds = Files.newDirectoryStream(arg.toNIO)
         val iter = ds.iterator()
         var currentAction: Generator.Action = Generator.Continue
@@ -196,7 +197,7 @@ object walk {
         maxDepth: Int = Int.MaxValue,
         includeTarget: Boolean = false
     ): Generator[(Path, os.StatInfo)] = {
-
+      checker.value.onRead(path)
       val opts0 = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
       val opts = new java.util.HashSet[FileVisitOption]
       if (followLinks) opts.add(FileVisitOption.FOLLOW_LINKS)

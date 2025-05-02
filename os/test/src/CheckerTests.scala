@@ -9,6 +9,35 @@ object CheckerTests extends TestSuite {
     // restricted directory
     val rd = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "restricted"
 
+    test("list") - prepChecker { wd =>
+      os.list(wd) // ok
+      intercept[ReadDenied] {
+        os.list(rd)
+      }
+      os.list.stream(wd) // ok
+      intercept[ReadDenied] {
+        os.list.stream(rd).foreach(_ => ())
+      }
+    }
+    test("walk") - prepChecker { wd =>
+      os.walk(wd) // ok
+      intercept[ReadDenied] {
+        os.walk(rd)
+      }
+      os.walk.stream(wd) // ok
+      intercept[ReadDenied] {
+        os.walk.stream(rd)
+      }
+      os.walk.attrs(wd) // ok
+      intercept[ReadDenied] {
+        os.walk.attrs(rd)
+      }
+      os.walk.stream.attrs(wd) // ok
+      intercept[ReadDenied] {
+        os.walk.stream.attrs(rd)
+      }
+    }
+
     test("stat") {
       test("mtime") - prepChecker { wd =>
         val before = os.mtime(rd / "File.txt")
@@ -96,12 +125,16 @@ object CheckerTests extends TestSuite {
       intercept[WriteDenied] {
         os.move(wd / "folder1/one.txt", rd / "folder1/File.txt")
       }
-      os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
+      os.checker.withValue(os.Checker.Nop) {
+        os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
+      }
 
       intercept[WriteDenied] {
         os.move(wd / "folder2/nestedA", rd / "folder2/nestedC")
       }
-      os.list(rd / "folder2") ==> Seq(rd / "folder2/nestedA", rd / "folder2/nestedB")
+      os.checker.withValue(os.Checker.Nop) {
+        os.list(rd / "folder2") ==> Seq(rd / "folder2/nestedA", rd / "folder2/nestedB")
+      }
 
       os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
       os.move(wd / "folder1/one.txt", wd / "folder1/first.txt")
@@ -128,12 +161,16 @@ object CheckerTests extends TestSuite {
       intercept[WriteDenied] {
         os.copy(wd / "folder1/one.txt", rd / "folder1/File.txt")
       }
-      os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
+      os.checker.withValue(os.Checker.Nop) {
+        os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
+      }
 
       intercept[WriteDenied] {
         os.copy(wd / "folder2/nestedA", rd / "folder2/nestedC")
       }
-      os.list(rd / "folder2") ==> Seq(rd / "folder2/nestedA", rd / "folder2/nestedB")
+      os.checker.withValue(os.Checker.Nop) {
+        os.list(rd / "folder2") ==> Seq(rd / "folder2/nestedA", rd / "folder2/nestedB")
+      }
 
       os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
       os.copy(wd / "folder1/one.txt", wd / "folder1/first.txt")
@@ -187,7 +224,9 @@ object CheckerTests extends TestSuite {
         intercept[WriteDenied] {
           os.remove(rd / "folder1")
         }
-        os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
+        os.checker.withValue(os.Checker.Nop) {
+          os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
+        }
 
         Unchecked.scope(os.makeDir(rd / "folder"), os.remove(rd / "folder")) {
           intercept[WriteDenied] {
@@ -211,18 +250,24 @@ object CheckerTests extends TestSuite {
         intercept[WriteDenied] {
           os.remove(rd / "misc/file-symlink")
         }
-        os.exists(rd / "misc/file-symlink", followLinks = false) ==> true
+        os.checker.withValue(os.Checker.Nop) {
+          os.exists(rd / "misc/file-symlink", followLinks = false) ==> true
+        }
 
         intercept[WriteDenied] {
           os.remove(rd / "misc/folder-symlink")
         }
-        os.exists(rd / "misc/folder-symlink", followLinks = false) ==> true
+        os.checker.withValue(os.Checker.Nop) {
+          os.exists(rd / "misc/folder-symlink", followLinks = false) ==> true
+        }
 
         intercept[WriteDenied] {
           os.remove(rd / "misc/broken-symlink")
         }
-        os.exists(rd / "misc/broken-symlink", followLinks = false) ==> true
-        os.exists(rd / "misc/broken-symlink") ==> true
+        os.checker.withValue(os.Checker.Nop) {
+          os.exists(rd / "misc/broken-symlink", followLinks = false) ==> true
+          os.exists(rd / "misc/broken-symlink") ==> true
+        }
 
         os.remove(wd / "misc/file-symlink")
         os.exists(wd / "misc/file-symlink", followLinks = false) ==> false
@@ -241,7 +286,9 @@ object CheckerTests extends TestSuite {
           intercept[WriteDenied] {
             os.remove.all(rd / "folder1")
           }
-          os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
+          os.checker.withValue(os.Checker.Nop) {
+            os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
+          }
 
           os.exists(wd / "folder1/one.txt") ==> true
           os.remove.all(wd / "folder1")
@@ -252,17 +299,23 @@ object CheckerTests extends TestSuite {
           intercept[WriteDenied] {
             os.remove.all(rd / "misc/file-symlink")
           }
-          os.exists(rd / "misc/file-symlink", followLinks = false) ==> true
+          os.checker.withValue(os.Checker.Nop) {
+            os.exists(rd / "misc/file-symlink", followLinks = false) ==> true
+          }
 
           intercept[WriteDenied] {
             os.remove.all(rd / "misc/folder-symlink")
           }
-          os.exists(rd / "misc/folder-symlink", followLinks = false) ==> true
+          os.checker.withValue(os.Checker.Nop) {
+            os.exists(rd / "misc/folder-symlink", followLinks = false) ==> true
+          }
 
           intercept[WriteDenied] {
             os.remove.all(rd / "misc/broken-symlink")
           }
-          os.exists(rd / "misc/broken-symlink", followLinks = false) ==> true
+          os.checker.withValue(os.Checker.Nop) {
+            os.exists(rd / "misc/broken-symlink", followLinks = false) ==> true
+          }
 
           os.remove.all(wd / "misc/file-symlink")
           os.exists(wd / "misc/file-symlink", followLinks = false) ==> false
@@ -332,11 +385,13 @@ object CheckerTests extends TestSuite {
     }
     test("temp") {
       test - prepChecker { wd =>
-        val before = os.walk(rd)
+        val before = os.checker.withValue(os.Checker.Nop) { os.walk(rd) }
         intercept[WriteDenied] {
           os.temp("default content", dir = rd)
         }
-        os.walk(rd) ==> before
+        os.checker.withValue(os.Checker.Nop) {
+          os.walk(rd) ==> before
+        }
 
         val tempOne = os.temp("default content", dir = wd)
         os.read(tempOne) ==> "default content"
@@ -344,11 +399,13 @@ object CheckerTests extends TestSuite {
         os.read(tempOne) ==> "Hello"
       }
       test("dir") - prepChecker { wd =>
-        val before = os.walk(rd)
+        val before = os.checker.withValue(os.Checker.Nop) { os.walk(rd) }
         intercept[WriteDenied] {
           os.temp.dir(dir = rd)
         }
-        os.walk(rd) ==> before
+        os.checker.withValue(os.Checker.Nop) {
+          os.walk(rd) ==> before
+        }
 
         val tempDir = os.temp.dir(dir = wd)
         os.list(tempDir) ==> Nil

@@ -355,6 +355,7 @@ object remove extends Function1[Path, Boolean] {
 object exists extends Function1[Path, Boolean] {
   def apply(p: Path): Boolean = Files.exists(p.wrapped)
   def apply(p: Path, followLinks: Boolean = true): Boolean = {
+    checker.value.onRead(p)
     val opts = if (followLinks) Array[LinkOption]() else Array(LinkOption.NOFOLLOW_LINKS)
     Files.exists(p.wrapped, opts: _*)
   }
