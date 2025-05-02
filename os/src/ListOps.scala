@@ -30,7 +30,7 @@ object list extends Function1[Path, IndexedSeq[Path]] {
   object stream extends Function1[Path, geny.Generator[Path]] {
     def apply(arg: Path) = new Generator[Path] {
       def generate(handleItem: Path => Generator.Action) = {
-        checker.value.onRead(src)
+        checker.value.onRead(arg)
         val ds = Files.newDirectoryStream(arg.toNIO)
         val iter = ds.iterator()
         var currentAction: Generator.Action = Generator.Continue
