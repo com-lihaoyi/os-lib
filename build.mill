@@ -189,7 +189,7 @@ object os extends Module {
       object testJarWriter extends JavaModule
       object testJarReader extends JavaModule
       object testJarExit extends JavaModule
-      object testSpawnExitHook extends ScalaModule{
+      object testSpawnExitHook extends ScalaModule {
         def scalaVersion = OsJvmModule.this.scalaVersion()
         def moduleDeps = Seq(OsJvmModule.this)
       }
