@@ -16,6 +16,7 @@ class WatchServiceWatcher(
     onEvent: Set[os.Path] => Unit,
     logger: (String, Any) => Unit = (_, _) => ()
 ) extends Watcher {
+  import WatchServiceWatcher.WatchEventOps
 
   val nioWatchService = FileSystems.getDefault.newWatchService()
   val currentlyWatchedPaths = mutable.Map.empty[os.Path, WatchKey]
@@ -61,12 +62,33 @@ class WatchServiceWatcher(
 
     logger("WATCH KINDS", events.map(_.kind()))
 
+    def logWarning(msg: String): Unit = {
+      System.err.println(s"[oslib.watch] (path=$p) $msg")
+    }
+
+    def logWarningContextNull(e: WatchEvent[_]): Unit = {
+      logWarning(
+        s"Context is null for event kind='${e.kind().name()}' of class ${e.kind().`type`().getName}, " +
+          s"this should never happen."
+      )
+    }
+
     for (e <- events) {
-      bufferedEvents.add(p / e.context().toString)
+      if (e.kind() == OVERFLOW) {
+        logWarning("Overflow detected, some filesystem changes may not be registered.")
+      } else {
+        e.contextSafe match {
+          case Some(ctx) => bufferedEvents.add(p / ctx.toString)
+          case None => logWarningContextNull(e)
+        }
+      }
     }
 
     for (e <- events if e.kind() == ENTRY_CREATE) {
-      watchSinglePath(p / e.context().toString)
+      e.contextSafe match {
+        case Some(ctx) => watchSinglePath(p / ctx.toString)
+        case None => logWarningContextNull(e)
+      }
     }
 
     watchKey.reset()
@@ -145,5 +167,10 @@ class WatchServiceWatcher(
     logger("TRIGGER", bufferedEvents.toSet)
     onEvent(bufferedEvents.toSet)
     bufferedEvents.clear()
+  }
+}
+object WatchServiceWatcher {
+  implicit class WatchEventOps[A](private val e: WatchEvent[A]) extends AnyVal {
+    def contextSafe: Option[A] = Option(e.context())
   }
 }
