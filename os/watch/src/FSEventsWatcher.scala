@@ -2,6 +2,8 @@ package os.watch
 
 import com.sun.jna.{NativeLong, Pointer}
 
+import scala.util.control.NonFatal
+
 class FSEventsWatcher(
     srcs: Seq[os.Path],
     onEvent: Set[os.Path] => Unit,
@@ -32,7 +34,7 @@ class FSEventsWatcher(
         else {
           existingFolders.add(p)
           try os.walk.stream(p).foreach(nestedPaths.append(_))
-          catch { case e: Throwable => /*do nothing*/ }
+          catch { case NonFatal(_) => /*do nothing*/ }
         }
       }
       onEvent((paths ++ nestedPaths).toSet)
