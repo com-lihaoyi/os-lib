@@ -24,15 +24,20 @@ package object watch {
    * changes happening within the watched roots folder, apart from the path
    * at which the change happened. It is up to the `onEvent` handler to query
    * the filesystem and figure out what happened, and what it wants to do.
+   *
+   * @param filter when new paths under `roots` are created, this function is
+   *               invoked with each path. If it returns `false`, the path is
+   *               not watched.
    */
   def watch(
       roots: Seq[os.Path],
       onEvent: Set[os.Path] => Unit,
-      logger: (String, Any) => Unit = (_, _) => ()
+      logger: (String, Any) => Unit = (_, _) => (),
+      filter: os.Path => Boolean = _ => true
   ): AutoCloseable = {
     val watcher = System.getProperty("os.name") match {
-      case "Mac OS X" => new os.watch.FSEventsWatcher(roots, onEvent, logger, 0.05)
-      case _ => new os.watch.WatchServiceWatcher(roots, onEvent, logger)
+      case "Mac OS X" => new os.watch.FSEventsWatcher(roots, onEvent, filter, logger, 0.05)
+      case _ => new os.watch.WatchServiceWatcher(roots, onEvent, filter, logger)
     }
 
     val thread = new Thread {

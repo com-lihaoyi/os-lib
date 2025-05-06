@@ -14,7 +14,8 @@ import scala.util.Properties.isWin
 class WatchServiceWatcher(
     roots: Seq[os.Path],
     onEvent: Set[os.Path] => Unit,
-    logger: (String, Any) => Unit = (_, _) => ()
+    filter: os.Path => Boolean,
+    logger: (String, Any) => Unit
 ) extends Watcher {
   import WatchServiceWatcher.WatchEventOps
 
@@ -47,7 +48,7 @@ class WatchServiceWatcher(
           modifiers: _*
         )
       )
-      newlyWatchedPaths.append(p)
+      if (filter(p)) newlyWatchedPaths.append(p)
     }
     bufferedEvents.add(p)
   }

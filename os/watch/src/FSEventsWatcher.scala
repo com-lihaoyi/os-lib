@@ -7,7 +7,8 @@ import scala.util.control.NonFatal
 class FSEventsWatcher(
     srcs: Seq[os.Path],
     onEvent: Set[os.Path] => Unit,
-    logger: (String, Any) => Unit = (_, _) => (),
+    filter: os.Path => Boolean,
+    logger: (String, Any) => Unit,
     latency: Double
 ) extends Watcher {
   private[this] var closed = false
@@ -37,7 +38,7 @@ class FSEventsWatcher(
           catch { case NonFatal(_) => /*do nothing*/ }
         }
       }
-      onEvent((paths ++ nestedPaths).toSet)
+      onEvent((paths.iterator ++ nestedPaths.iterator).toSet)
     }
   }
 
