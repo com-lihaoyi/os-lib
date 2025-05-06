@@ -83,7 +83,7 @@ class WatchServiceWatcher(
         val listing =
           try os.list(top)
           catch {
-            case e: java.nio.file.NotDirectoryException => Nil
+            case _: java.nio.file.NotDirectoryException | _: java.nio.file.NoSuchFileException => Nil
           }
         for (p <- listing) watchSinglePath(p)
         bufferedEvents.add(top)
