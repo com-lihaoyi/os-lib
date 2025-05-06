@@ -146,10 +146,10 @@ class WatchServiceWatcher(
 
       } catch {
         case e: InterruptedException =>
-          println("Interrupted, exiting: " + e)
+          logger("Interrupted, exiting.", e)
           isRunning.set(false)
         case e: ClosedWatchServiceException =>
-          println("Watcher closed, exiting: " + e)
+          logger("Watcher closed, exiting.", e)
           isRunning.set(false)
       }
   }
@@ -159,7 +159,7 @@ class WatchServiceWatcher(
       isRunning.set(false)
       nioWatchService.close()
     } catch {
-      case e: IOException => println("Error closing watcher: " + e)
+      case e: IOException => logger("Error closing watcher.", e)
     }
   }
 
