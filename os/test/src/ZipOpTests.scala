@@ -539,22 +539,24 @@ object ZipOpTests extends TestSuite {
     }
 
     test("unzipDirectoryEnsureExecutablePermission") - prep { wd =>
-      val zipFileName = "zipDirExecutable"
-      val source = wd / "folder1"
-      val dir = source / "dir"
+      if (!scala.util.Properties.isWin) {
+        val zipFileName = "zipDirExecutable"
+        val source = wd / "folder1"
+        val dir = source / "dir"
 
-      os.makeDir(dir)
-      val perms = os.perms(dir)
-      os.perms.set(dir, perms - PosixFilePermission.OWNER_EXECUTE)
+        os.makeDir(dir)
+        val perms = os.perms(dir)
+        os.perms.set(dir, perms - PosixFilePermission.OWNER_EXECUTE)
 
-      val zipped = os.zip(
-        dest = wd / s"$zipFileName.zip",
-        sources = Seq(source)
-      )
+        val zipped = os.zip(
+          dest = wd / s"$zipFileName.zip",
+          sources = Seq(source)
+        )
 
-      val unzipped = os.unzip(zipped, dest = wd / zipFileName)
-      assert(os.perms(unzipped / "dir").contains(PosixFilePermission.OWNER_EXECUTE))
-      assert(os.perms(unzipped / "dir") == perms)
+        val unzipped = os.unzip(zipped, dest = wd / zipFileName)
+        assert(os.perms(unzipped / "dir").contains(PosixFilePermission.OWNER_EXECUTE))
+        assert(os.perms(unzipped / "dir") == perms)
+      }
     }
   }
 }
