@@ -104,7 +104,8 @@ class WatchServiceWatcher(
         val listing =
           try os.list(top)
           catch {
-            case _: java.nio.file.NotDirectoryException | _: java.nio.file.NoSuchFileException => Nil
+            case _: java.nio.file.NotDirectoryException | _: java.nio.file.NoSuchFileException =>
+              Nil
           }
         for (p <- listing) watchSinglePath(p)
         bufferedEvents.add(top)
@@ -167,6 +168,6 @@ class WatchServiceWatcher(
     onEvent(bufferedEvents.toSet)
     bufferedEvents.clear()
   }
-  
+
   def contextSafe[A](e: WatchEvent[A]): Option[A] = Option(e.context())
 }
