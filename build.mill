@@ -11,11 +11,11 @@ import de.tobiasroeser.mill.vcs.version.VcsVersion
 
 val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 
-val scala213Version = "2.13.14"
+val scala213Version = "2.13.16"
 
 val scalaVersions = Seq(
-  "3.3.1",
-  "2.12.17",
+  "3.3.5",
+  "2.12.20",
   scala213Version
 ) ++ communityBuildDottyVersion
 
