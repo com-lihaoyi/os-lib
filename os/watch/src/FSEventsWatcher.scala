@@ -12,7 +12,6 @@ class FSEventsWatcher(
     latency: Double
 ) extends Watcher {
   private[this] var closed = false
-  private[this] val existingFolders = collection.mutable.Set.empty[os.Path]
   private[this] val callback = new FSEventStreamCallback {
     def invoke(
         streamRef: FSEventStreamRef,
@@ -25,16 +24,14 @@ class FSEventsWatcher(
       val length = numEvents.intValue
       val pathStrings = eventPaths.getStringArray(0, length)
       logger("FSEVENT", pathStrings)
-      val paths = pathStrings.map(os.Path(_))
+      val paths = pathStrings.iterator.map(os.Path(_)).filter(filter).toArray
       val nestedPaths = collection.mutable.Buffer.empty[os.Path]
       // When folders are moved, OS-X does not emit file events for all sub-paths
       // within the new folder, so we are forced to walk that folder and emit the
       // paths ourselves
       for (p <- paths) {
-        if (!os.isDir(p, followLinks = false)) existingFolders.remove(p)
-        else {
-          existingFolders.add(p)
-          try os.walk.stream(p).foreach(nestedPaths.append(_))
+        if (os.isDir(p, followLinks = false)) {
+          try os.walk.stream(p).foreach(p => if (filter(p)) nestedPaths.append(p))
           catch { case NonFatal(_) => /*do nothing*/ }
         }
       }
