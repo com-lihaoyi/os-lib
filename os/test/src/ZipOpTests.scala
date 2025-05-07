@@ -543,7 +543,7 @@ object ZipOpTests extends TestSuite {
         def zip_(sources: Seq[(os.Path, os.PermSet)], root: os.Path, dest: os.Path): os.Path = {
           import os.{shaded_org_apache_tools_zip => apache}
 
-          val zipOut = apache.ZipOutputStream(
+          val zipOut = new apache.ZipOutputStream(
             java.nio.file.Files.newOutputStream(dest.toNIO)
           )
 
@@ -557,7 +557,7 @@ object ZipOpTests extends TestSuite {
                 None
               else Some(os.read.inputStream(p))
 
-              val zipEntry = apache.ZipEntry(name)
+              val zipEntry = new apache.ZipEntry(name)
               zipEntry.setUnixMode(mode)
 
               try {
