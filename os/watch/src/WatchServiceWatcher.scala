@@ -171,7 +171,7 @@ class WatchServiceWatcher(
   }
 }
 object WatchServiceWatcher {
-  implicit class WatchEventOps[A](private val e: WatchEvent[A]) extends AnyVal {
+  private implicit class WatchEventOps[A](private val e: WatchEvent[A]) extends AnyVal {
     def contextSafe: Option[A] = Option(e.context())
   }
 }
