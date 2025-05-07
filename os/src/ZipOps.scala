@@ -360,10 +360,10 @@ object unzip {
         } else null
 
         if (zipEntry.isDirectory) {
-          os.makeDir.all(newFile, perms = perms)
-          if (perms != null && os.perms(newFile) != perms) {
-            // because of umask
-            os.perms.set(newFile, perms)
+          os.makeDir.all(newFile)
+          if (perms != null) {
+            // make sure directories at least have OWNER_EXECUTE
+            os.perms.set(newFile, perms + PosixFilePermission.OWNER_EXECUTE)
           }
         } else if (isSymLink) {
           val target = scala.io.Source.fromInputStream(zipInputStream).mkString
