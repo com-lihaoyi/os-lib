@@ -4,3 +4,6 @@ b049841d5707d5bd87be516d8cda7be2a7585eae
 # Reformatted test code
 e437d63c40713e0645a4895bbe5a0fc565cd56db
 
+
+# Scala Steward: Reformat with scalafmt 3.8.6
+1279228c4c609bc698ba45070bffae156630794e

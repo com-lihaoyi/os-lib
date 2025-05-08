@@ -1,2 +1,2 @@
-package os 
+package os
 trait ResourceApi
