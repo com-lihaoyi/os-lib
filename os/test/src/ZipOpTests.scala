@@ -538,24 +538,86 @@ object ZipOpTests extends TestSuite {
       assert(file2Content == "Content of file2")
     }
 
-    test("unzipDirectoryEnsureExecutablePermission") - prep { wd =>
+    test("unzipDirectoriesWithoutReadOrExecute") - prep { wd =>
       if (!scala.util.Properties.isWin) {
-        val zipFileName = "zipDirExecutable"
-        val source = wd / "folder1"
+        def zip_(sources: Seq[(os.Path, os.PermSet)], root: os.Path, dest: os.Path): os.Path = {
+          import os.{shaded_org_apache_tools_zip => apache}
+
+          val zipOut = new apache.ZipOutputStream(
+            java.nio.file.Files.newOutputStream(dest.toNIO)
+          )
+
+          try {
+            sources.foreach { case (p, perms) =>
+              val name = p.subRelativeTo(root).toString + (if (os.isDir(p)) "/" else "")
+
+              val fileType = apache.PermissionUtils.FileType.of(p.toNIO)
+              val mode = apache.PermissionUtils.modeFromPermissions(perms.toSet(), fileType)
+              val fis = if (os.isDir(p))
+                None
+              else Some(os.read.inputStream(p))
+
+              val zipEntry = new apache.ZipEntry(name)
+              zipEntry.setUnixMode(mode)
+
+              try {
+                zipOut.putNextEntry(zipEntry)
+                fis.foreach(os.Internals.transfer(_, zipOut, close = false))
+                zipOut.closeEntry()
+              } finally {
+                fis.foreach(_.close())
+              }
+            }
+            zipOut.finish()
+          } finally {
+            zipOut.close()
+          }
+
+          dest
+        }
+
+        def walk_(p: os.Path): geny.Generator[os.Path] = {
+          if (os.isDir(p))
+            os.list.stream(p) ++ os.list.stream(p).flatMap(walk_)
+          else geny.Generator()
+        }
+
+        import java.nio.file.attribute.PosixFilePermission._
+
+        val zipFileName = "zipDirNoReadExecute"
+        val source = wd / "dirNoReadExecute"
         val dir = source / "dir"
+        val nested = dir / "nested"
+        val file = nested / "file.txt"
 
-        os.makeDir(dir)
-        val perms = os.perms(dir)
-        os.perms.set(dir, perms - PosixFilePermission.OWNER_EXECUTE)
+        os.makeDir.all(nested)
+        os.write(file, "Contents of file.txt")
 
-        val zipped = os.zip(
-          dest = wd / s"$zipFileName.zip",
-          sources = Seq(source)
+        val readAndExecute = os.PermSet.fromSet(java.util.Set.of(
+          OWNER_READ,
+          OWNER_EXECUTE,
+          GROUP_READ,
+          GROUP_EXECUTE,
+          OTHERS_READ,
+          OTHERS_EXECUTE
+        ))
+
+        val filesToZip: Seq[(os.Path, os.PermSet)] =
+          Seq(dir, nested, file)
+            .map(p => (p, if (os.isDir(p)) os.perms(p) -- readAndExecute else os.perms(p)))
+
+        val zipped = zip_(filesToZip, source, wd / s"$zipFileName.zip")
+        val unzipped = os.unzip(
+          zipped,
+          dest = wd / zipFileName
         )
 
-        val unzipped = os.unzip(zipped, dest = wd / zipFileName)
-        assert(os.perms(unzipped / "dir").contains(PosixFilePermission.OWNER_EXECUTE))
-        assert(os.perms(unzipped / "dir") == perms)
+        walk_(unzipped).foreach { p =>
+          os.perms.set(p, os.perms(p) + OWNER_READ + OWNER_EXECUTE)
+        }
+
+        assert(os.walk(unzipped).map(_.subRelativeTo(unzipped)) ==
+          os.walk(source).map(_.subRelativeTo(source)))
       }
     }
   }

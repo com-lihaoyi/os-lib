@@ -345,12 +345,11 @@ object unzip {
         )
       })
       .toList
-      .sortBy { case (_, path, _, isSymLink, _) =>
-        // Unzipping symbolic links last.
-        // Enclosing directories are unzipped before their contents.
-        // This makes sure directory permissions are applied correctly.
-        (isSymLink, path)
-      }
+      .sortBy { case (_, path, _, _, _) =>
+        // Unzipping children first before the enclosing directories
+        // This prevents crash for the case where directories lack READ/EXECUTE permission
+        path
+      }(Ordering[os.SubPath].reverse)
 
     try {
       for ((zipEntry, path, mode, isSymLink, zipInputStream) <- zipEntryInputStreams) {
@@ -360,10 +359,10 @@ object unzip {
         } else null
 
         if (zipEntry.isDirectory) {
-          os.makeDir.all(newFile)
-          if (perms != null) {
-            // make sure directories at least have OWNER_EXECUTE
-            os.perms.set(newFile, perms + PosixFilePermission.OWNER_EXECUTE)
+          os.makeDir.all(newFile, perms = perms)
+          if (perms != null && os.perms(newFile) != perms) {
+            // because of umask
+            os.perms.set(newFile, perms)
           }
         } else if (isSymLink) {
           val target = scala.io.Source.fromInputStream(zipInputStream).mkString
