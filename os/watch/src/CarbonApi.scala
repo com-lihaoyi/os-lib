@@ -22,8 +22,8 @@ trait FSEventStreamCallback extends Callback {
 }
 
 trait CarbonApi extends Library {
-  def CFRelease(cfTypeRef: Any): Unit // All CF*Ref types are toll-free bridged as Pointer
-  
+  def CFRelease(cfTypeRef: Any): Unit
+
   def CFArrayCreate(
       allocator: CFAllocatorRef, // always set to Pointer.NULL
       values: Array[Pointer],

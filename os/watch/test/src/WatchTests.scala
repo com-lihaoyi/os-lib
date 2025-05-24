@@ -151,7 +151,7 @@ object WatchTests extends TestSuite with TestSuite.Retries {
         println("openClose in " + wd)
         for(index <- Range(0, 200)){
           println("watch index " + index)
-          var done = false
+          @volatile var done = false
           val res = os.watch.watch(
             Seq(wd),
             filter = _ => true,
