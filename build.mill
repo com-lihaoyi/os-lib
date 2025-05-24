@@ -248,14 +248,14 @@ object os extends Module {
     }
   }
 
-  /*object native extends Cross[OsNativeModule](scalaVersions)
+  object native extends Cross[OsNativeModule](scalaVersions)
   trait OsNativeModule extends OsModule with ScalaNativeModule {
-    def scalaNativeVersion = "0.5.2"
+    def scalaNativeVersion = "0.5.7"
     object test extends ScalaNativeTests with OsLibTestModule {
       def nativeLinkStubs = true
     }
     object nohometest extends ScalaNativeTests with OsLibTestModule
-  }*/
+  }
 
   object watch extends Module {
     object jvm extends Cross[WatchJvmModule](scalaVersions)
