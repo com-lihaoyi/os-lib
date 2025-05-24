@@ -146,10 +146,10 @@ object WatchTests extends TestSuite with TestSuite.Retries {
 
     }
 
-    test("openClose"){
+    test("openClose") {
       _root_.test.os.TestUtil.prep { wd =>
         println("openClose in " + wd)
-        for(index <- Range(0, 200)){
+        for (index <- Range(0, 200)) {
           println("watch index " + index)
           @volatile var done = false
           val res = os.watch.watch(
@@ -161,7 +161,8 @@ object WatchTests extends TestSuite with TestSuite.Retries {
             },
             logger = (event, data) => println(event)
           )
-          os.write.append(wd /  s"file.txt", "" + index)
+          Thread.sleep(10)
+          os.write.append(wd / s"file.txt", "" + index)
           try {
             while (!done) Thread.sleep(1)
           } finally res.close()

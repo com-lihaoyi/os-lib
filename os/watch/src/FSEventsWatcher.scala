@@ -38,66 +38,73 @@ class FSEventsWatcher(
       onEvent((paths.iterator ++ nestedPaths.iterator).toSet)
     }
   }
-  val cfStrings = srcs.map(p => CFStringRef.toCFString(p.toString).getPointer).toArray
-  val cfArray =
-    CarbonApi().CFArrayCreate(null, cfStrings, CFIndex.valueOf(srcs.length), null)
 
-  val kCFRunLoopDefaultMode = CFStringRef.toCFString("kCFRunLoopDefaultMode")
-  private[this] val streamRef = CarbonApi().FSEventStreamCreate(
-    Pointer.NULL,
-    callback,
-    Pointer.NULL,
-    cfArray,
-    -1,
-    latency,
-    // Flags defined at https://developer.apple.com/documentation/coreservices
-    // /1455376-fseventstreamcreateflags?language=objc
-    //
-    // File-level notifications https://developer.apple.com/documentation/coreservices
-    // /1455376-fseventstreamcreateflags/kfseventstreamcreateflagfileevents?language=objc
-    0x00000010 |
-      //
-      // Don't defer https://developer.apple.com/documentation/coreservices
-      // /1455376-fseventstreamcreateflags/kfseventstreamcreateflagnodefer?language=objc
-      //
-      0x00000002
-  )
+  // Not sure why this is necessary, but without it the `CarbonApi()` calls in the `run()`
+  // method running on a separate thread hang for unknown reasons.
+  val dummyCfString = CFStringRef.toCFString("dummy")
 
   private[this] var current: CFRunLoopRef = null
 
   def run() = {
     assert(!closed)
+    val cfStrings = srcs.map(p => CFStringRef.toCFString(p.toString).getPointer).toArray
+    val cfArray =
+      CarbonApi().CFArrayCreate(null, cfStrings, CFIndex.valueOf(srcs.length), null)
+    val kCFRunLoopDefaultMode = CFStringRef.toCFString("kCFRunLoopDefaultMode")
+    val streamRef = CarbonApi().FSEventStreamCreate(
+      Pointer.NULL,
+      callback,
+      Pointer.NULL,
+      cfArray,
+      -1,
+      latency,
+      // Flags defined at https://developer.apple.com/documentation/coreservices
+      // /1455376-fseventstreamcreateflags?language=objc
+      //
+      // File-level notifications https://developer.apple.com/documentation/coreservices
+      // /1455376-fseventstreamcreateflags/kfseventstreamcreateflagfileevents?language=objc
+      0x00000010 |
+        //
+        // Don't defer https://developer.apple.com/documentation/coreservices
+        // /1455376-fseventstreamcreateflags/kfseventstreamcreateflagnodefer?language=objc
+        //
+        0x00000002
+    )
+
+    current = CarbonApi().CFRunLoopGetCurrent()
     CarbonApi().FSEventStreamScheduleWithRunLoop(
       streamRef,
-      CarbonApi().CFRunLoopGetCurrent(),
+      current,
       kCFRunLoopDefaultMode
     )
     CarbonApi().FSEventStreamStart(streamRef)
-    current = CarbonApi().CFRunLoopGetCurrent()
     logger("FSLOOP RUN", ())
-    CarbonApi().CFRunLoopRun()
+    try CarbonApi().CFRunLoopRun()
+    finally {
+      CarbonApi().FSEventStreamStop(streamRef)
+
+      CarbonApi().FSEventStreamUnscheduleFromRunLoop(
+        streamRef,
+        current,
+        kCFRunLoopDefaultMode
+      )
+      CarbonApi().FSEventStreamInvalidate(streamRef)
+      CarbonApi().FSEventStreamRelease(streamRef)
+      CarbonApi().CFRelease(cfArray)
+      for (s <- cfStrings) CarbonApi().CFRelease(s)
+      CarbonApi().CFRelease(kCFRunLoopDefaultMode)
+    }
     logger("FSLOOP END", ())
   }
 
   def close() = {
     assert(!closed)
     closed = true
-    logger("FSLOOP STOP", ())
-    
-    
+    logger("FSLOOP CLOSE", ())
+
     CarbonApi().CFRunLoopStop(current)
-    CarbonApi().FSEventStreamStop(streamRef)
-    CarbonApi().FSEventStreamUnscheduleFromRunLoop(
-      streamRef,
-      current,
-      kCFRunLoopDefaultMode
-    )
-    CarbonApi().FSEventStreamInvalidate(streamRef)
-    CarbonApi().FSEventStreamRelease(streamRef)
-    CarbonApi().CFRelease(streamRef)
-    CarbonApi().CFRelease(cfArray)
-    for(s <- cfStrings) CarbonApi().CFRelease(s)
-    CarbonApi().CFRelease(kCFRunLoopDefaultMode)
-    logger("FSLOOP STOP2", ())
+    CarbonApi().CFRelease(dummyCfString)
+
+    logger("FSLOOP CLOSE END", ())
   }
 }

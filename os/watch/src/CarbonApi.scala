@@ -4,7 +4,6 @@ import com.sun.jna._
 
 import com.sun.jna.ptr.PointerByReference
 
-
 object CarbonApi {
   def apply() = INSTANCE
   val INSTANCE = Native.load("Carbon", classOf[CarbonApi]).asInstanceOf[CarbonApi]
