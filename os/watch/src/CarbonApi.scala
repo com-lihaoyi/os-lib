@@ -4,7 +4,9 @@ import com.sun.jna._
 
 import com.sun.jna.ptr.PointerByReference
 
+
 object CarbonApi {
+  def apply() = INSTANCE
   val INSTANCE = Native.load("Carbon", classOf[CarbonApi]).asInstanceOf[CarbonApi]
 }
 
@@ -20,6 +22,8 @@ trait FSEventStreamCallback extends Callback {
 }
 
 trait CarbonApi extends Library {
+  def CFRelease(cfTypeRef: Any): Unit // All CF*Ref types are toll-free bridged as Pointer
+  
   def CFArrayCreate(
       allocator: CFAllocatorRef, // always set to Pointer.NULL
       values: Array[Pointer],

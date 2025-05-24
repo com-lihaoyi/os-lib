@@ -38,17 +38,16 @@ class FSEventsWatcher(
       onEvent((paths.iterator ++ nestedPaths.iterator).toSet)
     }
   }
+  val cfStrings = srcs.map(p => CFStringRef.toCFString(p.toString).getPointer).toArray
+  val cfArray =
+    CarbonApi().CFArrayCreate(null, cfStrings, CFIndex.valueOf(srcs.length), null)
 
-  private[this] val streamRef = CarbonApi.INSTANCE.FSEventStreamCreate(
+  val kCFRunLoopDefaultMode = CFStringRef.toCFString("kCFRunLoopDefaultMode")
+  private[this] val streamRef = CarbonApi().FSEventStreamCreate(
     Pointer.NULL,
     callback,
     Pointer.NULL,
-    CarbonApi.INSTANCE.CFArrayCreate(
-      null,
-      srcs.map(p => CFStringRef.toCFString(p.toString).getPointer).toArray,
-      CFIndex.valueOf(srcs.length),
-      null
-    ),
+    cfArray,
     -1,
     latency,
     // Flags defined at https://developer.apple.com/documentation/coreservices
@@ -68,15 +67,15 @@ class FSEventsWatcher(
 
   def run() = {
     assert(!closed)
-    CarbonApi.INSTANCE.FSEventStreamScheduleWithRunLoop(
+    CarbonApi().FSEventStreamScheduleWithRunLoop(
       streamRef,
-      CarbonApi.INSTANCE.CFRunLoopGetCurrent(),
-      CFStringRef.toCFString("kCFRunLoopDefaultMode")
+      CarbonApi().CFRunLoopGetCurrent(),
+      kCFRunLoopDefaultMode
     )
-    CarbonApi.INSTANCE.FSEventStreamStart(streamRef)
-    current = CarbonApi.INSTANCE.CFRunLoopGetCurrent()
+    CarbonApi().FSEventStreamStart(streamRef)
+    current = CarbonApi().CFRunLoopGetCurrent()
     logger("FSLOOP RUN", ())
-    CarbonApi.INSTANCE.CFRunLoopRun()
+    CarbonApi().CFRunLoopRun()
     logger("FSLOOP END", ())
   }
 
@@ -84,15 +83,21 @@ class FSEventsWatcher(
     assert(!closed)
     closed = true
     logger("FSLOOP STOP", ())
-    CarbonApi.INSTANCE.CFRunLoopStop(current)
-    CarbonApi.INSTANCE.FSEventStreamStop(streamRef)
-    CarbonApi.INSTANCE.FSEventStreamUnscheduleFromRunLoop(
+    
+    
+    CarbonApi().CFRunLoopStop(current)
+    CarbonApi().FSEventStreamStop(streamRef)
+    CarbonApi().FSEventStreamUnscheduleFromRunLoop(
       streamRef,
       current,
-      CFStringRef.toCFString("kCFRunLoopDefaultMode")
+      kCFRunLoopDefaultMode
     )
-    CarbonApi.INSTANCE.FSEventStreamInvalidate(streamRef)
-    CarbonApi.INSTANCE.FSEventStreamRelease(streamRef)
+    CarbonApi().FSEventStreamInvalidate(streamRef)
+    CarbonApi().FSEventStreamRelease(streamRef)
+    CarbonApi().CFRelease(streamRef)
+    CarbonApi().CFRelease(cfArray)
+    for(s <- cfStrings) CarbonApi().CFRelease(s)
+    CarbonApi().CFRelease(kCFRunLoopDefaultMode)
     logger("FSLOOP STOP2", ())
   }
 }

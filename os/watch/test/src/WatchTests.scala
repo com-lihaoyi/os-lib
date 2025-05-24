@@ -145,5 +145,28 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       )
 
     }
+
+    test("openClose"){
+      _root_.test.os.TestUtil.prep { wd =>
+        println("openClose in " + wd)
+        for(index <- Range(0, 101)){
+          println("watch index " + index)
+          var done = false
+          val res = os.watch.watch(
+            Seq(wd),
+            filter = _ => true,
+            onEvent = path => {
+              println(path);
+              done = true
+            },
+            logger = (event, data) => println(event)
+          )
+          os.write.append(wd /  s"file$index.txt", "" + index)
+          try {
+            while (!done) Thread.sleep(1)
+          } finally res.close()
+        }
+      }
+    }
   }
 }
