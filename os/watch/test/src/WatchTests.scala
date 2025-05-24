@@ -161,7 +161,7 @@ object WatchTests extends TestSuite with TestSuite.Retries {
             },
             logger = (event, data) => println(event)
           )
-          os.write.append(wd /  s"file$index.txt", "" + index)
+          os.write.append(wd /  s"file.txt", "" + index)
           try {
             while (!done) Thread.sleep(1)
           } finally res.close()
