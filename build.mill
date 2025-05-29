@@ -30,8 +30,8 @@ object Deps {
 }
 
 trait AcyclicModule extends ScalaModule {
-  def acyclicDep: T[Agg[Dep]] = Task {
-    Agg.from(Option.when(!scalaVersion().startsWith("3."))(Deps.acyclic))
+  def acyclicDep: T[Seq[Dep]] = Task {
+    Option.when(!scalaVersion().startsWith("3."))(Deps.acyclic).toSeq
   }
   def acyclicOptions: T[Seq[String]] = Task {
     Option.when(!scalaVersion().startsWith("3."))("-P:acyclic:force").toSeq
@@ -90,7 +90,7 @@ trait OsLibModule
     with PlatformScalaModule { outer =>
 
   trait OsLibTestModule extends ScalaModule with TestModule.Utest {
-    def mvnDeps = Agg(Deps.utest, Deps.sourcecode)
+    def mvnDeps = Seq(Deps.utest, Deps.sourcecode)
     // we check the textual output of system commands and expect it in english
     def forkEnv = super.forkEnv() ++ Map(
       "LC_ALL" -> "C",
@@ -101,7 +101,7 @@ trait OsLibModule
 }
 
 trait OsModule extends OsLibModule { outer =>
-  def mvnDeps = Agg(Deps.geny)
+  def mvnDeps = Seq(Deps.geny)
   override def compileMvnDeps = Task {
     val scalaReflectOpt = Option.when(!scalaVersion().startsWith("3."))(
       Deps.scalaReflect(scalaVersion())
@@ -161,7 +161,7 @@ object os extends Module {
     def moduleDeps = super.moduleDeps ++ Seq(os.zip)
 
     object test extends ScalaTests with OsLibTestModule {
-      override def mvnDeps = Task { super.mvnDeps() ++ Agg(Deps.expecty) }
+      override def mvnDeps = Task { super.mvnDeps() ++ Seq(Deps.expecty) }
 
       // we check the textual output of system commands and expect it in english
       def forkEnv = super.forkEnv() ++ Map(
@@ -248,7 +248,7 @@ object os extends Module {
     trait WatchJvmModule extends OsLibModule {
       def artifactName = "os-lib-watch"
       def moduleDeps = super.moduleDeps ++ Seq(os.jvm())
-      def mvnDeps = Agg(Deps.jna)
+      def mvnDeps = Seq(Deps.jna)
       object test extends ScalaTests with OsLibTestModule {
         def moduleDeps = super.moduleDeps ++ Seq(os.jvm().test)
 
