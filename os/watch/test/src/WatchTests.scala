@@ -6,6 +6,9 @@ import scala.util.Properties.isWin
 import scala.util.{Random, Using}
 import utest._
 
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
+
 object WatchTests extends TestSuite with TestSuite.Retries {
   override val utestRetryCount =
     if (sys.env.get("CI").contains("true")) {
@@ -148,8 +151,7 @@ object WatchTests extends TestSuite with TestSuite.Retries {
 
     }
 
-    test("manyFilesInManyFolders") - _root_.test.os.TestUtil.prep { wd =>
-      val numPaths = 12 * 1000 // My Linux machine starts overflowing and losing events at 13k files.
+    def testManyFilesInManyFolders(wd: Path, numPaths: Int) = {
       val rng = new Random(100)
       val paths = generateNRandomPaths(numPaths, wd, random = rng)
       val directories = paths.iterator.map(_.toNIO.getParent.toAbsolutePath).toSet
@@ -167,6 +169,23 @@ object WatchTests extends TestSuite with TestSuite.Retries {
         Thread.sleep(1000)
         assert(changedPaths == willChange)
       }
+    }
+
+    test("manyFilesInManyFolders") - _root_.test.os.TestUtil.prep { wd =>
+      val numPaths = 12 * 1000 // My Linux machine starts overflowing and losing events at 13k files.
+      testManyFilesInManyFolders(wd, numPaths)
+    }
+
+    test("manyFilesInManyFoldersThreaded") - _root_.test.os.TestUtil.prep { wd =>
+      import scala.concurrent.ExecutionContext.Implicits.global
+      
+      val numPaths = 1000
+      val futures = (0 to 100).map { idx =>
+        Future {
+          testManyFilesInManyFolders(wd / s"job-$idx", numPaths)
+        }
+      }
+      futures.foreach(Await.result(_, 20.seconds))
     }
 
     test("openClose") {
