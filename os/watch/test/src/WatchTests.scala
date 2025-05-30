@@ -4,7 +4,7 @@ import os.Path
 
 import scala.util.Properties.isWin
 import scala.util.{Random, Using}
-import utest.*
+import utest._
 
 object WatchTests extends TestSuite with TestSuite.Retries {
   override val utestRetryCount =
@@ -149,7 +149,7 @@ object WatchTests extends TestSuite with TestSuite.Retries {
     }
 
     test("manyFilesInManyFolders") - _root_.test.os.TestUtil.prep { wd =>
-      val numPaths = 12 * 1000 // My machine starts overflowing at 13k
+      val numPaths = 12 * 1000 // My Linux machine starts overflowing and losing events at 13k files.
       val rng = new Random(100)
       val paths = generateNRandomPaths(numPaths, wd, random = rng)
       val directories = paths.iterator.map(_.toNIO.getParent.toAbsolutePath).toSet
@@ -166,7 +166,6 @@ object WatchTests extends TestSuite with TestSuite.Retries {
 
         Thread.sleep(1000)
         assert(changedPaths == willChange)
-        ()
       }
     }
 
@@ -174,16 +173,16 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       _root_.test.os.TestUtil.prep { wd =>
         println("openClose in " + wd)
         for (index <- Range(0, 200)) {
-//          println("watch index " + index)
+          println("watch index " + index)
           @volatile var done = false
           val res = os.watch.watch(
             Seq(wd),
             filter = _ => true,
             onEvent = path => {
-//              println(path)
+              println(path)
               done = true
             },
-//            logger = (event, data) => println(event)
+            logger = (event, data) => println(event)
           )
           Thread.sleep(10)
           os.write.append(wd / s"file.txt", "" + index)
