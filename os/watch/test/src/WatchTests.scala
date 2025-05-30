@@ -150,20 +150,23 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       )
 
     }
-
-    def testManyFilesInManyFolders(wd: Path, numPaths: Int) = {
+    
+    def createManyFilesInManyFolders(wd: Path, numPaths: Int) = {
       val rng = new Random(100)
       val paths = generateNRandomPaths(numPaths, wd, random = rng)
       val directories = paths.iterator.map(_.toNIO.getParent.toAbsolutePath).toSet
       directories.foreach(dir => os.makeDir.all.apply(Path(dir)))
       paths.foreach(p => os.write.over(p, rng.nextString(100)))
+      paths
+    }
 
+    def testManyFilesInManyFolders(wd: Path, paths: Vector[Path]) = {
       val changedPaths = collection.mutable.Set.empty[os.Path]
       Using.resource(os.watch.watch(Seq(wd), onEvent = paths => changedPaths ++= paths)) { _ =>
         Thread.sleep(500)
         assert(changedPaths.isEmpty)
 
-        val willChange = paths.iterator.take(numPaths / 2).toSet
+        val willChange = paths.iterator.take(paths.size / 2).toSet
         willChange.foreach(p => os.write.over(p, "changed"))
 
         Thread.sleep(1000)
@@ -173,7 +176,8 @@ object WatchTests extends TestSuite with TestSuite.Retries {
 
     test("manyFilesInManyFolders") - _root_.test.os.TestUtil.prep { wd =>
       val numPaths = 12 * 1000 // My Linux machine starts overflowing and losing events at 13k files.
-      testManyFilesInManyFolders(wd, numPaths)
+      val paths = createManyFilesInManyFolders(wd, numPaths)
+      testManyFilesInManyFolders(wd, paths)
     }
 
     test("manyFilesInManyFoldersThreaded") - _root_.test.os.TestUtil.prep { wd =>
@@ -181,8 +185,27 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       
       val numPaths = 1000
       val futures = (0 to 100).map { idx =>
+        val myWd = wd / s"job-$idx"
+        val paths = createManyFilesInManyFolders(myWd, numPaths)
         Future {
-          testManyFilesInManyFolders(wd / s"job-$idx", numPaths)
+          testManyFilesInManyFolders(myWd, paths)
+        }
+      }
+      futures.foreach(Await.result(_, 20.seconds))
+    }
+
+    test("manyFilesInManyFoldersThreadedSequential") - _root_.test.os.TestUtil.prep { wd =>
+      import scala.concurrent.ExecutionContext.Implicits.global
+      
+      val numPaths = 1000
+      val lock = new Object
+      val futures = (0 to 100).map { idx =>
+        Future {
+          val myWd = wd / s"job-$idx"
+          val paths = createManyFilesInManyFolders(myWd, numPaths)
+          lock.synchronized {
+            Future(testManyFilesInManyFolders(myWd, paths))
+          }
         }
       }
       futures.foreach(Await.result(_, 20.seconds))
