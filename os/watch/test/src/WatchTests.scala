@@ -1,8 +1,10 @@
 package test.os.watch
 
+import os.Path
+
 import scala.util.Properties.isWin
-import scala.util.Random
-import utest._
+import scala.util.{Random, Using}
+import utest.*
 
 object WatchTests extends TestSuite with TestSuite.Retries {
   override val utestRetryCount =
@@ -146,20 +148,42 @@ object WatchTests extends TestSuite with TestSuite.Retries {
 
     }
 
+    test("manyFilesInManyFolders") - _root_.test.os.TestUtil.prep { wd =>
+      val numPaths = 12 * 1000 // My machine starts overflowing at 13k
+      val rng = new Random(100)
+      val paths = generateNRandomPaths(numPaths, wd, random = rng)
+      val directories = paths.iterator.map(_.toNIO.getParent.toAbsolutePath).toSet
+      directories.foreach(dir => os.makeDir.all.apply(Path(dir)))
+      paths.foreach(p => os.write.over(p, rng.nextString(100)))
+
+      val changedPaths = collection.mutable.Set.empty[os.Path]
+      Using.resource(os.watch.watch(Seq(wd), onEvent = paths => changedPaths ++= paths)) { _ =>
+        Thread.sleep(500)
+        assert(changedPaths.isEmpty)
+
+        val willChange = paths.iterator.take(numPaths / 2).toSet
+        willChange.foreach(p => os.write.over(p, "changed"))
+
+        Thread.sleep(1000)
+        assert(changedPaths == willChange)
+        ()
+      }
+    }
+
     test("openClose") {
       _root_.test.os.TestUtil.prep { wd =>
         println("openClose in " + wd)
         for (index <- Range(0, 200)) {
-          println("watch index " + index)
+//          println("watch index " + index)
           @volatile var done = false
           val res = os.watch.watch(
             Seq(wd),
             filter = _ => true,
             onEvent = path => {
-              println(path);
+//              println(path)
               done = true
             },
-            logger = (event, data) => println(event)
+//            logger = (event, data) => println(event)
           )
           Thread.sleep(10)
           os.write.append(wd / s"file.txt", "" + index)
@@ -169,5 +193,47 @@ object WatchTests extends TestSuite with TestSuite.Retries {
         }
       }
     }
+  }
+
+  /**
+   * Generates N random paths, arbitrarily nested under a given subdirectory.
+   *
+   * @param count            The number of random paths to generate.
+   * @param baseSubdirectory Subdirectory under which paths will be generated.
+   * @param maxNestingDepth  The maximum number of directory levels (0 means files directly in baseSubdirectory).
+   * @return A Vector of strings, where each string is a fully formed random path.
+   * @throws IllegalArgumentException if N is negative, or maxNestingDepth is negative.
+   */
+  def generateNRandomPaths(
+    count: Int,
+    baseSubdirectory: Path,
+    maxNestingDepth: Int = 5,
+    random: Random
+  ): Vector[Path] = {
+    def randomAlphanumeric(length: Int): String =
+      random.alphanumeric.take(length).mkString
+
+    def generateSingleRandomPath(baseDir: Path) = {
+      // actualNestingDepth can be 0 (file directly in baseDir) up to maxNestingDepth
+      val actualNestingDepth = random.nextInt(maxNestingDepth + 1)
+
+      var currentPath: Path = baseDir
+
+      // Create random subdirectories
+      for (_ <- 0 until actualNestingDepth) {
+        currentPath = currentPath / randomAlphanumeric(3).toLowerCase
+      }
+
+      // Create random filename with extension
+      val fileName = s"${randomAlphanumeric(8)}.${randomAlphanumeric(3).toLowerCase}"
+      currentPath = currentPath / fileName
+
+      currentPath
+    }
+
+    if (count < 0) throw new IllegalArgumentException("Number of paths cannot be negative.")
+    if (maxNestingDepth < 0) throw new IllegalArgumentException("maxNestingDepth cannot be negative.")
+
+    Vector.fill(count)(generateSingleRandomPath(baseSubdirectory))
   }
 }
