@@ -5,8 +5,8 @@ import com.sun.jna._
 import com.sun.jna.ptr.PointerByReference
 
 object CarbonApi {
-  def apply() = INSTANCE
-  val INSTANCE = Native.load("Carbon", classOf[CarbonApi]).asInstanceOf[CarbonApi]
+  def apply(): CarbonApi = INSTANCE
+  val INSTANCE: CarbonApi = Native.load("Carbon", classOf[CarbonApi])
 }
 
 trait FSEventStreamCallback extends Callback {
@@ -79,7 +79,7 @@ class CFArrayRef extends PointerByReference {}
 
 @SerialVersionUID(0)
 object CFIndex {
-  def valueOf(i: Int) = {
+  def valueOf(i: Int): CFIndex = {
     val idx = new CFIndex
     idx.setValue(i)
     idx
@@ -92,7 +92,7 @@ class CFIndex extends NativeLong {}
 class CFRunLoopRef extends PointerByReference {}
 
 object CFStringRef {
-  def toCFString(s: String) = {
+  def toCFString(s: String): CFStringRef = {
     val chars = s.toCharArray
     val length = chars.length
     CarbonApi.INSTANCE.CFStringCreateWithCharacters(null, chars, CFIndex.valueOf(length))
