@@ -185,9 +185,9 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       
       val numPaths = 1000
       val futures = (0 to 100).map { idx =>
-        val myWd = wd / s"job-$idx"
-        val paths = createManyFilesInManyFolders(myWd, numPaths)
         Future {
+          val myWd = wd / s"job-$idx"
+          val paths = createManyFilesInManyFolders(myWd, numPaths)
           testManyFilesInManyFolders(myWd, paths)
         }
       }
