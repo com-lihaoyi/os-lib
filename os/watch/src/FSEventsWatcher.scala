@@ -32,7 +32,9 @@ class FSEventsWatcher(
       for (p <- paths) {
         if (os.isDir(p, followLinks = false)) {
           try os.walk.stream(p).foreach(p => if (filter(p)) nestedPaths.append(p))
-          catch { case NonFatal(_) => /*do nothing*/ }
+          catch {
+            case NonFatal(_) => /*do nothing*/
+          }
         }
       }
       onEvent((paths.iterator ++ nestedPaths.iterator).toSet)
