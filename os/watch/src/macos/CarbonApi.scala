@@ -162,7 +162,10 @@ object CFIndex {
 }
 
 /** @see https://developer.apple.com/documentation/corefoundation/cfindex */
-class CFIndex(value: Long) extends NativeLong(value)
+class CFIndex(value: Long) extends NativeLong(value) {
+  // Required by JNA
+  def this() = this(0)
+}
 
 /**
  * Objective-C definition: `typedef const struct __CFString * CFStringRef;`

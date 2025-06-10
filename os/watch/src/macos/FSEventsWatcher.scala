@@ -86,8 +86,15 @@ class FSEventsWatcher(
               try {
                 // Wait until we are told to stop.
                 logger("FSEventsWatcher: waiting for stop signal", ())
-                signal.wait()
-                logger("FSEventsWatcher: received stop signal, cleaning up.", ())
+                signal.synchronized {
+                  try {
+                    signal.wait()
+                  }
+                  catch {
+                    case _: InterruptedException =>
+                      logger("FSEventsWatcher: received stop signal, cleaning up.", ())
+                  }
+                }
               }
               finally {
                 FSEventStreamStop(streamRef)

@@ -23,7 +23,8 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       val changedPaths = collection.mutable.Set.empty[os.Path]
       _root_.os.watch.watch(
         Seq(wd),
-        onEvent = _.foreach(changedPaths.add)
+        onEvent = _.foreach(changedPaths.add),
+        logger = (str, value) => println(s"$str $value")
       )
 
 //      os.write(wd / "lols", "")
