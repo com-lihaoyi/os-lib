@@ -36,7 +36,7 @@ package object watch {
       filter: os.Path => Boolean = _ => true
   ): AutoCloseable = {
     val watcher = System.getProperty("os.name") match {
-      case "Mac OS X" => new os.watch.FSEventsWatcher(roots, onEvent, filter, logger, 0.05)
+      case "Mac OS X" => new os.watch.macos.FSEventsWatcher(roots, onEvent, filter, logger, latency = 0.05)
       case _ => new os.watch.WatchServiceWatcher(roots, onEvent, filter, logger)
     }
 
