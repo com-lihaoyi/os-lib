@@ -3,7 +3,7 @@ package test.os.watch
 import os.Path
 
 import scala.util.Properties.isWin
-import scala.util.{Random, Using}
+import scala.util.Random
 import utest._
 
 import scala.concurrent.{Await, Future}
@@ -160,9 +160,10 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       paths
     }
 
-    def testManyFilesInManyFolders(wd: Path, paths: Vector[Path]) = {
+    def testManyFilesInManyFolders(wd: Path, paths: Vector[Path]): Unit = {
       val changedPaths = collection.mutable.Set.empty[os.Path]
-      Using.resource(os.watch.watch(Seq(wd), onEvent = paths => changedPaths ++= paths)) { _ =>
+      val watcher = os.watch.watch(Seq(wd), onEvent = paths => changedPaths ++= paths)
+      try {
         Thread.sleep(500)
         assert(changedPaths.isEmpty)
 
@@ -171,6 +172,9 @@ object WatchTests extends TestSuite with TestSuite.Retries {
 
         Thread.sleep(1000)
         assert(changedPaths == willChange)
+      }
+      finally {
+        watcher.close()
       }
     }
 
