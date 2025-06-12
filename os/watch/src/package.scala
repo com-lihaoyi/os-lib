@@ -1,5 +1,7 @@
 package os
 
+import scala.util.control.NonFatal
+
 package object watch {
 
   /**
@@ -36,13 +38,28 @@ package object watch {
       filter: os.Path => Boolean = _ => true
   ): AutoCloseable = {
     val watcher = System.getProperty("os.name") match {
-      case "Mac OS X" => new os.watch.macos.FSEventsWatcher(roots, onEvent, filter, logger, latency = 0.05)
+      case "Mac OS X" =>
+        // Make sure to initialize the Carbon API on a main thread, otherwise no FS events are
+        // captured.
+        val _ = os.watch.macos.CarbonApi.INSTANCE
+        new os.watch.macos.FSEventsWatcher(roots, onEvent, filter, logger, latency = 0.05)
       case _ => new os.watch.WatchServiceWatcher(roots, onEvent, filter, logger)
     }
 
     val thread = new Thread {
       override def run(): Unit = {
-        watcher.run()
+        try {
+          watcher.run()
+        }
+        catch {
+          case NonFatal(t) =>
+            logger("EXCEPTION", t)
+            Console.err.println(
+              s"""Watcher thread failed:
+                 |  roots = $roots
+                 |  exception = $t""".stripMargin
+            )
+        }
       }
     }
     thread.setDaemon(true)
