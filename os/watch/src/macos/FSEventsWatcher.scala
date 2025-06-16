@@ -49,7 +49,7 @@ class FSEventsWatcher(
 
   def run(): Unit = {
     assert(!closed, "Cannot run a closed watcher.")
-    import CarbonApi.INSTANCE._
+    import CoreServicesApi.INSTANCE._
     import DispatchApi.INSTANCE._
 
     logger("FSEventsWatcher.run: starting", ())
@@ -85,9 +85,9 @@ class FSEventsWatcher(
 
               try {
                 // Wait until we are told to stop.
-                logger("FSEventsWatcher: waiting for stop signal", ())
+                logger("FSEventsWatcher.run: waiting for stop signal", ())
                 signal.wait()
-                logger("FSEventsWatcher: received stop signal, cleaning up.", ())
+                logger("FSEventsWatcher.run: received stop signal, cleaning up.", ())
               }
               finally {
                 FSEventStreamStop(streamRef)
@@ -111,8 +111,8 @@ class FSEventsWatcher(
     }
     finally {
       pathsToWatchCfStrings.foreach(CFRelease)
+      logger("FSEventsWatcher.run: finished", ())
     }
-    logger("FSEventsWatcher.run: finished", ())
   }
 
   def close(): Unit = {

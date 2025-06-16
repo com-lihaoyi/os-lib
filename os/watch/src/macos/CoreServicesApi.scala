@@ -2,11 +2,11 @@ package os.watch.macos
 
 import com.sun.jna._
 
-object CarbonApi {
-  def apply(): CarbonApi = INSTANCE
-  val INSTANCE: CarbonApi = Native.load("Carbon", classOf[CarbonApi])
+object CoreServicesApi {
+  def apply(): CoreServicesApi = INSTANCE
+  val INSTANCE: CoreServicesApi = Native.load("CoreServices", classOf[CoreServicesApi])
 }
-trait CarbonApi extends Library {
+trait CoreServicesApi extends Library {
 
   /**
    * Objective-C definition:
@@ -175,7 +175,7 @@ object CFStringRef {
   /**
    * @return An immutable string containing chars, or [[None]] if there was a problem creating the object.
    */
-  def apply(s: String): Option[CFStringRef] = CarbonApi.INSTANCE.CFStringCreateWithCharacters(s.toCharArray)
+  def apply(s: String): Option[CFStringRef] = CoreServicesApi.INSTANCE.CFStringCreateWithCharacters(s.toCharArray)
 }
 
 /**

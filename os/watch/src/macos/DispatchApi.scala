@@ -5,7 +5,7 @@ import com.sun.jna._
 /** @see https://developer.apple.com/documentation/dispatch?language=objc */
 object DispatchApi {
   def apply(): DispatchApi = INSTANCE
-  val INSTANCE: DispatchApi = Native.load("dispatch", classOf[DispatchApi])
+  val INSTANCE: DispatchApi = Native.load("c", classOf[DispatchApi])
 }
 trait DispatchApi extends Library {
 

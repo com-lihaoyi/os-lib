@@ -1,5 +1,11 @@
 package os
 
+import java.util.UUID
+import java.util.concurrent.TimeoutException
+import scala.util.Random
+import scala.concurrent.duration._
+import scala.util.control.NonFatal
+
 package object watch {
 
   /**
@@ -25,28 +31,84 @@ package object watch {
    * at which the change happened. It is up to the `onEvent` handler to query
    * the filesystem and figure out what happened, and what it wants to do.
    *
+   * @param onEvent a callback that is called with the paths to the changed. Only starts emitting events once this
+   *                method returns.
    * @param filter when new paths under `roots` are created, this function is
    *               invoked with each path. If it returns `false`, the path is
    *               not watched.
    */
   def watch(
-      roots: Seq[os.Path],
-      onEvent: Set[os.Path] => Unit,
-      logger: (String, Any) => Unit = (_, _) => (),
-      filter: os.Path => Boolean = _ => true
+    roots: Seq[os.Path],
+    onEvent: Set[os.Path] => Unit,
+    logger: (String, Any) => Unit = (_, _) => (),
+    filter: os.Path => Boolean = _ => true
   ): AutoCloseable = {
+    val sentinelFiles = roots.iterator.map(p => p / s".os-lib-watch-sentinel-${UUID.randomUUID()}")
+    val notPickedUpSentinelFiles = collection.mutable.Set.empty[os.Path]
+    notPickedUpSentinelFiles ++= sentinelFiles
+
+    def onEvent0(changed: Set[os.Path]): Unit = {
+      if (notPickedUpSentinelFiles.isEmpty) {
+        // All sentinels have been picked up, resume normal operation
+        onEvent(changed)
+      }
+      else {
+        // Wait for all sentinels to be picked up
+        changed.foreach(notPickedUpSentinelFiles.remove)
+      }
+    }
+
     val watcher = System.getProperty("os.name") match {
-      case "Mac OS X" => new os.watch.macos.FSEventsWatcher(roots, onEvent, filter, logger, latency = 0.05)
-      case _ => new os.watch.WatchServiceWatcher(roots, onEvent, filter, logger)
+      case "Mac OS X" => new os.watch.macos.FSEventsWatcher(roots, onEvent0, filter, logger, latency = 0.05)
+      case _ => new os.watch.WatchServiceWatcher(roots, onEvent0, filter, logger)
     }
 
     val thread = new Thread {
       override def run(): Unit = {
-        watcher.run()
+        try {
+          watcher.run()
+        }
+        catch {
+          case NonFatal(t) =>
+            logger("EXCEPTION", t)
+            Console.err.println(
+              s"""Watcher thread failed:
+                 |  roots = $roots
+                 |  exception = $t""".stripMargin
+            )
+        }
       }
     }
     thread.setDaemon(true)
     thread.start()
+
+    sentinelFiles.foreach(p => waitUntilWatchIsSetUp(p, () => !notPickedUpSentinelFiles.contains(p)))
+
     watcher
+  }
+
+  private def waitUntilWatchIsSetUp(sentinelFile: os.Path, wasPickedUp: () => Boolean): Unit = {
+    def writeSentinel() =
+      os.write.over(sentinelFile, Random.nextLong().toString)
+
+    try {
+      writeSentinel()
+      val timeout = 5.seconds
+      val timeoutNanos = timeout.toNanos
+      val start = System.nanoTime()
+      while (!wasPickedUp()) {
+        val taken = System.nanoTime() - start
+        if (taken >= timeoutNanos)
+          throw new TimeoutException(
+            s"can't set up watch, no file system changes detected within $timeout for sentinel file $sentinelFile"
+          )
+        Thread.sleep(5)
+
+        writeSentinel()
+      }
+    }
+    finally {
+      os.remove(sentinelFile)
+    }
   }
 }
