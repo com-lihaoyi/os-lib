@@ -1,7 +1,7 @@
 package os
 
 import java.util.UUID
-import java.util.concurrent.TimeoutException
+import scala.concurrent.TimeoutException
 import scala.util.Random
 import scala.concurrent.duration._
 import scala.util.control.NonFatal
@@ -9,8 +9,10 @@ import scala.util.control.NonFatal
 package object watch {
 
   /**
-   * Efficiently watches the given `roots` folders for changes. Any time the
-   * filesystem is modified within those folders, the `onEvent` callback is
+   * Efficiently watches the given `roots` folders for changes. Note that these folders need
+   * to exist before the method is called.
+   *
+   * Any time the filesystem is modified within those folders, the `onEvent` callback is
    * called with the paths to the changed files or folders.
    *
    * Once the call to `watch` returns, `onEvent` is guaranteed to receive a
@@ -43,7 +45,17 @@ package object watch {
     logger: (String, Any) => Unit = (_, _) => (),
     filter: os.Path => Boolean = _ => true
   ): AutoCloseable = {
-    val sentinelFiles = roots.iterator.map(p => p / s".os-lib-watch-sentinel-${UUID.randomUUID()}")
+    val errors = roots.iterator.flatMap { path =>
+      if (!os.exists(path)) Some(s"Root path does not exist: $path")
+      else if (!os.isDir(path)) Some(s"Root path is not a directory: $path")
+      else None
+    }.toVector
+
+    if (errors.nonEmpty) {
+      throw new IllegalArgumentException(errors.mkString("\n"))
+    }
+
+    val sentinelFiles = roots.iterator.map(_ / s".os-lib-watch-sentinel-${UUID.randomUUID()}").toSet
     val notPickedUpSentinelFiles = collection.mutable.Set.empty[os.Path]
     notPickedUpSentinelFiles ++= sentinelFiles
 
@@ -82,7 +94,9 @@ package object watch {
     thread.setDaemon(true)
     thread.start()
 
+    logger("WAITING FOR SENTINELS", sentinelFiles)
     sentinelFiles.foreach(p => waitUntilWatchIsSetUp(p, () => !notPickedUpSentinelFiles.contains(p)))
+    logger("SENTINELS PICKED UP", sentinelFiles)
 
     watcher
   }
