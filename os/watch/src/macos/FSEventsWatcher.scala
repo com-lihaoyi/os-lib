@@ -15,6 +15,10 @@ class FSEventsWatcher(
     logger: (String, Any) => Unit,
     latency: Double
 ) extends Watcher {
+  import CoreServicesApi.INSTANCE._
+  import DispatchApi.INSTANCE._
+  import FSEventsWatcher.kCFRunLoopDefaultMode
+
   @volatile private var closed = false
 
   private val callback = new FSEventStreamCallback {
@@ -57,10 +61,35 @@ class FSEventsWatcher(
   /** Used to signal the watcher to stop. */
   private val signal: Object = new Object
 
+  private val useRunLoop: Boolean = true
+
+  @volatile private var currentRunLoop: Option[CFRunLoopRef] = None
+
   def run(): Unit = {
     assert(!closed, "Cannot run a closed watcher.")
-    import CoreServicesApi.INSTANCE._
-    import DispatchApi.INSTANCE._
+
+    def startFsEventStream[A](streamRef: FSEventStreamRef)(f: => A): A = {
+      //              logger("FSEventsWatcher.run: starting stream", ())
+      val success = FSEventStreamStart(streamRef)
+      if (!success) throw new IllegalStateException("FSEventStreamStart returned false")
+
+      try f
+      finally FSEventStreamStop(streamRef)
+    }
+
+    def waitUntilWeAreToldToStopViaSignal() = {
+      //                logger("FSEventsWatcher.run: waiting for stop signal", ())
+      signal.synchronized {
+        try {
+          signal.wait()
+          //                    logger("FSEventsWatcher.run: received stop signal, cleaning up.", ())
+        }
+        catch {
+          case _: InterruptedException =>
+          //                      logger("FSEventsWatcher.run: received interrupt, cleaning up.", ())
+        }
+      }
+    }
 
 //    logger("FSEventsWatcher.run: starting", ())
     val pathsToWatchCfStrings = NativeUtils.assertAllSome(
@@ -88,72 +117,71 @@ class FSEventsWatcher(
               0x00000002
         )
         try {
-//          logger("FSEventsWatcher.run: creating queue", ())
-          val queue = dispatch_queue_create("os.watch.macos.FSEventsWatcher")
-          try {
-//            logger("FSEventsWatcher.run: setting queue", ())
-            FSEventStreamSetDispatchQueue(streamRef, queue)
+          if (useRunLoop) {
+            val current = CFRunLoopGetCurrent()
+            currentRunLoop = Some(current)
+            val runLoopMode = kCFRunLoopDefaultMode
+            FSEventStreamScheduleWithRunLoop(streamRef, current, runLoopMode)
             try {
-//              logger("FSEventsWatcher.run: starting stream", ())
-              val success = FSEventStreamStart(streamRef)
-              if (!success) throw new IllegalStateException("FSEventStreamStart returned false")
-
-              try {
-                // Wait until we are told to stop.
-//                logger("FSEventsWatcher.run: waiting for stop signal", ())
-                signal.synchronized {
-                  try {
-                    signal.wait()
-//                    logger("FSEventsWatcher.run: received stop signal, cleaning up.", ())
-                  }
-                  catch {
-                    case _: InterruptedException =>
-//                      logger("FSEventsWatcher.run: received interrupt, cleaning up.", ())
-                  }
-                }
-              }
-              finally {
-//                logger("FSEventsWatcher.run: stopping stream", ())
-                FSEventStreamStop(streamRef)
+              startFsEventStream(streamRef) {
+                CFRunLoopRun()
               }
             }
             finally {
-//              logger("FSEventsWatcher.run: invalidating stream", ())
+              FSEventStreamUnscheduleFromRunLoop(streamRef, current, runLoopMode)
               FSEventStreamInvalidate(streamRef)
             }
           }
-          finally {
-//            logger("FSEventsWatcher.run: releasing queue", ())
-            dispatch_release(queue)
+          else {
+            //          logger("FSEventsWatcher.run: creating queue", ())
+            val queue = dispatch_queue_create("os.watch.macos.FSEventsWatcher")
+            try {
+              //            logger("FSEventsWatcher.run: setting queue", ())
+              FSEventStreamSetDispatchQueue(streamRef, queue)
+              try {
+                startFsEventStream(streamRef) {
+                  waitUntilWeAreToldToStopViaSignal()
+                }
+              }
+              finally FSEventStreamInvalidate(streamRef)
+            }
+            finally dispatch_release(queue)
           }
         }
-        finally {
-//          logger("FSEventsWatcher.run: releasing stream", ())
-          FSEventStreamRelease(streamRef)
-        }
+        finally FSEventStreamRelease(streamRef)
       }
-      finally {
-//        logger("FSEventsWatcher.run: releasing pathsToWatchArrayRef", ())
-        CFRelease(pathsToWatchArrayRef)
-      }
+      finally CFRelease(pathsToWatchArrayRef)
     }
-    finally {
-//      logger("FSEventsWatcher.run: releasing pathsToWatchCfStrings", ())
-      pathsToWatchCfStrings.foreach(CFRelease)
-//      logger("FSEventsWatcher.run: finished", ())
-    }
+    finally pathsToWatchCfStrings.foreach(CFRelease)
   }
 
   def close(): Unit = {
     assert(!closed, "Already closed")
 
-//    logger("FSEventsWatcher.close: obtaining the lock", ())
-    signal.synchronized {
-//      logger("FSEventsWatcher.close: notifying the signal", ())
-      signal.notify()
+    if (useRunLoop) {
+      currentRunLoop match {
+        case Some(runLoop) =>
+          CFRunLoopStop(runLoop)
+          currentRunLoop = None
+        case None =>
+          throw new IllegalStateException("cannot close FSEventsWatcher: currentRunLoop was None")
+      }
     }
-//    logger("FSEventsWatcher.close: notified", ())
+    else {
+      //    logger("FSEventsWatcher.close: obtaining the lock", ())
+      signal.synchronized {
+        //      logger("FSEventsWatcher.close: notifying the signal", ())
+        signal.notify()
+      }
+      //    logger("FSEventsWatcher.close: notified", ())
+    }
 
     closed = true
   }
+}
+object FSEventsWatcher {
+  // Never collected from memory.
+  private lazy val kCFRunLoopDefaultMode: CFStringRef = CFStringRef("kCFRunLoopDefaultMode").getOrElse(
+    throw new IllegalStateException("\"kCFRunLoopDefaultMode\" string could not be created")
+  )
 }

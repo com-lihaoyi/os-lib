@@ -222,9 +222,11 @@ object WatchTests extends TestSuite with TestSuite.Retries {
         waitUntilFinished()
 
         val unexpectedChanges = changedPaths.toSet -- willChange
+        val unexpectedChangeCount = unexpectedChanges.size
+        assert(unexpectedChangeCount == 0)
+
         val missingChanges = willChange -- changedPaths
         val missingChangeCount = missingChanges.size
-        assert(unexpectedChanges.isEmpty)
         assert(missingChangeCount == 0)
       }
       finally {

@@ -137,6 +137,18 @@ trait CoreServicesApi extends Library {
 
   /** @see https://developer.apple.com/documentation/coreservices/1445989-fseventstreamrelease?language=objc */
   def FSEventStreamRelease(streamRef: FSEventStreamRef): Unit
+
+
+  def FSEventStreamScheduleWithRunLoop(
+    streamRef: FSEventStreamRef, runLoop: CFRunLoopRef, runLoopMode: CFStringRef
+  ): Unit
+  def FSEventStreamUnscheduleFromRunLoop(
+    streamRef: FSEventStreamRef, runLoop: CFRunLoopRef, runLoopMode: CFStringRef
+  ): Unit
+
+  def CFRunLoopGetCurrent(): CFRunLoopRef
+  def CFRunLoopRun(): Unit
+  def CFRunLoopStop(rl: CFRunLoopRef): Unit
 }
 
 trait FSEventStreamCallback extends Callback {
@@ -187,3 +199,5 @@ object CFStringRef {
  * @see https://developer.apple.com/documentation/coreservices/fseventstreamref
  */
 class FSEventStreamRef extends PointerType
+
+class CFRunLoopRef extends PointerType
