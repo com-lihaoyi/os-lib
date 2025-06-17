@@ -316,7 +316,7 @@ class RelPath private[os] (segments0: Array[String], val ups: Int)
   def lastOpt = segments.lastOption
   val segments: IndexedSeq[String] = segments0.toIndexedSeq
   type ThisType = RelPath
-  require(ups >= 0)
+  require(ups >= 0, s"ups must be non-negative, but it is $ups in ${this.toString}")
   override protected[this] def make(p: Seq[String], ups: Int): RelPath = {
     new RelPath(p.toArray[String], ups + this.ups)
   }
@@ -342,7 +342,7 @@ class RelPath private[os] (segments0: Array[String], val ups: Int)
   def toNIO = java.nio.file.Paths.get(toString)
 
   def asSubPath = {
-    require(ups == 0)
+    require(ups == 0, s"ups must be zero, but it is $ups in ${this.toString}")
     new SubPath(segments0)
   }
 
@@ -388,7 +388,7 @@ class SubPath private[os] (val segments0: Array[String])
   val segments: IndexedSeq[String] = segments0.toIndexedSeq
   override type ThisType = SubPath
   override protected[this] def make(p: Seq[String], ups: Int): SubPath = {
-    require(ups == 0)
+    require(ups == 0, s"ups must be zero, but it is $ups in ${this.toString}")
     new SubPath(p.toArray[String])
   }
 
