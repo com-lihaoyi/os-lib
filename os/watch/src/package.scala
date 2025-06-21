@@ -41,10 +41,10 @@ package object watch {
    *               not watched.
    */
   def watch(
-    roots: Seq[os.Path],
-    onEvent: OnEvent,
-    logger: (String, Any) => Unit = (_, _) => (),
-    filter: os.Path => Boolean = _ => true
+      roots: Seq[os.Path],
+      onEvent: OnEvent,
+      logger: (String, Any) => Unit = (_, _) => (),
+      filter: os.Path => Boolean = _ => true
   ): AutoCloseable = {
     val errors = roots.iterator.flatMap { path =>
       if (!os.exists(path)) Some(s"Root path does not exist: $path")
@@ -67,7 +67,8 @@ package object watch {
     }
 
     val watcher = System.getProperty("os.name") match {
-      case "Mac OS X" => new os.watch.macos.FSEventsWatcher(roots, onEvent0, filter, logger, latency = 0.05)
+      case "Mac OS X" =>
+        new os.watch.macos.FSEventsWatcher(roots, onEvent0, filter, logger, latency = 0.05)
       case _ => new os.watch.WatchServiceWatcher(roots, onEvent0, filter, logger)
     }
 
@@ -75,8 +76,7 @@ package object watch {
       override def run(): Unit = {
         try {
           watcher.run()
-        }
-        catch {
+        } catch {
           case NonFatal(t) =>
             logger("EXCEPTION", t)
             Console.err.println(
@@ -100,8 +100,9 @@ package object watch {
   }
 
   private def waitUntilWatchIsSetUp(
-    sentinelFile: os.Path, setCustomOnEvent: Option[OnEvent] => Unit,
-    logger: (String, Any) => Unit
+      sentinelFile: os.Path,
+      setCustomOnEvent: Option[OnEvent] => Unit,
+      logger: (String, Any) => Unit
   ): Unit = {
     def writeSentinel() = os.write.over(
       sentinelFile,
@@ -118,9 +119,9 @@ package object watch {
     val timeoutNanos = timeout.toNanos
 
     def waitUntilPickedUp(
-      wasPickedUp: () => Boolean,
-      changeType: String,
-      afterSleep: () => Unit,
+        wasPickedUp: () => Boolean,
+        changeType: String,
+        afterSleep: () => Unit
     ): Unit = {
       logger(s"WAITING FOR SENTINEL TO BE PICKED UP ($changeType)", sentinelFile)
       val start = System.nanoTime()
@@ -129,7 +130,7 @@ package object watch {
         if (taken >= timeoutNanos)
           throw new TimeoutException(
             s"can't set up watch, no file system changes detected (expected $changeType) within $timeout " +
-            s"for sentinel file $sentinelFile"
+              s"for sentinel file $sentinelFile"
           )
         Thread.sleep(5)
 
@@ -151,8 +152,7 @@ package object watch {
         changeType = "write",
         afterSleep = writeSentinel
       )
-    }
-    finally {
+    } finally {
       @volatile var pickedUp = false
       setCustomOnEvent(Some { changed =>
         if (changed.contains(sentinelFile)) pickedUp = true
@@ -165,8 +165,7 @@ package object watch {
           changeType = "removal",
           afterSleep = () => {}
         )
-      }
-      finally {
+      } finally {
         setCustomOnEvent(None)
       }
     }

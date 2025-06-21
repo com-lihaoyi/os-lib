@@ -23,7 +23,8 @@ object WatchTests extends TestSuite with TestSuite.Retries {
 
     def withWatcher[A](f: => A) = {
       val watcher = _root_.os.watch.watch(
-        Seq(wd), onEvent = onEvent,
+        Seq(wd),
+        onEvent = onEvent
 //        logger = (str, value) => println(s"$str $value")
       )
       try f
@@ -241,7 +242,7 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       //      println(s"Watching $wd")
       val watcher = os.watch.watch(
         Seq(wd),
-        onEvent = paths => changedPaths ++= paths,
+        onEvent = paths => changedPaths ++= paths
         //        logger = (evt, data) => println(s"$evt $data")
       )
       try {
@@ -264,8 +265,7 @@ object WatchTests extends TestSuite with TestSuite.Retries {
         val missingChanges = willChange -- changedPaths
         val missingChangeCount = missingChanges.size
         assert(missingChangeCount == 0)
-      }
-      finally {
+      } finally {
         watcher.close()
       }
     }
@@ -289,7 +289,8 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       test("inManyFoldersLargest") - _root_.test.os.TestUtil.prep { wd =>
         // On macOS this always fails, some changes are lost with that many files.
         if (!isMac) {
-          val numPaths = 12000 // My Linux machine starts overflowing and losing events at 13k files.
+          val numPaths =
+            12000 // My Linux machine starts overflowing and losing events at 13k files.
           val paths = createManyFilesInManyFolders(wd, numPaths)
           testManyFilesInManyFolders(wd, paths)
         }
@@ -374,8 +375,7 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       try {
         val futures = (0 to 100).map { _ => Future(res.close()) }
         futures.foreach(Await.result(_, 20.seconds))
-      }
-      finally {
+      } finally {
         res.close()
       }
     }
@@ -391,10 +391,10 @@ object WatchTests extends TestSuite with TestSuite.Retries {
    * @throws IllegalArgumentException if N is negative, or maxNestingDepth is negative.
    */
   def generateNRandomPaths(
-    count: Int,
-    baseSubdirectory: Path,
-    maxNestingDepth: Int = 5,
-    random: Random
+      count: Int,
+      baseSubdirectory: Path,
+      maxNestingDepth: Int = 5,
+      random: Random
   ): Vector[Path] = {
     def randomAlphanumeric(length: Int): String =
       random.alphanumeric.take(length).mkString
@@ -418,7 +418,8 @@ object WatchTests extends TestSuite with TestSuite.Retries {
     }
 
     if (count < 0) throw new IllegalArgumentException("Number of paths cannot be negative.")
-    if (maxNestingDepth < 0) throw new IllegalArgumentException("maxNestingDepth cannot be negative.")
+    if (maxNestingDepth < 0)
+      throw new IllegalArgumentException("maxNestingDepth cannot be negative.")
 
     Vector.fill(count)(generateSingleRandomPath(baseSubdirectory))
   }

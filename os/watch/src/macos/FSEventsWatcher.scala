@@ -49,8 +49,7 @@ class FSEventsWatcher(
 //        logger("FSEVENT paths", paths.toVector)
 //        logger("FSEVENT nested paths", nestedPaths.toVector)
         onEvent((paths.iterator ++ nestedPaths.iterator).toSet)
-      }
-      catch {
+      } catch {
         case e: Throwable =>
           logger("FSEVENT CALLBACK ERROR", e)
       }
@@ -74,7 +73,9 @@ class FSEventsWatcher(
     val pathsToWatchCfStrings = NativeUtils.assertAllSome(
       srcs.iterator.map(path => CFStringRef(path.toString)).toArray,
       CFRelease
-    ).getOrElse(throw new IllegalStateException(s"Can't create CFStrings for $srcs, some values were null"))
+    ).getOrElse(throw new IllegalStateException(
+      s"Can't create CFStrings for $srcs, some values were null"
+    ))
     try {
       val pathsToWatchArrayRef = CFArrayCreate(pathsToWatchCfStrings.map(_.getPointer)).getOrElse(
         throw new IllegalStateException(s"CFArrayCreate returned null for $srcs")
@@ -86,9 +87,9 @@ class FSEventsWatcher(
           sinceWhen = -1,
           latency,
           flags =
-          // Flags defined at https://developer.apple.com/documentation/coreservices/1455376-fseventstreamcreateflags?language=objc
-          //
-          // File-level notifications https://developer.apple.com/documentation/coreservices/1455376-fseventstreamcreateflags/kfseventstreamcreateflagfileevents?language=objc
+            // Flags defined at https://developer.apple.com/documentation/coreservices/1455376-fseventstreamcreateflags?language=objc
+            //
+            // File-level notifications https://developer.apple.com/documentation/coreservices/1455376-fseventstreamcreateflags/kfseventstreamcreateflagfileevents?language=objc
             0x00000010 |
               // Don't defer https://developer.apple.com/documentation/coreservices/1455376-fseventstreamcreateflags/kfseventstreamcreateflagnodefer?language=objc
               0x00000002
@@ -104,16 +105,11 @@ class FSEventsWatcher(
                 // simplicity.
                 signal.synchronized(signal.wait())
               }
-            }
-            finally FSEventStreamInvalidate(streamRef)
-          }
-          finally dispatch_release(queue)
-        }
-        finally FSEventStreamRelease(streamRef)
-      }
-      finally CFRelease(pathsToWatchArrayRef)
-    }
-    finally pathsToWatchCfStrings.foreach(CFRelease)
+            } finally FSEventStreamInvalidate(streamRef)
+          } finally dispatch_release(queue)
+        } finally FSEventStreamRelease(streamRef)
+      } finally CFRelease(pathsToWatchArrayRef)
+    } finally pathsToWatchCfStrings.foreach(CFRelease)
   }
 
   /** This is thread-safe and idempotent. */

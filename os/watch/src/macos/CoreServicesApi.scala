@@ -129,7 +129,8 @@ trait CoreServicesApi extends Library {
    * void FSEventStreamStop(FSEventStreamRef streamRef);
    * }}}
    *
-   * @see https://developer.apple.com/documentation/coreservices/1447673-fseventstreamstop?language=objc */
+   * @see https://developer.apple.com/documentation/coreservices/1447673-fseventstreamstop?language=objc
+   */
   def FSEventStreamStop(streamRef: FSEventStreamRef): Unit
 
   /** @see https://developer.apple.com/documentation/coreservices/1446990-fseventstreaminvalidate?language=objc */
@@ -178,7 +179,8 @@ object CFStringRef {
   /**
    * @return An immutable string containing chars, or [[None]] if there was a problem creating the object.
    */
-  def apply(s: String): Option[CFStringRef] = CoreServicesApi.INSTANCE.CFStringCreateWithCharacters(s.toCharArray)
+  def apply(s: String): Option[CFStringRef] =
+    CoreServicesApi.INSTANCE.CFStringCreateWithCharacters(s.toCharArray)
 }
 
 /**

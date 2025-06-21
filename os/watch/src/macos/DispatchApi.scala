@@ -26,5 +26,5 @@ trait DispatchApi extends Library {
  * Objective-C definition: `typedef NSObject<OS_dispatch_queue> * dispatch_queue_t;`
  *
  * @see https://developer.apple.com/documentation/dispatch/dispatch_queue_t?language=objc
- **/
+ */
 class dispatch_queue_t extends PointerType
