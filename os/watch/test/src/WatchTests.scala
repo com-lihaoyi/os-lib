@@ -18,33 +18,82 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       0
     }
 
+  class ChangedPaths(wd: os.Path) {
+    private val changed = collection.mutable.Set.empty[os.Path]
+
+    def withWatcher[A](f: => A) = {
+      val watcher = _root_.os.watch.watch(
+        Seq(wd), onEvent = onEvent,
+//        logger = (str, value) => println(s"$str $value")
+      )
+      try f
+      finally watcher.close()
+    }
+
+    def onEvent(paths: Set[os.Path]): Unit = synchronized {
+      changed ++= paths
+    }
+
+    def clear(): Unit = synchronized {
+      changed.clear()
+    }
+
+    def checkChanges(action: => Unit, expectedChangedPaths: Set[os.SubPath]) = {
+      synchronized { changed.clear() }
+      action
+      Thread.sleep(200)
+      val changedSubPaths = synchronized { changed.map(_.subRelativeTo(wd)) }
+
+      // on Windows sometimes we get more changes
+      if (isWin) assert(expectedChangedPaths.subsetOf(changedSubPaths))
+      else assert(expectedChangedPaths == changedSubPaths)
+    }
+  }
+  object ChangedPaths {
+    def apply[A](wd: os.Path)(f: ChangedPaths => A) = {
+      val changedPaths = new ChangedPaths(wd)
+      changedPaths.withWatcher(f(changedPaths))
+    }
+  }
+
   val tests = Tests {
+    // Watching a non-existent folder throws
     test("nonExistentFolder") - _root_.test.os.TestUtil.prep { wd =>
       intercept[IllegalArgumentException] {
         _root_.os.watch.watch(Seq(wd / "does-not-exist"), onEvent = _ => ())
       }
     }
 
-    test("emptyFolder") - _root_.test.os.TestUtil.prep { wd =>
-      val folder = wd / "empty"
-      os.makeDir.all(folder)
-      val filesBefore = os.list(folder)
-      assert(filesBefore.isEmpty)
-      val watcher = _root_.os.watch.watch(Seq(folder), onEvent = _ => ())
-      val files = os.list(folder)
-      assert(files.isEmpty)
-      watcher.close()
+    test("emptyFolder") {
+      // Watching an empty folder does not leave a sentinel file there.
+      test("doesNotLeaveSentinel") - _root_.test.os.TestUtil.mkDir { wd =>
+        val filesBefore = os.list(wd)
+        assert(filesBefore.isEmpty)
+
+        ChangedPaths(wd) { _ =>
+          val files = os.list(wd)
+          assert(files.isEmpty)
+        }
+      }
+
+      // Watching an empty folder only emits events for the file we change and not the sentinel
+      test("singleFileChangeManyTimes") - _root_.test.os.TestUtil.mkDir { wd =>
+        val file = wd / "the-file"
+        os.write(file, "hello")
+        ChangedPaths(wd) { changedPaths =>
+          (0 to 20).foreach { idx =>
+            println(s"#$idx")
+            changedPaths.checkChanges(
+              os.write.over(file, s"#$idx: ${Random.nextInt()}"),
+              Set(file.subRelativeTo(wd))
+            )
+          }
+        }
+      }
     }
 
     test("singleFolder") - _root_.test.os.TestUtil.prep { wd =>
-      val changedPaths = collection.mutable.Set.empty[os.Path]
-      val watcher = _root_.os.watch.watch(
-        Seq(wd),
-        onEvent = _.foreach(changedPaths.add),
-        //        logger = (str, value) => println(s"$str $value")
-      )
-
-      try {
+      ChangedPaths(wd) { changedPaths =>
         //      os.write(wd / "lols", "")
         //      Thread.sleep(100)
 
@@ -52,50 +101,40 @@ object WatchTests extends TestSuite with TestSuite.Retries {
 
         def checkFileManglingChanges(p: os.Path) = {
 
-          checkChanges(
+          changedPaths.checkChanges(
             os.write(p, Random.nextString(100)),
             Set(p.subRelativeTo(wd))
           )
 
-          checkChanges(
+          changedPaths.checkChanges(
             os.write.append(p, "hello"),
             Set(p.subRelativeTo(wd))
           )
 
-          checkChanges(
+          changedPaths.checkChanges(
             os.write.over(p, "world"),
             Set(p.subRelativeTo(wd))
           )
 
-          checkChanges(
+          changedPaths.checkChanges(
             os.truncate(p, 1),
             Set(p.subRelativeTo(wd))
           )
 
-          checkChanges(
+          changedPaths.checkChanges(
             os.remove(p),
             Set(p.subRelativeTo(wd))
           )
         }
 
-        def checkChanges(action: => Unit, expectedChangedPaths: Set[os.SubPath]) = synchronized {
-          changedPaths.clear()
-          action
-          Thread.sleep(200)
-          val changedSubPaths = changedPaths.map(_.subRelativeTo(wd))
-          // on Windows sometimes we get more changes
-          if (isWin) assert(expectedChangedPaths.subsetOf(changedSubPaths))
-          else assert(expectedChangedPaths == changedSubPaths)
-        }
-
         checkFileManglingChanges(wd / "test")
 
-        checkChanges(
+        changedPaths.checkChanges(
           os.remove(wd / "File.txt"),
           Set(os.sub / "File.txt")
         )
 
-        checkChanges(
+        changedPaths.checkChanges(
           os.makeDir(wd / "my-new-folder"),
           Set(os.sub / "my-new-folder")
         )
@@ -115,13 +154,13 @@ object WatchTests extends TestSuite with TestSuite.Retries {
             os.sub / "folder3/nestedB",
             os.sub / "folder3/nestedB/b.txt"
           )
-          checkChanges(
+          changedPaths.checkChanges(
             os.move(wd / "folder2", wd / "folder3"),
             expectedChanges
           )
         }
 
-        checkChanges(
+        changedPaths.checkChanges(
           os.copy(wd / "folder3", wd / "folder4"),
           Set(
             os.sub / "folder4",
@@ -132,7 +171,7 @@ object WatchTests extends TestSuite with TestSuite.Retries {
           )
         )
 
-        checkChanges(
+        changedPaths.checkChanges(
           os.remove.all(wd / "folder4"),
           Set(
             os.sub / "folder4",
@@ -146,17 +185,17 @@ object WatchTests extends TestSuite with TestSuite.Retries {
         checkFileManglingChanges(wd / "folder3/nestedA/double-nested-file")
         checkFileManglingChanges(wd / "folder3/nestedB/double-nested-file")
 
-        checkChanges(
+        changedPaths.checkChanges(
           os.symlink(wd / "newlink", wd / "doesntexist"),
           Set(os.sub / "newlink")
         )
 
-        checkChanges(
+        changedPaths.checkChanges(
           os.symlink(wd / "newlink2", wd / "folder3"),
           Set(os.sub / "newlink2")
         )
 
-        checkChanges(
+        changedPaths.checkChanges(
           os.hardlink(wd / "newlink3", wd / "folder3/nestedA/a.txt"),
           System.getProperty("os.name") match {
             case "Mac OS X" =>
@@ -168,9 +207,6 @@ object WatchTests extends TestSuite with TestSuite.Retries {
             case _ => Set(os.sub / "newlink3")
           }
         )
-      }
-      finally {
-        watcher.close()
       }
     }
 
@@ -187,17 +223,17 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       val changedPaths = collection.mutable.Set.empty[os.Path]
 
       def waitUntilFinished(): Unit = {
-        val timeout = 500
+        val timeoutMs = 500
         //        print("Waiting for events to stop coming")
         //        System.out.flush()
         var last = changedPaths.size
-        Thread.sleep(timeout)
+        Thread.sleep(timeoutMs)
         var current = last
         while ({ current = changedPaths.size; last != current }) {
           last = current
           //          print(".")
           //          System.out.flush()
-          Thread.sleep(timeout)
+          Thread.sleep(timeoutMs)
         }
         //        println(" Done.")
       }

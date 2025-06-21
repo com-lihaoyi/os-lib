@@ -7,6 +7,7 @@ import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
 package object watch {
+  type OnEvent = Set[os.Path] => Unit
 
   /**
    * Efficiently watches the given `roots` folders for changes. Note that these folders need
@@ -41,7 +42,7 @@ package object watch {
    */
   def watch(
     roots: Seq[os.Path],
-    onEvent: Set[os.Path] => Unit,
+    onEvent: OnEvent,
     logger: (String, Any) => Unit = (_, _) => (),
     filter: os.Path => Boolean = _ => true
   ): AutoCloseable = {
@@ -56,17 +57,12 @@ package object watch {
     }
 
     val sentinelFiles = roots.iterator.map(_ / s".os-lib-watch-sentinel-${UUID.randomUUID()}").toSet
-    val notPickedUpSentinelFiles = collection.mutable.Set.empty[os.Path]
-    notPickedUpSentinelFiles ++= sentinelFiles
+    @volatile var customOnEvent: Option[OnEvent] = None
 
     def onEvent0(changed: Set[os.Path]): Unit = {
-      if (notPickedUpSentinelFiles.isEmpty) {
-        // All sentinels have been picked up, resume normal operation
-        onEvent(changed)
-      }
-      else {
-        // Wait for all sentinels to be picked up
-        changed.foreach(notPickedUpSentinelFiles.remove)
+      customOnEvent match {
+        case Some(f) => f(changed)
+        case None => onEvent(changed)
       }
     }
 
@@ -95,34 +91,84 @@ package object watch {
     thread.start()
 
     logger("WAITING FOR SENTINELS", sentinelFiles)
-    sentinelFiles.foreach(p => waitUntilWatchIsSetUp(p, () => !notPickedUpSentinelFiles.contains(p)))
+    sentinelFiles.foreach { sentinel =>
+      waitUntilWatchIsSetUp(sentinel, customOnEvent = _, logger)
+    }
     logger("SENTINELS PICKED UP", sentinelFiles)
 
     watcher
   }
 
-  private def waitUntilWatchIsSetUp(sentinelFile: os.Path, wasPickedUp: () => Boolean): Unit = {
-    def writeSentinel() =
-      os.write.over(sentinelFile, Random.nextLong().toString)
+  private def waitUntilWatchIsSetUp(
+    sentinelFile: os.Path, setCustomOnEvent: Option[OnEvent] => Unit,
+    logger: (String, Any) => Unit
+  ): Unit = {
+    def writeSentinel() = os.write.over(
+      sentinelFile,
+      s"""This file was created because Scala `os-lib` library is trying to set up a watch for this
+         |directory. It is automatically deleted when the watch is set up.
+         |
+         |If you are seeing this file, it means that the watch is not being set up correctly.
+         |
+         |Raise an issue at https://github.com/lihaoyi/os-lib/issues
+         |""".stripMargin
+    )
 
-    try {
-      writeSentinel()
-      val timeout = 5.seconds
-      val timeoutNanos = timeout.toNanos
+    val timeout = 5.seconds
+    val timeoutNanos = timeout.toNanos
+
+    def waitUntilPickedUp(
+      wasPickedUp: () => Boolean,
+      changeType: String,
+      afterSleep: () => Unit,
+    ): Unit = {
+      logger(s"WAITING FOR SENTINEL TO BE PICKED UP ($changeType)", sentinelFile)
       val start = System.nanoTime()
       while (!wasPickedUp()) {
         val taken = System.nanoTime() - start
         if (taken >= timeoutNanos)
           throw new TimeoutException(
-            s"can't set up watch, no file system changes detected within $timeout for sentinel file $sentinelFile"
+            s"can't set up watch, no file system changes detected (expected $changeType) within $timeout " +
+            s"for sentinel file $sentinelFile"
           )
         Thread.sleep(5)
 
-        writeSentinel()
+        afterSleep()
       }
+      logger(s"SENTINEL PICKED UP ($changeType)", sentinelFile)
+    }
+
+    try {
+      logger("WRITING SENTINEL", sentinelFile)
+      @volatile var pickedUp = false
+      setCustomOnEvent(Some { changed =>
+        if (changed.contains(sentinelFile)) pickedUp = true
+      })
+      writeSentinel()
+
+      waitUntilPickedUp(
+        wasPickedUp = () => pickedUp,
+        changeType = "write",
+        afterSleep = writeSentinel
+      )
     }
     finally {
-      os.remove(sentinelFile)
+      @volatile var pickedUp = false
+      setCustomOnEvent(Some { changed =>
+        if (changed.contains(sentinelFile)) pickedUp = true
+      })
+      try {
+        logger("REMOVING SENTINEL", sentinelFile)
+        os.remove(sentinelFile)
+        waitUntilPickedUp(
+          wasPickedUp = () => pickedUp,
+          changeType = "removal",
+          afterSleep = () => {}
+        )
+      }
+      finally {
+        setCustomOnEvent(None)
+      }
     }
   }
 }

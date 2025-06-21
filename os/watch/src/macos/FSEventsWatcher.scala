@@ -47,8 +47,8 @@ class FSEventsWatcher(
             }
           }
         }
-//        logger("FSEVENT paths", paths.mkString(", "))
-//        logger("FSEVENT nested paths", nestedPaths.mkString(", "))
+//        logger("FSEVENT paths", paths.toVector)
+//        logger("FSEVENT nested paths", nestedPaths.toVector)
         onEvent((paths.iterator ++ nestedPaths.iterator).toSet)
       }
       catch {
