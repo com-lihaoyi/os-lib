@@ -38,7 +38,8 @@ object TestUtil {
     str1Normalized == str2Normalized
   }
 
-  def prep[T](f: os.Path => T)(implicit tp: TestPath, fn: sourcecode.FullName) = {
+  /** Creates a temporary directory for the current test. */
+  def mkDir[T](f: os.Path => T)(implicit tp: TestPath, fn: sourcecode.FullName) = {
     val segments = Seq("out", "scratch") ++ fn.value.split('.').drop(2) ++ tp.value
 
     val directory = Paths.get(segments.mkString("/"))
@@ -58,6 +59,15 @@ object TestUtil {
       }
     )
 
+    val wd = os.Path(directory.toAbsolutePath)
+    os.makeDir.all.apply(wd)
+    f(wd)
+  }
+
+  /** Populates the directory with test resources. */
+  def populate[T](directory: Path)(implicit tp: TestPath, fn: sourcecode.FullName): Unit = {
+    if (os.exists(os.Path(directory))) os.remove.all(os.Path(directory))
+
     val original = Paths.get(sys.env("OS_TEST_RESOURCE_FOLDER"), "test")
     Files.walkFileTree(
       original,
@@ -73,8 +83,14 @@ object TestUtil {
         }
       }
     )
+  }
 
-    f(os.Path(directory.toAbsolutePath))
+  /** Creates a temporary directory for the current test and populates it with test resources. */
+  def prep[T](f: os.Path => T)(implicit tp: TestPath, fn: sourcecode.FullName) = {
+    mkDir { wd =>
+      populate(wd.toNIO)
+      f(wd)
+    }
   }
 
   def prepChecker[T](f: os.Path => T)(implicit tp: TestPath, fn: sourcecode.FullName): T =
