@@ -18,13 +18,16 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       0
     }
 
-  class ChangedPaths(wd: os.Path) {
+  class ChangedPaths(wd: os.Path, filter: os.Path => Boolean = _ => true) {
     private val changed = collection.mutable.Set.empty[os.Path]
+
+    def withFilter(f: os.Path => Boolean) = new ChangedPaths(wd, filter = f)
 
     def withWatcher[A](f: => A) = {
       val watcher = _root_.os.watch.watch(
         Seq(wd),
-        onEvent = onEvent
+        onEvent = onEvent,
+        filter = filter
 //        logger = (str, value) => println(s"$str $value")
       )
       try f
@@ -51,8 +54,12 @@ object WatchTests extends TestSuite with TestSuite.Retries {
     }
   }
   object ChangedPaths {
-    def apply[A](wd: os.Path)(f: ChangedPaths => A) = {
-      val changedPaths = new ChangedPaths(wd)
+    def apply[A](wd: os.Path)(f: ChangedPaths => A): A =
+      apply(wd, identity)(f)
+
+    def apply[A](wd: os.Path, mod: ChangedPaths => ChangedPaths)(f: ChangedPaths => A): A = {
+      val changedPaths0 = new ChangedPaths(wd)
+      val changedPaths = mod(changedPaths0)
       changedPaths.withWatcher(f(changedPaths))
     }
   }
@@ -72,6 +79,17 @@ object WatchTests extends TestSuite with TestSuite.Retries {
         assert(filesBefore.isEmpty)
 
         ChangedPaths(wd) { _ =>
+          val files = os.list(wd)
+          assert(files.isEmpty)
+        }
+      }
+
+      // Sentinel file creation works even when filter is set
+      test("worksWithFilter") - _root_.test.os.TestUtil.mkDir { wd =>
+        val filesBefore = os.list(wd)
+        assert(filesBefore.isEmpty)
+
+        ChangedPaths(wd, _.withFilter(_ => false /* ignore everything */)) { _ =>
           val files = os.list(wd)
           assert(files.isEmpty)
         }

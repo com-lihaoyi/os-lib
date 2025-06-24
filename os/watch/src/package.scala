@@ -7,8 +7,8 @@ import scala.concurrent.duration._
 import scala.util.control.NonFatal
 
 package object watch {
-  type OnEvent = Set[os.Path] => Unit
-
+  private type OnEvent = Set[os.Path] => Unit
+  
   /**
    * Efficiently watches the given `roots` folders for changes. Note that these folders need
    * to exist before the method is called.
@@ -42,7 +42,7 @@ package object watch {
    */
   def watch(
       roots: Seq[os.Path],
-      onEvent: OnEvent,
+      onEvent: Set[os.Path] => Unit,
       logger: (String, Any) => Unit = (_, _) => (),
       filter: os.Path => Boolean = _ => true
   ): AutoCloseable = {
@@ -57,20 +57,17 @@ package object watch {
     }
 
     val sentinelFiles = roots.iterator.map(_ / s".os-lib-watch-sentinel-${UUID.randomUUID()}").toSet
-    @volatile var customOnEvent: Option[OnEvent] = None
 
-    def onEvent0(changed: Set[os.Path]): Unit = {
-      customOnEvent match {
-        case Some(f) => f(changed)
-        case None => onEvent(changed)
-      }
-    }
+    @volatile var customOnEvent: OnEvent = onEvent
+    // Needed because the function passed to the watcher implementation is stable and we need to change it
+    // upon every call.
+    val onEvent0: OnEvent = paths => customOnEvent(paths)
 
-    val watcher = System.getProperty("os.name") match {
-      case "Mac OS X" =>
-        new os.watch.macos.FSEventsWatcher(roots, onEvent0, filter, logger, latency = 0.05)
-      case _ => new os.watch.WatchServiceWatcher(roots, onEvent0, filter, logger)
+    val watcherEither = System.getProperty("os.name") match {
+      case "Mac OS X" => Left(new os.watch.macos.FSEventsWatcher(roots, onEvent0, filter, logger, latency = 0.05))
+      case _ => Right(new os.watch.WatchServiceWatcher(roots, onEvent0, filter, logger))
     }
+    val watcher = watcherEither.merge
 
     val thread = new Thread {
       override def run(): Unit = {
@@ -92,7 +89,18 @@ package object watch {
 
     logger("WAITING FOR SENTINELS", sentinelFiles)
     sentinelFiles.foreach { sentinel =>
-      waitUntilWatchIsSetUp(sentinel, customOnEvent = _, logger)
+      waitUntilWatchIsSetUp(sentinel, setCustomOnEvent = {
+        case Some(custom) => customOnEvent = custom
+        case None => customOnEvent = onEvent
+      }, logger)
+    }
+    watcherEither match {
+      case Left(macWatcher) =>
+        // Apply the actual filter once watch has been set up
+        macWatcher.sentinelsPickedUp()
+      case Right(_) =>
+        // nothing is necessary as `filter` for this watcher is only used for filtering out watched subdirectories
+        // and thus does not need to be updated
     }
     logger("SENTINELS PICKED UP", sentinelFiles)
 
