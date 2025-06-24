@@ -89,7 +89,7 @@ object WatchTests extends TestSuite with TestSuite.Retries {
         val filesBefore = os.list(wd)
         assert(filesBefore.isEmpty)
 
-        ChangedPaths(wd, _.withFilter(_ => false /* ignore everything */)) { _ =>
+        ChangedPaths(wd, _.withFilter(_ => false /* ignore everything */ )) { _ =>
           val files = os.list(wd)
           assert(files.isEmpty)
         }

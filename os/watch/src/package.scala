@@ -8,7 +8,7 @@ import scala.util.control.NonFatal
 
 package object watch {
   private type OnEvent = Set[os.Path] => Unit
-  
+
   /**
    * Efficiently watches the given `roots` folders for changes. Note that these folders need
    * to exist before the method is called.
@@ -64,7 +64,8 @@ package object watch {
     val onEvent0: OnEvent = paths => customOnEvent(paths)
 
     val watcherEither = System.getProperty("os.name") match {
-      case "Mac OS X" => Left(new os.watch.macos.FSEventsWatcher(roots, onEvent0, filter, logger, latency = 0.05))
+      case "Mac OS X" =>
+        Left(new os.watch.macos.FSEventsWatcher(roots, onEvent0, filter, logger, latency = 0.05))
       case _ => Right(new os.watch.WatchServiceWatcher(roots, onEvent0, filter, logger))
     }
     val watcher = watcherEither.merge
@@ -89,18 +90,22 @@ package object watch {
 
     logger("WAITING FOR SENTINELS", sentinelFiles)
     sentinelFiles.foreach { sentinel =>
-      waitUntilWatchIsSetUp(sentinel, setCustomOnEvent = {
-        case Some(custom) => customOnEvent = custom
-        case None => customOnEvent = onEvent
-      }, logger)
+      waitUntilWatchIsSetUp(
+        sentinel,
+        setCustomOnEvent = {
+          case Some(custom) => customOnEvent = custom
+          case None => customOnEvent = onEvent
+        },
+        logger
+      )
     }
     watcherEither match {
       case Left(macWatcher) =>
         // Apply the actual filter once watch has been set up
         macWatcher.sentinelsPickedUp()
       case Right(_) =>
-        // nothing is necessary as `filter` for this watcher is only used for filtering out watched subdirectories
-        // and thus does not need to be updated
+      // nothing is necessary as `filter` for this watcher is only used for filtering out watched subdirectories
+      // and thus does not need to be updated
     }
     logger("SENTINELS PICKED UP", sentinelFiles)
 
