@@ -1,13 +1,11 @@
+//| mvnDeps:
+//| - com.github.lolgab::mill-mima_mill1.0.0-RC1:0.2.0-M1
 package build
-// plugins
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
-import $ivy.`com.github.lolgab::mill-mima::0.1.1`
 
 // imports
 import mill._, scalalib._, scalanativelib._, publish._
-import mill.scalalib.api.ZincWorkerUtil
 import com.github.lolgab.mill.mima._
-import de.tobiasroeser.mill.vcs.version.VcsVersion
+import mill.main.VcsVersion
 
 val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 
@@ -20,38 +18,27 @@ val scalaVersions = Seq(
 ) ++ communityBuildDottyVersion
 
 object Deps {
-  val acyclic = ivy"com.lihaoyi:::acyclic:0.3.18"
-  val jna = ivy"net.java.dev.jna:jna:5.15.0"
-  val geny = ivy"com.lihaoyi::geny::1.1.1"
-  val ant = ivy"org.apache.ant:ant:1.10.15"
-  val sourcecode = ivy"com.lihaoyi::sourcecode::0.4.2"
-  val utest = ivy"com.lihaoyi::utest::0.8.4"
-  val expecty = ivy"com.eed3si9n.expecty::expecty::0.16.0"
-  def scalaReflect(scalaVersion: String) = ivy"org.scala-lang:scala-reflect:$scalaVersion"
-  def scalaLibrary(version: String) = ivy"org.scala-lang:scala-library:${version}"
+  val acyclic = mvn"com.lihaoyi:::acyclic:0.3.18"
+  val jna = mvn"net.java.dev.jna:jna:5.15.0"
+  val geny = mvn"com.lihaoyi::geny::1.1.1"
+  val ant = mvn"org.apache.ant:ant:1.10.15"
+  val sourcecode = mvn"com.lihaoyi::sourcecode::0.4.2"
+  val utest = mvn"com.lihaoyi::utest::0.8.4"
+  val expecty = mvn"com.eed3si9n.expecty::expecty::0.16.0"
+  def scalaReflect(scalaVersion: String) = mvn"org.scala-lang:scala-reflect:$scalaVersion"
+  def scalaLibrary(version: String) = mvn"org.scala-lang:scala-library:${version}"
 }
 
 trait AcyclicModule extends ScalaModule {
-  def acyclicDep: T[Agg[Dep]] = T {
-    Agg.from(Option.when(!ZincWorkerUtil.isScala3(scalaVersion()))(Deps.acyclic))
+  def acyclicDep: T[Seq[Dep]] = Task {
+    Option.when(!scalaVersion().startsWith("3."))(Deps.acyclic).toSeq
   }
-  def acyclicOptions: T[Seq[String]] = T {
-    Option.when(!ZincWorkerUtil.isScala3(scalaVersion()))("-P:acyclic:force").toSeq
+  def acyclicOptions: T[Seq[String]] = Task {
+    Option.when(!scalaVersion().startsWith("3."))("-P:acyclic:force").toSeq
   }
-  def compileIvyDeps = acyclicDep
-  def scalacPluginIvyDeps = acyclicDep
+  def compileMvnDeps = acyclicDep
+  def scalacPluginMvnDeps = acyclicDep
   def scalacOptions = super.scalacOptions() ++ acyclicOptions()
-}
-
-trait SafeDeps extends ScalaModule {
-  def mapDependencies: Task[coursier.Dependency => coursier.Dependency] = T.task {
-    val sd = Deps.scalaLibrary(scala213Version)
-    super.mapDependencies().andThen { d =>
-      // enforce up-to-date Scala 2.13.x version
-      if (d.module == sd.dep.module && d.version.startsWith("2.13.")) sd.dep
-      else d
-    }
-  }
 }
 
 trait MiMaChecks extends Mima {
@@ -100,11 +87,10 @@ trait OsLibModule
     extends OsLibPublishModule
     with CrossScalaModule
     with AcyclicModule
-    with SafeDeps
     with PlatformScalaModule { outer =>
 
-  trait OsLibTestModule extends ScalaModule with TestModule.Utest with SafeDeps {
-    def ivyDeps = Agg(Deps.utest, Deps.sourcecode)
+  trait OsLibTestModule extends ScalaModule with TestModule.Utest {
+    def mvnDeps = Seq(Deps.utest, Deps.sourcecode)
     // we check the textual output of system commands and expect it in english
     def forkEnv = super.forkEnv() ++ Map(
       "LC_ALL" -> "C",
@@ -115,12 +101,12 @@ trait OsLibModule
 }
 
 trait OsModule extends OsLibModule { outer =>
-  def ivyDeps = Agg(Deps.geny)
-  override def compileIvyDeps = T {
-    val scalaReflectOpt = Option.when(!ZincWorkerUtil.isDottyOrScala3(scalaVersion()))(
+  def mvnDeps = Seq(Deps.geny)
+  override def compileMvnDeps = Task {
+    val scalaReflectOpt = Option.when(!scalaVersion().startsWith("3."))(
       Deps.scalaReflect(scalaVersion())
     )
-    super.compileIvyDeps() ++ scalaReflectOpt
+    super.compileMvnDeps() ++ scalaReflectOpt
   }
 
   def artifactName = "os-lib"
@@ -131,8 +117,8 @@ trait OsModule extends OsLibModule { outer =>
     s".*geny.*::scaladoc3::https://javadoc.io/doc/com.lihaoyi/geny_3/${Deps.geny.dep.version}/"
   ).mkString(",")
 
-  def conditionalScalaDocOptions: T[Seq[String]] = T {
-    if (ZincWorkerUtil.isDottyOrScala3(scalaVersion()))
+  def conditionalScalaDocOptions: T[Seq[String]] = Task {
+    if (scalaVersion().startsWith("3."))
       Seq(
         s"-external-mappings:${scalaDocExternalMappings}"
       )
@@ -141,7 +127,7 @@ trait OsModule extends OsLibModule { outer =>
 
   def scalaDocOptions = super.scalaDocOptions() ++ conditionalScalaDocOptions()
 
-  def generatedSources = T {
+  def generatedSources = Task {
     val conversions = for (i <- Range.inclusive(2, 22)) yield {
       val ts = Range.inclusive(1, i).map(n => s"T$n").mkString(", ")
       val fs = Range.inclusive(1, i).map(n => s"f$n: T$n => R").mkString(", ")
@@ -154,7 +140,7 @@ trait OsModule extends OsLibModule { outer =>
          |""".stripMargin
     }
     _root_.os.write(
-      T.dest / "os" / "GeneratedTupleConversions.scala",
+      Task.dest / "os" / "GeneratedTupleConversions.scala",
       s"""package os
          |trait GeneratedTupleConversions[R]{
          |  protected def flatten(vs: R*): R
@@ -164,7 +150,7 @@ trait OsModule extends OsLibModule { outer =>
          |""".stripMargin,
       createFolders = true
     )
-    Seq(PathRef(T.dest))
+    Seq(PathRef(Task.dest))
   }
 }
 
@@ -175,7 +161,7 @@ object os extends Module {
     def moduleDeps = super.moduleDeps ++ Seq(os.zip)
 
     object test extends ScalaTests with OsLibTestModule {
-      override def ivyDeps = T { super.ivyDeps() ++ Agg(Deps.expecty) }
+      override def mvnDeps = Task { super.mvnDeps() ++ Seq(Deps.expecty) }
 
       // we check the textual output of system commands and expect it in english
       def forkEnv = super.forkEnv() ++ Map(
@@ -229,9 +215,9 @@ object os extends Module {
      * To avoid classpath conflicts, the dependency is shaded and compiled from source. Only the `org.apache.tools.zip`
      * package, not the entire Ant codebase, is needed. This only adds < 100kb to Os-Lib jar size.
      */
-    def generatedSources = T {
+    def generatedSources = Task {
       val pkg = "os.shaded_org_apache_tools_zip"
-      val zipSrc = T.dest / "os/shaded_org_apache_tools_zip"
+      val zipSrc = Task.dest / "os/shaded_org_apache_tools_zip"
       _root_.os.makeDir.all(zipSrc)
 
       // Move from "package org.apache.tools.zip" to "package os.shaded_org_apache_tools_zip"
@@ -244,7 +230,7 @@ object os extends Module {
           _root_.os.write(zipSrc / p.last, content)
         }
 
-      Seq(PathRef(T.dest))
+      Seq(PathRef(Task.dest))
     }
   }
 
@@ -262,7 +248,7 @@ object os extends Module {
     trait WatchJvmModule extends OsLibModule {
       def artifactName = "os-lib-watch"
       def moduleDeps = super.moduleDeps ++ Seq(os.jvm())
-      def ivyDeps = Agg(Deps.jna)
+      def mvnDeps = Seq(Deps.jna)
       object test extends ScalaTests with OsLibTestModule {
         def moduleDeps = super.moduleDeps ++ Seq(os.jvm().test)
 
