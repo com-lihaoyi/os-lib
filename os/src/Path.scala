@@ -620,6 +620,8 @@ class Path private[os] (val wrapped: java.nio.file.Path)
 
   def toIO: java.io.File = Path.pathSerializer.value.serializeFile(this)
   def toNIO: java.nio.file.Path = Path.pathSerializer.value.serializePath(this)
+  def toURI: java.net.URI = toNIO.toUri
+  def toURL: java.net.URL = toURI.toURL
 
   def resolveFrom(base: os.Path) = this
 
