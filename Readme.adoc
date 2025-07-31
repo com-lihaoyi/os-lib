@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.11.4
+:version: 0.11.5
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -2581,6 +2581,28 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+=== 0.11.5
+
+* Dropped support for Scala-Native, until [Fix and re-enable Scala-Native build (500USD Bounty)](https://github.com/com-lihaoyi/os-lib/issues/395)
+  is resolved. Scala-Native users can continue to use 0.11.4, but I need help maintaining the Scala-Native integration
+  of OS-Lib if we're going to continue supporting it going forward. See the linked ticket for more info
+
+* Properly support permissions and symlinks in Zip files and other improvements
+  [#374](https://github.com/com-lihaoyi/os-lib/issues/374)
+  [#387](https://github.com/com-lihaoyi/os-lib/issues/387)
+  [#388](https://github.com/com-lihaoyi/os-lib/issues/388)
+  [#369](https://github.com/com-lihaoyi/os-lib/issues/369)
+
+* Many improvements to the `os-lib-watch` module, improving stability and reliability
+  [#398](https://github.com/com-lihaoyi/os-lib/issues/398)
+  [#393](https://github.com/com-lihaoyi/os-lib/issues/393)
+
+* Fix destroyOnExit default forwarding, make destroy recursive by default
+  [#359](https://github.com/com-lihaoyi/os-lib/issues/359)
+
+* Added `os.Path#toURI` and `os.Path#toURL` helpers
+  [#399](https://github.com/com-lihaoyi/os-lib/issues/399)
 
 === 0.11.4
 
