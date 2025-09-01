@@ -476,6 +476,6 @@ object CheckerTests extends TestSuite {
       os.read(wd / "File.txt") ==> "I am"
     }
 
-  // JVM-only tests moved: zip/unzip permission checks now live in test/src-jvm/CheckerZipTests.scala
+    // JVM-only tests moved: zip/unzip permission checks now live in test/src-jvm/CheckerZipTests.scala
   }
 }
