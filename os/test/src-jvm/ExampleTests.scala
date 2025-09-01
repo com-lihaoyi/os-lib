@@ -52,17 +52,37 @@ object ExampleTests extends TestSuite {
     }
 
     test("curlToTempFile") - TestUtil.prep { wd =>
-      if (Unix()) {
+      if (Unix() && TestUtil.isInstalled("curl") && TestUtil.canFetchUrl(ExampleResourcess.RemoteReadme.url)) {
         // Curl to temporary file
         val temp = os.temp()
-        os.proc("curl", "-L", ExampleResourcess.RemoteReadme.url)
+        os.proc(
+          "curl",
+          "-sS",
+          "-L",
+          "--connect-timeout",
+          "5",
+          "--max-time",
+          "15",
+          ExampleResourcess.RemoteReadme.url
+        )
           .call(stdout = temp)
 
         os.size(temp) ==> ExampleResourcess.RemoteReadme.size
 
         // Curl to temporary file
         val temp2 = os.temp()
-        val proc = os.proc("curl", "-L", ExampleResourcess.RemoteReadme.url).spawn()
+        val proc = os
+          .proc(
+            "curl",
+            "-sS",
+            "-L",
+            "--connect-timeout",
+            "5",
+            "--max-time",
+            "15",
+            ExampleResourcess.RemoteReadme.url
+          )
+          .spawn()
 
         os.write.over(temp2, proc.stdout)
         os.size(temp2) ==> ExampleResourcess.RemoteReadme.size
