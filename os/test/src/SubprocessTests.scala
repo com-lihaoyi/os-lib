@@ -106,48 +106,50 @@ object SubprocessTests extends TestSuite {
       assert(res.out.text().trim() == charSequence.toString())
     }
 
-    test("envArgs") {
+    test("envArgs.doubleQuotesExpand-1") {
       if (Unix()) {
-        locally {
-          val res0 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
-          assert(res0.out.lines() == Seq("Hello12"))
-        }
-
-        locally {
-          val res1 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
-          assert(res1.out.lines() == Seq("Hello12"))
-        }
-
-        locally {
-          val res2 = proc("bash", "-c", "echo 'Hello$ENV_ARG'").call(env = Map("ENV_ARG" -> "12"))
-          assert(res2.out.lines() == Seq("Hello$ENV_ARG"))
-        }
-
-        locally {
-          val res3 = proc("bash", "-c", "echo 'Hello'$ENV_ARG").call(env = Map("ENV_ARG" -> "123"))
-          assert(res3.out.lines() == Seq("Hello123"))
-        }
-
-        locally {
-          // TEST_SUBPROCESS_ENV env should be set in forkEnv in build.sc
-          assert(sys.env.get("TEST_SUBPROCESS_ENV") == Some("value"))
-          val res4 = proc("bash", "-c", "echo \"$TEST_SUBPROCESS_ENV\"").call(
-            env = Map.empty,
-            propagateEnv = false
-          ).out.lines()
-          assert(res4 == Seq(""))
-        }
-
-        locally {
-          // TEST_SUBPROCESS_ENV env should be set in forkEnv in build.sc
-          assert(sys.env.get("TEST_SUBPROCESS_ENV") == Some("value"))
-
-          val res5 = proc("bash", "-c", "echo \"$TEST_SUBPROCESS_ENV\"").call(
-            env = Map.empty,
-            propagateEnv = true
-          ).out.lines()
-          assert(res5 == Seq("value"))
-        }
+        val res0 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
+        assert(res0.out.lines() == Seq("Hello12"))
+      }
+    }
+    test("envArgs.doubleQuotesExpand-2") {
+      if (Unix()) {
+        val res1 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
+        assert(res1.out.lines() == Seq("Hello12"))
+      }
+    }
+    test("envArgs.singleQuotesNoExpand") {
+      if (Unix()) {
+        val res2 = proc("bash", "-c", "echo 'Hello$ENV_ARG'").call(env = Map("ENV_ARG" -> "12"))
+        assert(res2.out.lines() == Seq("Hello$ENV_ARG"))
+      }
+    }
+    test("envArgs.concatSingleQuotedAndVar") {
+      if (Unix()) {
+        val res3 = proc("bash", "-c", "echo 'Hello'$ENV_ARG").call(env = Map("ENV_ARG" -> "123"))
+        assert(res3.out.lines() == Seq("Hello123"))
+      }
+    }
+    test("envArgs.propagateEnv=false") {
+      if (Unix()) {
+        // TEST_SUBPROCESS_ENV env should be set in forkEnv in build.sc
+        assert(sys.env.get("TEST_SUBPROCESS_ENV") == Some("value"))
+        val res4 = proc("bash", "-c", "echo \"$TEST_SUBPROCESS_ENV\"").call(
+          env = Map.empty,
+          propagateEnv = false
+        ).out.lines()
+        assert(res4 == Seq(""))
+      }
+    }
+    test("envArgs.propagateEnv=true") {
+      if (Unix()) {
+        // TEST_SUBPROCESS_ENV env should be set in forkEnv in build.sc
+        assert(sys.env.get("TEST_SUBPROCESS_ENV") == Some("value"))
+        val res5 = proc("bash", "-c", "echo \"$TEST_SUBPROCESS_ENV\"").call(
+          env = Map.empty,
+          propagateEnv = true
+        ).out.lines()
+        assert(res5 == Seq("value"))
       }
     }
     test("envWithValue") {

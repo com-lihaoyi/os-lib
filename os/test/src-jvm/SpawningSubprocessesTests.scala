@@ -153,7 +153,7 @@ object SpawningSubprocessesTests extends TestSuite {
           )
           .spawn(stderr = os.Inherit)
         val gzip = os.proc("gzip", "-n", "-6").spawn(stdin = curl.stdout)
-  val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
+        val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
         sha.stdout.trim() ==> s"${ExampleResourcess.RemoteReadme.gzip6ShaSum256}  -"
       }
     }

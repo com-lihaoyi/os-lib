@@ -52,7 +52,11 @@ object ExampleTests extends TestSuite {
     }
 
     test("curlToTempFile") - TestUtil.prep { wd =>
-      if (Unix() && TestUtil.isInstalled("curl") && TestUtil.canFetchUrl(ExampleResourcess.RemoteReadme.url)) {
+      if (
+        Unix() && TestUtil.isInstalled("curl") && TestUtil.canFetchUrl(
+          ExampleResourcess.RemoteReadme.url
+        )
+      ) {
         // Curl to temporary file
         val temp = os.temp()
         os.proc(
