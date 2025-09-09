@@ -82,7 +82,20 @@ object SubprocessTests extends TestSuite {
             env = Map("ENV_ARG" -> "123")
           )
 
-        assert(res.out.text().trim() == "Hello123")
+        // Enhanced debugging: show exit code and raw output on failure
+        if (res.exitCode != 0) {
+          throw new Exception(
+            s"Subprocess failed with exit code ${res.exitCode}, stderr: '${res.err.text()}'"
+          )
+        }
+        val actualOutput = res.out.text().trim()
+        val expectedOutput = "Hello123"
+        if (actualOutput != expectedOutput) {
+          throw new Exception(
+            s"Output mismatch: expected '$expectedOutput', got '$actualOutput' (${actualOutput.length} chars, exit code: ${res.exitCode})"
+          )
+        }
+        assert(actualOutput == expectedOutput)
       }
     }
     test("filebased2") {
@@ -109,13 +122,27 @@ object SubprocessTests extends TestSuite {
     test("envArgs.doubleQuotesExpand-1") {
       if (Unix()) {
         val res0 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
-        assert(res0.out.lines() == Seq("Hello12"))
+        val expectedLines = Seq("Hello12")
+        val actualLines = res0.out.lines()
+        if (actualLines != expectedLines) {
+          throw new Exception(
+            s"envArgs.doubleQuotesExpand-1 failed: expected $expectedLines, got $actualLines (exit code: ${res0.exitCode})"
+          )
+        }
+        assert(actualLines == expectedLines)
       }
     }
     test("envArgs.doubleQuotesExpand-2") {
       if (Unix()) {
         val res1 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
-        assert(res1.out.lines() == Seq("Hello12"))
+        val expectedLines = Seq("Hello12")
+        val actualLines = res1.out.lines()
+        if (actualLines != expectedLines) {
+          throw new Exception(
+            s"envArgs.doubleQuotesExpand-2 failed: expected $expectedLines, got $actualLines (exit code: ${res1.exitCode})"
+          )
+        }
+        assert(actualLines == expectedLines)
       }
     }
     test("envArgs.singleQuotesNoExpand") {
@@ -248,6 +275,54 @@ object SubprocessTests extends TestSuite {
         assert(x.out.trim() == outsidePwd.toString)
         assert(y.out.trim() == tmp.toString)
         assert(z.out.trim() == outsidePwd.toString)
+      }
+    }
+
+    // Stress test to help reproduce intermittent subprocess failures seen in CI
+    test("stressSubprocess") {
+      if (Unix()) {
+        val iterations = sys.env.get("SUBPROCESS_STRESS_ITERATIONS").map(_.toInt).getOrElse(10)
+        var failures = 0
+        var successes = 0
+
+        for (i <- 1 to iterations) {
+          try {
+            // Test the exact same pattern that's failing in CI
+            val res = proc("bash", "-c", "echo 'Hello'$ENV_ARG").call(env = Map("ENV_ARG" -> "123"))
+            val expected = "Hello123"
+            val actual = res.out.text().trim()
+
+            if (res.exitCode != 0) {
+              println(s"Iteration $i: subprocess failed with exit code ${res.exitCode}")
+              failures += 1
+            } else if (actual != expected) {
+              println(s"Iteration $i: output mismatch - expected '$expected', got '$actual'")
+              failures += 1
+            } else {
+              successes += 1
+            }
+
+            // Add a small delay to potentially trigger race conditions
+            Thread.sleep(1)
+
+          } catch {
+            case ex: Throwable =>
+              println(s"Iteration $i: exception - ${ex.getMessage}")
+              failures += 1
+          }
+        }
+
+        println(
+          s"Stress test completed: $successes successes, $failures failures out of $iterations iterations"
+        )
+
+        // Allow up to 10% failure rate for now to gather data
+        val failureRate = failures.toDouble / iterations
+        if (failureRate > 0.1) {
+          throw new Exception(
+            s"High failure rate in stress test: ${(failureRate * 100).toInt}% ($failures/$iterations)"
+          )
+        }
       }
     }
   }

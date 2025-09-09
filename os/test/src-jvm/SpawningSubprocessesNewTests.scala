@@ -59,7 +59,14 @@ object SpawningSubprocessesNewTests extends TestSuite {
           // Taking input from a file and directing output to another file
           os.call(cmd = ("base64"), stdin = wd / "File.txt", stdout = wd / "File.txt.b64")
 
-          os.read(wd / "File.txt.b64") ==> "SSBhbSBjb3c=\n"
+          val expectedB64 = "SSBhbSBjb3c=\n"
+          val actualB64 = os.read(wd / "File.txt.b64")
+          if (actualB64 != expectedB64) {
+            throw new Exception(
+              s"base64 output mismatch: expected '$expectedB64', got '$actualB64' (${actualB64.length} chars)"
+            )
+          }
+          assert(actualB64 == expectedB64)
 
           if (false) {
             os.call(cmd = ("vim"), stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit)
