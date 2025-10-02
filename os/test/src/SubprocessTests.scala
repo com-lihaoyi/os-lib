@@ -34,7 +34,16 @@ object SubprocessTests extends TestSuite {
       if (Unix()) {
         val res = proc(scriptFolder / "misc/echo", "abc").call()
         val listed = res.out.bytes
-        listed ==> "abc\n".getBytes
+        val expected = "abc\n".getBytes
+        // Enhanced debugging for CI failures
+        if (!listed.sameElements(expected)) {
+          val actualStr = new String(listed)
+          val expectedStr = new String(expected)
+          throw new Exception(
+            s"bytes mismatch: expected '$expectedStr' (${expected.length} bytes), got '$actualStr' (${listed.length} bytes), exit code: ${res.exitCode}"
+          )
+        }
+        listed ==> expected
       }
     }
     test("chained") {
@@ -183,17 +192,39 @@ object SubprocessTests extends TestSuite {
       if (Unix()) {
         val variableName = "TEST_ENV_FOO"
         val variableValue = "bar"
-        def envValue() = os.proc(
-          "bash",
-          "-c",
-          s"""if [ -z $${$variableName+x} ]; then echo "unset"; else echo "$$$variableName"; fi"""
-        ).call().out.lines().head
+        def envValue() = {
+          val res = os.proc(
+            "bash",
+            "-c",
+            s"""if [ -z $${$variableName+x} ]; then echo "unset"; else echo "$$$variableName"; fi"""
+          ).call()
+          // Enhanced debugging for CI failures
+          if (res.exitCode != 0) {
+            throw new Exception(
+              s"envWithValue subprocess failed with exit code ${res.exitCode}, stderr: '${res.err.text()}'"
+            )
+          }
+          val lines = res.out.lines()
+          if (lines.isEmpty) {
+            throw new Exception(
+              s"envWithValue got empty output, expected 'unset' or '$variableValue'"
+            )
+          }
+          lines.head
+        }
 
         val before = envValue()
-        assert(before == "unset")
+        if (before != "unset") {
+          throw new Exception(s"envWithValue: expected 'unset' before setting env, got '$before'")
+        }
 
         os.SubProcess.env.withValue(Map(variableName -> variableValue)) {
           val res = envValue()
+          if (res != variableValue) {
+            throw new Exception(
+              s"envWithValue: expected '$variableValue' after setting env, got '$res'"
+            )
+          }
           assert(res == variableValue)
         }
 
@@ -241,8 +272,29 @@ object SubprocessTests extends TestSuite {
       }
     }
     test("workingDirectory") {
-      val listed1 = TestUtil.proc(lsCmd).call(cwd = pwd)
-      val listed2 = TestUtil.proc(lsCmd).call(cwd = pwd / up)
+      val res1 = TestUtil.proc(lsCmd).call(cwd = pwd)
+      val res2 = TestUtil.proc(lsCmd).call(cwd = pwd / up)
+
+      // Enhanced debugging for CI failures
+      if (res1.exitCode != 0) {
+        throw new Exception(
+          s"workingDirectory: first ls failed with exit code ${res1.exitCode}, stderr: '${res1.err.text()}'"
+        )
+      }
+      if (res2.exitCode != 0) {
+        throw new Exception(
+          s"workingDirectory: second ls failed with exit code ${res2.exitCode}, stderr: '${res2.err.text()}'"
+        )
+      }
+
+      val listed1 = res1.out.text()
+      val listed2 = res2.out.text()
+
+      if (listed1 == listed2) {
+        throw new Exception(
+          s"workingDirectory: expected different outputs, but both were: '$listed1'"
+        )
+      }
 
       assert(listed2 != listed1)
     }

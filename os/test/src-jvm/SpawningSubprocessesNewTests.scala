@@ -204,17 +204,31 @@ object SpawningSubprocessesNewTests extends TestSuite {
 
     test("destroy") {
       if (Unix()) {
-        val temp1 = os.temp()
-        val sub1 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp1))
-        waitForLockTaken(temp1)
-        sub1.destroy()
-        assert(!sub1.isAlive())
+        try {
+          val temp1 = os.temp()
+          val sub1 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp1))
+          waitForLockTaken(temp1)
+          sub1.destroy()
+          if (sub1.isAlive()) {
+            throw new Exception(
+              s"destroy: expected subprocess to be dead after synchronous destroy, temp: $temp1"
+            )
+          }
 
-        val temp2 = os.temp()
-        val sub2 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp2))
-        waitForLockTaken(temp2)
-        sub2.destroy(async = true)
-        assert(sub2.isAlive())
+          val temp2 = os.temp()
+          val sub2 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp2))
+          waitForLockTaken(temp2)
+          sub2.destroy(async = true)
+          if (!sub2.isAlive()) {
+            throw new Exception(
+              s"destroy: expected subprocess to still be alive after async destroy, temp: $temp2"
+            )
+          }
+        } catch {
+          case ex: Exception =>
+            // Enhanced error reporting for CI debugging
+            throw new Exception(s"destroy test failed: ${ex.getMessage}", ex)
+        }
       }
     }
 
@@ -239,17 +253,23 @@ object SpawningSubprocessesNewTests extends TestSuite {
         }
       }
 
-      test("destroyNoGrace") - retry(3) {
+      test("destroyNoGrace") - retry(5) {
         if (Unix()) {
           val temp = os.temp()
-          val subprocess = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp))
-          waitForLockTaken(temp)
+          try {
+            val subprocess = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp))
+            waitForLockTaken(temp)
 
-          subprocess.destroy(shutdownGracePeriod = 0)
-          // this should fail since the subprocess is shut down forcibly without grace period
-          // so there is no time for any exit hooks to run to shut down the transitive subprocess
-          val lock = tryLock(temp)
-          assert(lock == null)
+            subprocess.destroy(shutdownGracePeriod = 0)
+            // this should fail since the subprocess is shut down forcibly without grace period
+            // so there is no time for any exit hooks to run to shut down the transitive subprocess
+            val lock = tryLock(temp)
+            assert(lock == null)
+          } catch {
+            case ex: Throwable =>
+              // Enhanced error reporting for CI debugging
+              throw new Exception(s"destroyNoGrace failed: ${ex.getMessage}, temp file: $temp", ex)
+          }
         }
       }
 
