@@ -1,11 +1,11 @@
 //| mvnDeps:
-//| - com.github.lolgab::mill-mima_mill1.0.0-RC1:0.2.0-M1
+//| - com.github.lolgab::mill-mima_mill1:0.2.0
 package build
 
 // imports
 import mill._, scalalib._, scalanativelib._, publish._
 import com.github.lolgab.mill.mima._
-import mill.main.VcsVersion
+import mill.util.VcsVersion
 
 val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 
