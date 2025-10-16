@@ -19,6 +19,24 @@ object TestUtil {
     os.proc("python", "--version").call(check = false).out.text().startsWith("Python 3.")
   }
 
+  /** Best-effort check that a URL is fetchable with curl within a short timeout. */
+  def canFetchUrl(url: String, timeoutSeconds: Int = 10): Boolean = {
+    if (!isInstalled("curl")) false
+    else {
+      val res = os.proc(
+        "curl",
+        "-sI",
+        "-L",
+        "--connect-timeout",
+        "5",
+        "--max-time",
+        timeoutSeconds.toString,
+        url
+      ).call(check = false)
+      res.exitCode == 0
+    }
+  }
+
   // run Unix command normally, Windows in CMD context
   def proc(command: os.Shellable*) = {
     if (scala.util.Properties.isWin) {

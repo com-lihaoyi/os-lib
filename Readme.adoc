@@ -1220,6 +1220,11 @@ os.list(tempDir) ==> Seq(tempDir / "file")
 
 === Zip & Unzip Files
 
+[NOTE]
+====
+JVM only: Zip-related APIs are available on the JVM but not on Scala Native. The following symbols are JVM-only and are not defined on Native builds: `os.zip`, `os.unzip`, `os.zip.stream`, `os.unzip.stream`, `os.unzip.list`, and `os.zip.open`.
+====
+
 ==== `os.zip`
 
 [source,scala]
@@ -2578,6 +2583,10 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+=== 0.11.6
+
+* Re-enabled Scala Native builds (tested with Scala Native 0.5.8). Zip APIs remain JVM-only.
 
 === 0.11.5
 

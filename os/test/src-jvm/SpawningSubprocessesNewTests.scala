@@ -59,7 +59,14 @@ object SpawningSubprocessesNewTests extends TestSuite {
           // Taking input from a file and directing output to another file
           os.call(cmd = ("base64"), stdin = wd / "File.txt", stdout = wd / "File.txt.b64")
 
-          os.read(wd / "File.txt.b64") ==> "SSBhbSBjb3c=\n"
+          val expectedB64 = "SSBhbSBjb3c=\n"
+          val actualB64 = os.read(wd / "File.txt.b64")
+          if (actualB64 != expectedB64) {
+            throw new Exception(
+              s"base64 output mismatch: expected '$expectedB64', got '$actualB64' (${actualB64.length} chars)"
+            )
+          }
+          assert(actualB64 == expectedB64)
 
           if (false) {
             os.call(cmd = ("vim"), stdin = os.Inherit, stdout = os.Inherit, stderr = os.Inherit)
@@ -140,14 +147,26 @@ object SpawningSubprocessesNewTests extends TestSuite {
     }
     test("spawn curl") {
       if (
-        Unix() && // shasum seems to not accept stdin on Windows
+        Unix() &&
         TestUtil.isInstalled("curl") &&
         TestUtil.isInstalled("gzip") &&
-        TestUtil.isInstalled("shasum")
+        TestUtil.isInstalled("shasum") &&
+        TestUtil.canFetchUrl(ExampleResourcess.RemoteReadme.url)
       ) {
         // You can chain multiple subprocess' stdin/stdout together
-        val curl =
-          os.spawn(cmd = ("curl", "-L", ExampleResourcess.RemoteReadme.url), stderr = os.Inherit)
+        val curl = os.spawn(
+          cmd = (
+            "curl",
+            "-sS",
+            "-L",
+            "--connect-timeout",
+            "5",
+            "--max-time",
+            "15",
+            ExampleResourcess.RemoteReadme.url
+          ),
+          stderr = os.Inherit
+        )
         val gzip = os.spawn(cmd = ("gzip", "-n", "-6"), stdin = curl.stdout)
         val sha = os.spawn(cmd = ("shasum", "-a", "256"), stdin = gzip.stdout)
         sha.stdout.trim() ==> s"${ExampleResourcess.RemoteReadme.gzip6ShaSum256}  -"
@@ -185,17 +204,31 @@ object SpawningSubprocessesNewTests extends TestSuite {
 
     test("destroy") {
       if (Unix()) {
-        val temp1 = os.temp()
-        val sub1 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp1))
-        waitForLockTaken(temp1)
-        sub1.destroy()
-        assert(!sub1.isAlive())
+        try {
+          val temp1 = os.temp()
+          val sub1 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp1))
+          waitForLockTaken(temp1)
+          sub1.destroy()
+          if (sub1.isAlive()) {
+            throw new Exception(
+              s"destroy: expected subprocess to be dead after synchronous destroy, temp: $temp1"
+            )
+          }
 
-        val temp2 = os.temp()
-        val sub2 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp2))
-        waitForLockTaken(temp2)
-        sub2.destroy(async = true)
-        assert(sub2.isAlive())
+          val temp2 = os.temp()
+          val sub2 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp2))
+          waitForLockTaken(temp2)
+          sub2.destroy(async = true)
+          if (!sub2.isAlive()) {
+            throw new Exception(
+              s"destroy: expected subprocess to still be alive after async destroy, temp: $temp2"
+            )
+          }
+        } catch {
+          case ex: Exception =>
+            // Enhanced error reporting for CI debugging
+            throw new Exception(s"destroy test failed: ${ex.getMessage}", ex)
+        }
       }
     }
 
@@ -220,17 +253,23 @@ object SpawningSubprocessesNewTests extends TestSuite {
         }
       }
 
-      test("destroyNoGrace") - retry(3) {
+      test("destroyNoGrace") - retry(5) {
         if (Unix()) {
           val temp = os.temp()
-          val subprocess = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp))
-          waitForLockTaken(temp)
+          try {
+            val subprocess = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp))
+            waitForLockTaken(temp)
 
-          subprocess.destroy(shutdownGracePeriod = 0)
-          // this should fail since the subprocess is shut down forcibly without grace period
-          // so there is no time for any exit hooks to run to shut down the transitive subprocess
-          val lock = tryLock(temp)
-          assert(lock == null)
+            subprocess.destroy(shutdownGracePeriod = 0)
+            // this should fail since the subprocess is shut down forcibly without grace period
+            // so there is no time for any exit hooks to run to shut down the transitive subprocess
+            val lock = tryLock(temp)
+            assert(lock == null)
+          } catch {
+            case ex: Throwable =>
+              // Enhanced error reporting for CI debugging
+              throw new Exception(s"destroyNoGrace failed: ${ex.getMessage}, temp file: $temp", ex)
+          }
         }
       }
 

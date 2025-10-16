@@ -34,7 +34,16 @@ object SubprocessTests extends TestSuite {
       if (Unix()) {
         val res = proc(scriptFolder / "misc/echo", "abc").call()
         val listed = res.out.bytes
-        listed ==> "abc\n".getBytes
+        val expected = "abc\n".getBytes
+        // Enhanced debugging for CI failures
+        if (!listed.sameElements(expected)) {
+          val actualStr = new String(listed)
+          val expectedStr = new String(expected)
+          throw new Exception(
+            s"bytes mismatch: expected '$expectedStr' (${expected.length} bytes), got '$actualStr' (${listed.length} bytes), exit code: ${res.exitCode}"
+          )
+        }
+        listed ==> expected
       }
     }
     test("chained") {
@@ -82,7 +91,20 @@ object SubprocessTests extends TestSuite {
             env = Map("ENV_ARG" -> "123")
           )
 
-        assert(res.out.text().trim() == "Hello123")
+        // Enhanced debugging: show exit code and raw output on failure
+        if (res.exitCode != 0) {
+          throw new Exception(
+            s"Subprocess failed with exit code ${res.exitCode}, stderr: '${res.err.text()}'"
+          )
+        }
+        val actualOutput = res.out.text().trim()
+        val expectedOutput = "Hello123"
+        if (actualOutput != expectedOutput) {
+          throw new Exception(
+            s"Output mismatch: expected '$expectedOutput', got '$actualOutput' (${actualOutput.length} chars, exit code: ${res.exitCode})"
+          )
+        }
+        assert(actualOutput == expectedOutput)
       }
     }
     test("filebased2") {
@@ -106,65 +128,103 @@ object SubprocessTests extends TestSuite {
       assert(res.out.text().trim() == charSequence.toString())
     }
 
-    test("envArgs") {
+    test("envArgs.doubleQuotesExpand-1") {
       if (Unix()) {
-        locally {
-          val res0 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
-          assert(res0.out.lines() == Seq("Hello12"))
+        val res0 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
+        val expectedLines = Seq("Hello12")
+        val actualLines = res0.out.lines()
+        if (actualLines != expectedLines) {
+          throw new Exception(
+            s"envArgs.doubleQuotesExpand-1 failed: expected $expectedLines, got $actualLines (exit code: ${res0.exitCode})"
+          )
         }
-
-        locally {
-          val res1 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
-          assert(res1.out.lines() == Seq("Hello12"))
+        assert(actualLines == expectedLines)
+      }
+    }
+    test("envArgs.doubleQuotesExpand-2") {
+      if (Unix()) {
+        val res1 = proc("bash", "-c", "echo \"Hello$ENV_ARG\"").call(env = Map("ENV_ARG" -> "12"))
+        val expectedLines = Seq("Hello12")
+        val actualLines = res1.out.lines()
+        if (actualLines != expectedLines) {
+          throw new Exception(
+            s"envArgs.doubleQuotesExpand-2 failed: expected $expectedLines, got $actualLines (exit code: ${res1.exitCode})"
+          )
         }
-
-        locally {
-          val res2 = proc("bash", "-c", "echo 'Hello$ENV_ARG'").call(env = Map("ENV_ARG" -> "12"))
-          assert(res2.out.lines() == Seq("Hello$ENV_ARG"))
-        }
-
-        locally {
-          val res3 = proc("bash", "-c", "echo 'Hello'$ENV_ARG").call(env = Map("ENV_ARG" -> "123"))
-          assert(res3.out.lines() == Seq("Hello123"))
-        }
-
-        locally {
-          // TEST_SUBPROCESS_ENV env should be set in forkEnv in build.sc
-          assert(sys.env.get("TEST_SUBPROCESS_ENV") == Some("value"))
-          val res4 = proc("bash", "-c", "echo \"$TEST_SUBPROCESS_ENV\"").call(
-            env = Map.empty,
-            propagateEnv = false
-          ).out.lines()
-          assert(res4 == Seq(""))
-        }
-
-        locally {
-          // TEST_SUBPROCESS_ENV env should be set in forkEnv in build.sc
-          assert(sys.env.get("TEST_SUBPROCESS_ENV") == Some("value"))
-
-          val res5 = proc("bash", "-c", "echo \"$TEST_SUBPROCESS_ENV\"").call(
-            env = Map.empty,
-            propagateEnv = true
-          ).out.lines()
-          assert(res5 == Seq("value"))
-        }
+        assert(actualLines == expectedLines)
+      }
+    }
+    test("envArgs.singleQuotesNoExpand") {
+      if (Unix()) {
+        val res2 = proc("bash", "-c", "echo 'Hello$ENV_ARG'").call(env = Map("ENV_ARG" -> "12"))
+        assert(res2.out.lines() == Seq("Hello$ENV_ARG"))
+      }
+    }
+    test("envArgs.concatSingleQuotedAndVar") {
+      if (Unix()) {
+        val res3 = proc("bash", "-c", "echo 'Hello'$ENV_ARG").call(env = Map("ENV_ARG" -> "123"))
+        assert(res3.out.lines() == Seq("Hello123"))
+      }
+    }
+    test("envArgs.propagateEnv=false") {
+      if (Unix()) {
+        // TEST_SUBPROCESS_ENV env should be set in forkEnv in build.sc
+        assert(sys.env.get("TEST_SUBPROCESS_ENV") == Some("value"))
+        val res4 = proc("bash", "-c", "echo \"$TEST_SUBPROCESS_ENV\"").call(
+          env = Map.empty,
+          propagateEnv = false
+        ).out.lines()
+        assert(res4 == Seq(""))
+      }
+    }
+    test("envArgs.propagateEnv=true") {
+      if (Unix()) {
+        // TEST_SUBPROCESS_ENV env should be set in forkEnv in build.sc
+        assert(sys.env.get("TEST_SUBPROCESS_ENV") == Some("value"))
+        val res5 = proc("bash", "-c", "echo \"$TEST_SUBPROCESS_ENV\"").call(
+          env = Map.empty,
+          propagateEnv = true
+        ).out.lines()
+        assert(res5 == Seq("value"))
       }
     }
     test("envWithValue") {
       if (Unix()) {
         val variableName = "TEST_ENV_FOO"
         val variableValue = "bar"
-        def envValue() = os.proc(
-          "bash",
-          "-c",
-          s"""if [ -z $${$variableName+x} ]; then echo "unset"; else echo "$$$variableName"; fi"""
-        ).call().out.lines().head
+        def envValue() = {
+          val res = os.proc(
+            "bash",
+            "-c",
+            s"""if [ -z $${$variableName+x} ]; then echo "unset"; else echo "$$$variableName"; fi"""
+          ).call()
+          // Enhanced debugging for CI failures
+          if (res.exitCode != 0) {
+            throw new Exception(
+              s"envWithValue subprocess failed with exit code ${res.exitCode}, stderr: '${res.err.text()}'"
+            )
+          }
+          val lines = res.out.lines()
+          if (lines.isEmpty) {
+            throw new Exception(
+              s"envWithValue got empty output, expected 'unset' or '$variableValue'"
+            )
+          }
+          lines.head
+        }
 
         val before = envValue()
-        assert(before == "unset")
+        if (before != "unset") {
+          throw new Exception(s"envWithValue: expected 'unset' before setting env, got '$before'")
+        }
 
         os.SubProcess.env.withValue(Map(variableName -> variableValue)) {
           val res = envValue()
+          if (res != variableValue) {
+            throw new Exception(
+              s"envWithValue: expected '$variableValue' after setting env, got '$res'"
+            )
+          }
           assert(res == variableValue)
         }
 
@@ -212,8 +272,29 @@ object SubprocessTests extends TestSuite {
       }
     }
     test("workingDirectory") {
-      val listed1 = TestUtil.proc(lsCmd).call(cwd = pwd)
-      val listed2 = TestUtil.proc(lsCmd).call(cwd = pwd / up)
+      val res1 = TestUtil.proc(lsCmd).call(cwd = pwd)
+      val res2 = TestUtil.proc(lsCmd).call(cwd = pwd / up)
+
+      // Enhanced debugging for CI failures
+      if (res1.exitCode != 0) {
+        throw new Exception(
+          s"workingDirectory: first ls failed with exit code ${res1.exitCode}, stderr: '${res1.err.text()}'"
+        )
+      }
+      if (res2.exitCode != 0) {
+        throw new Exception(
+          s"workingDirectory: second ls failed with exit code ${res2.exitCode}, stderr: '${res2.err.text()}'"
+        )
+      }
+
+      val listed1 = res1.out.text()
+      val listed2 = res2.out.text()
+
+      if (listed1 == listed2) {
+        throw new Exception(
+          s"workingDirectory: expected different outputs, but both were: '$listed1'"
+        )
+      }
 
       assert(listed2 != listed1)
     }
@@ -246,6 +327,54 @@ object SubprocessTests extends TestSuite {
         assert(x.out.trim() == outsidePwd.toString)
         assert(y.out.trim() == tmp.toString)
         assert(z.out.trim() == outsidePwd.toString)
+      }
+    }
+
+    // Stress test to help reproduce intermittent subprocess failures seen in CI
+    test("stressSubprocess") {
+      if (Unix()) {
+        val iterations = sys.env.get("SUBPROCESS_STRESS_ITERATIONS").map(_.toInt).getOrElse(10)
+        var failures = 0
+        var successes = 0
+
+        for (i <- 1 to iterations) {
+          try {
+            // Test the exact same pattern that's failing in CI
+            val res = proc("bash", "-c", "echo 'Hello'$ENV_ARG").call(env = Map("ENV_ARG" -> "123"))
+            val expected = "Hello123"
+            val actual = res.out.text().trim()
+
+            if (res.exitCode != 0) {
+              println(s"Iteration $i: subprocess failed with exit code ${res.exitCode}")
+              failures += 1
+            } else if (actual != expected) {
+              println(s"Iteration $i: output mismatch - expected '$expected', got '$actual'")
+              failures += 1
+            } else {
+              successes += 1
+            }
+
+            // Add a small delay to potentially trigger race conditions
+            Thread.sleep(1)
+
+          } catch {
+            case ex: Throwable =>
+              println(s"Iteration $i: exception - ${ex.getMessage}")
+              failures += 1
+          }
+        }
+
+        println(
+          s"Stress test completed: $successes successes, $failures failures out of $iterations iterations"
+        )
+
+        // Allow up to 10% failure rate for now to gather data
+        val failureRate = failures.toDouble / iterations
+        if (failureRate > 0.1) {
+          throw new Exception(
+            s"High failure rate in stress test: ${(failureRate * 100).toInt}% ($failures/$iterations)"
+          )
+        }
       }
     }
   }
