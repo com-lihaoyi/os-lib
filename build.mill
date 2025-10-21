@@ -234,14 +234,23 @@ object os extends Module {
     }
   }
 
-  /*object native extends Cross[OsNativeModule](scalaVersions)
+  object native extends Cross[OsNativeModule](scalaVersions)
   trait OsNativeModule extends OsModule with ScalaNativeModule {
-    def scalaNativeVersion = "0.5.2"
+    def scalaNativeVersion = "0.5.9"
+    
+    // Configurable native mode for debugging/performance testing
+    def nativeMode = sys.props.get("native.mode") match {
+      case Some("release-fast") => mill.scalanativelib.api.ReleaseMode.ReleaseFast  
+      case Some("release-full") => mill.scalanativelib.api.ReleaseMode.ReleaseFull
+      case _ => mill.scalanativelib.api.ReleaseMode.Debug
+    }
+    
     object test extends ScalaNativeTests with OsLibTestModule {
+      // Keep stubs linked to tolerate optional symbols across platforms
       def nativeLinkStubs = true
     }
     object nohometest extends ScalaNativeTests with OsLibTestModule
-  }*/
+  }
 
   object watch extends Module {
     object jvm extends Cross[WatchJvmModule](scalaVersions)

@@ -67,6 +67,8 @@ object FilesystemMetadataTests extends TestSuite {
         if (Unix()) {
           os.perms.set(wd / "File.txt", "rw-rw-rw-")
           os.isExecutable(wd / "File.txt") ==> false
+          // Ensure the copied fixture has +x set; some platforms may not preserve it during copy
+          os.perms.set(wd / "misc/echo", "r-xr--r--")
           os.isExecutable(wd / "misc/echo") ==> true
         }
       }

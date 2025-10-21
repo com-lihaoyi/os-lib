@@ -133,14 +133,25 @@ object SpawningSubprocessesTests extends TestSuite {
     }
     test("spawn curl") {
       if (
-        Unix() && // shasum seems to not accept stdin on Windows
+        Unix() &&
         TestUtil.isInstalled("curl") &&
         TestUtil.isInstalled("gzip") &&
-        TestUtil.isInstalled("shasum")
+        TestUtil.isInstalled("shasum") &&
+        TestUtil.canFetchUrl(ExampleResourcess.RemoteReadme.url)
       ) {
         // You can chain multiple subprocess' stdin/stdout together
-        val curl =
-          os.proc("curl", "-L", ExampleResourcess.RemoteReadme.url).spawn(stderr = os.Inherit)
+        val curl = os
+          .proc(
+            "curl",
+            "-sS",
+            "-L",
+            "--connect-timeout",
+            "5",
+            "--max-time",
+            "15",
+            ExampleResourcess.RemoteReadme.url
+          )
+          .spawn(stderr = os.Inherit)
         val gzip = os.proc("gzip", "-n", "-6").spawn(stdin = curl.stdout)
         val sha = os.proc("shasum", "-a", "256").spawn(stdin = gzip.stdout)
         sha.stdout.trim() ==> s"${ExampleResourcess.RemoteReadme.gzip6ShaSum256}  -"
