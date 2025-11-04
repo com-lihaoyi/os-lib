@@ -22,15 +22,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: ${{ matrix.java-version }}
-      - name: Fetch millw launcher (Windows)
-        run: curl -Lo mill.bat "https://raw.githubusercontent.com/lefou/millw/main/millw.bat"
-        if: matrix.os == 'windows-latest'
-
+      - run: sed -i 's#//| mill-jvm-version: 11#//| mill-jvm-version: ${{ matrix.java }}#' build.mill
+        shell: bash
       - run: ./mill -i -k __.test
         if: matrix.os != 'windows-latest'
       - run: ./mill.bat -i -k __.jvm.__.test
@@ -43,11 +36,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: 11
-
       - run: ./mill -i -k __.mimaReportBinaryIssues
 
   check-formatting:
@@ -56,10 +44,5 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: 17
 
       - run: ./mill -i mill.scalalib.scalafmt.ScalafmtModule/checkFormatAll __.sources
