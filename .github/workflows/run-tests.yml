@@ -23,7 +23,7 @@ jobs:
         with:
           fetch-depth: 0
       - run: |
-          sed -i 's#//| mill-jvm-version: 11#//| mill-jvm-version: ${{ matrix.java }}#' build.mill
+          sed -i 's#//| mill-jvm-version: 11#//| mill-jvm-version: ${{ matrix.java-version }}#' build.mill
           head build.mill
         shell: bash
       - run: ./mill -i -k __.test
