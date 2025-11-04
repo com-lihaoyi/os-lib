@@ -22,7 +22,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - run: "sed -i 's#//| mill-jvm-version: 11#//| mill-jvm-version: ${{ matrix.java }}#' build.mill"
+      - run: |
+          sed -i 's#//| mill-jvm-version: 11#//| mill-jvm-version: ${{ matrix.java }}#' build.mill
+          head build.mill
         shell: bash
       - run: ./mill -i -k __.test
         if: matrix.os != 'windows-latest'
