@@ -38,15 +38,20 @@ class WatchServiceWatcher(
       val modifiers: Array[WatchEvent.Modifier] = if (isWin)
         Array(SensitivityWatchEventModifier.HIGH, ExtendedWatchEventModifier.FILE_TREE)
       else Array(SensitivityWatchEventModifier.HIGH)
-      currentlyWatchedPaths.put(
-        p,
-        p.toNIO.register(
+
+      val registeredOpt = try Some(p.toNIO.register(
           nioWatchService,
           Array[WatchEvent.Kind[_]](ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY, OVERFLOW),
           modifiers: _*
-        )
-      )
-      if (filter(p)) newlyWatchedPaths.append(p)
+        ))
+      catch{
+       case _: NoSuchFileException => None
+      }
+
+      for(registered <- registeredOpt){
+        currentlyWatchedPaths.put(p, registered)
+        if (filter(p)) newlyWatchedPaths.append(p)
+      }
     }
     bufferedEvents.add(p)
   }
