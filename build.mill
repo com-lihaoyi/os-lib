@@ -236,7 +236,7 @@ object os extends Module {
 
   object native extends Cross[OsNativeModule](scalaVersions)
   trait OsNativeModule extends OsModule with ScalaNativeModule {
-    def scalaNativeVersion = "0.5.9"
+    def scalaNativeVersion = "0.5.10"
     
     // Configurable native mode for debugging/performance testing
     def nativeMode = sys.props.get("native.mode") match {
