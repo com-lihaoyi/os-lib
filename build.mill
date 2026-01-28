@@ -9,7 +9,7 @@ import mill.util.VcsVersion
 
 val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 
-val scala213Version = "2.13.16"
+val scala213Version = "2.13.18"
 
 val scalaVersions = Seq(
   "3.3.5",
