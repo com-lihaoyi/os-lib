@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.11.6
+:version: 0.11.7
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -2583,6 +2583,11 @@ string, int or set representations of the `os.PermSet` via:
 
 
 == Changelog
+
+=== 0.11.8
+
+* Silence noisy exceptions in SubProcess input stream handling and WatchServiceWatcher
+
 
 === 0.11.6
 
