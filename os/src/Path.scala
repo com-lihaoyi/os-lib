@@ -452,10 +452,26 @@ object Path extends PathMacros {
     val maybeBase = Option(System.getenv("OS_LIB_PATH_RELATIVIZER_BASE")).filter(_.nonEmpty)
     maybeBase match {
       case Some(base0) =>
-        pathRelativizerSerializer(Path(base0))
+        pathRelativizerSerializer(pathFromRawString(base0))
       case None =>
         rawPathSerializer
     }
+  }
+
+  /**
+   * Parse a String path without depending on `pathSerializer` to avoid
+   * initialization cycles when constructing `defaultPathSerializer`.
+   */
+  private def pathFromRawString(raw: String): Path = {
+    val parsed =
+      if (driveRelative(raw)) Paths.get(s"$driveRoot$raw")
+      else Paths.get(raw)
+
+    if (parsed.iterator.asScala.count(_.startsWith("..")) > parsed.getNameCount / 2) {
+      throw PathError.AbsolutePathOutsideRoot
+    }
+
+    new Path(parsed.normalize())
   }
 
   @experimental def pathRelativizerSerializer(base: os.Path): Serializer = new Serializer {
