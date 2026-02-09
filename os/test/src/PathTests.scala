@@ -574,6 +574,28 @@ object PathTests extends TestSuite {
 
       assert(x / "hello" == y)
     }
+    test("pathRelativizerSerializer") {
+      def check(name: String)(cond: => Boolean): Unit = {
+        if (!cond) throw new java.lang.AssertionError(s"check failed: $name")
+      }
+      val base = os.pwd / "base"
+      val serializer = os.Path.pathRelativizerSerializer(base)
+      os.Path.pathSerializer.withValue(serializer) {
+        val inBase = base / "foo" / "bar"
+        val outside = os.pwd / "outside"
+
+        check("serialize string in base")(inBase.toString == "foo/bar")
+        check("serialize nio in base")(inBase.toNIO == java.nio.file.Paths.get("foo/bar"))
+        check("serialize file in base")(inBase.toIO.getPath == new java.io.File("foo/bar").getPath)
+
+        check("deserialize string relative")(os.Path("foo/bar") == inBase)
+        check("deserialize nio relative")(os.Path(java.nio.file.Paths.get("foo/bar")) == inBase)
+        check("deserialize file relative")(os.Path(new java.io.File("foo/bar")) == inBase)
+
+        check("serialize string outside base")(outside.toString == outside.wrapped.toString)
+        check("serialize nio outside base")(outside.toNIO == outside.wrapped)
+      }
+    }
   }
   // compare absolute paths
   def sameFile(a: java.nio.file.Path, b: java.nio.file.Path): Boolean = {

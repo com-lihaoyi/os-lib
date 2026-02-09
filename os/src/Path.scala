@@ -448,7 +448,44 @@ object Path extends PathMacros {
     def deserialize(s: java.net.URI): java.nio.file.Path
   }
   @experimental val pathSerializer = new DynamicVariable[Serializer](defaultPathSerializer)
-  @experimental object defaultPathSerializer extends Serializer {
+  @experimental lazy val defaultPathSerializer: Serializer = {
+    val maybeBase = Option(System.getenv("OS_LIB_PATH_RELATIVIZER_BASE")).filter(_.nonEmpty)
+    maybeBase match {
+      case Some(base0) =>
+        pathRelativizerSerializer(Path(base0))
+      case None =>
+        rawPathSerializer
+    }
+  }
+
+  @experimental def pathRelativizerSerializer(base: os.Path): Serializer = new Serializer {
+    private def serializeRelative(p: os.Path): Option[java.nio.file.Path] = {
+      if (p.fileSystem == base.fileSystem && p.startsWith(base)) Some(p.relativeTo(base).toNIO)
+      else None
+    }
+    private def deserializeRelative(p: java.nio.file.Path): java.nio.file.Path = {
+      if (p.isAbsolute || Path.driveRelative(p)) p
+      else base.wrapped.resolve(p.toString).normalize()
+    }
+    def serializeString(p: os.Path): String =
+      serializeRelative(p).getOrElse(p.wrapped).toString
+    def serializeFile(p: os.Path): java.io.File =
+      new java.io.File(serializeString(p))
+    def serializePath(p: os.Path): java.nio.file.Path =
+      serializeRelative(p).getOrElse(p.wrapped)
+    def deserialize(s: String): java.nio.file.Path = deserializeRelative(Paths.get(s))
+    def deserialize(s: java.io.File): java.nio.file.Path = deserializeRelative(Paths.get(s.getPath))
+    def deserialize(s: java.nio.file.Path): java.nio.file.Path = deserializeRelative(s)
+    def deserialize(s: java.net.URI): java.nio.file.Path = s.getScheme() match {
+      case "file" => deserializeRelative(Paths.get(s))
+      case uriType =>
+        throw new IllegalArgumentException(
+          s"""os.Path can only be created from a "file" URI scheme, but found "${uriType}""""
+        )
+    }
+  }
+
+  private object rawPathSerializer extends Serializer {
     def serializeString(p: os.Path): String = p.wrapped.toString
     def serializeFile(p: os.Path): java.io.File = p.wrapped.toFile
     def serializePath(p: os.Path): java.nio.file.Path = p.wrapped
