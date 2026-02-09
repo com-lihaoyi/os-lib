@@ -470,7 +470,7 @@ object Path extends PathMacros {
     def serializeString(p: os.Path): String =
       serializeRelative(p).getOrElse(p.wrapped).toString
     def serializeFile(p: os.Path): java.io.File =
-      serializeRelative(p).getOrElse(p.wrapped).toFile
+      new java.io.File(serializeString(p))
     def serializePath(p: os.Path): java.nio.file.Path =
       serializeRelative(p).getOrElse(p.wrapped)
     def deserialize(s: String): java.nio.file.Path = deserializeRelative(Paths.get(s))
