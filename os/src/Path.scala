@@ -452,9 +452,15 @@ object Path extends PathMacros {
     val maybeBase = Option(System.getenv("OS_LIB_PATH_RELATIVIZER_BASE")).filter(_.nonEmpty)
     maybeBase match {
       case Some(base0) if base0.contains(",") =>
-        val parts = base0.split(",", 2).map(_.trim)
-        if (parts.length == 2 && parts(0).nonEmpty && parts(1).nonEmpty) {
-          pathRemapSerializer(pathFromRawString(parts(0)), pathFromRawString(parts(1)))
+        val tupleSpecs = base0.split(";").iterator.map(_.trim).filter(_.nonEmpty).toSeq
+        val mappings = tupleSpecs.map { tuple =>
+          val parts = tuple.split(",", 2).map(_.trim)
+          if (parts.length == 2 && parts(0).nonEmpty && parts(1).nonEmpty) {
+            (pathFromRawString(parts(0)), pathFromRawString(parts(1)))
+          } else null
+        }
+        if (mappings.nonEmpty && mappings.forall(_ != null)) {
+          pathRemapSerializer(mappings)
         } else rawPathSerializer
       case Some(base0) =>
         pathRelativizerSerializer(pathFromRawString(base0.trim))
@@ -506,15 +512,28 @@ object Path extends PathMacros {
     }
   }
 
-  @experimental def pathRemapSerializer(from: os.Path, to: os.Path): Serializer = new Serializer {
+  @experimental def pathRemapSerializer(from: os.Path, to: os.Path): Serializer =
+    pathRemapSerializer(Seq((from, to)))
+
+  @experimental def pathRemapSerializer(mappings: Seq[(os.Path, os.Path)]): Serializer = new Serializer {
     private def replacePrefix(p: java.nio.file.Path, src: os.Path, dest: os.Path): java.nio.file.Path = {
       if (p.getFileSystem == src.fileSystem && p.startsWith(src.wrapped)) {
         val rel = src.wrapped.relativize(p)
         dest.wrapped.resolve(rel.toString).normalize()
       } else p
     }
-    private def serializeRemap(p: java.nio.file.Path): java.nio.file.Path = replacePrefix(p, from, to)
-    private def deserializeRemap(p: java.nio.file.Path): java.nio.file.Path = replacePrefix(p, to, from)
+    private def serializeRemap(p: java.nio.file.Path): java.nio.file.Path = {
+      mappings.iterator
+        .map { case (from, to) => replacePrefix(p, from, to) }
+        .find(_ != p)
+        .getOrElse(p)
+    }
+    private def deserializeRemap(p: java.nio.file.Path): java.nio.file.Path = {
+      mappings.iterator
+        .map { case (from, to) => replacePrefix(p, to, from) }
+        .find(_ != p)
+        .getOrElse(p)
+    }
 
     def serializeString(p: os.Path): String = serializeRemap(p.wrapped).toString
     def serializeFile(p: os.Path): java.io.File = new java.io.File(serializeString(p))

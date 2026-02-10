@@ -617,6 +617,32 @@ object PathTests extends TestSuite {
         assert(outside.toNIO == outside.wrapped)
       }
     }
+    test("pathRemapSerializerMultipleMappings") {
+      val from1 = os.pwd / "from1"
+      val to1 = os.pwd / "to1"
+      val from2 = os.pwd / "from2"
+      val to2 = os.pwd / "to2"
+      val serializer = os.Path.pathRemapSerializer(Seq((from1, to1), (from2, to2)))
+      os.Path.pathSerializer.withValue(serializer) {
+        val inFrom1 = from1 / "a"
+        val inFrom2 = from2 / "b"
+        val inTo1 = to1 / "a"
+        val inTo2 = to2 / "b"
+
+        assert(inFrom1.toString == inTo1.wrapped.toString)
+        assert(inFrom2.toString == inTo2.wrapped.toString)
+        assert(os.Path(inTo1.wrapped.toString) == inFrom1)
+        assert(os.Path(inTo2.wrapped.toString) == inFrom2)
+
+        // First matching mapping is applied, without chaining remaps.
+        val chainSrc = from1 / "x"
+        val chainSerializer =
+          os.Path.pathRemapSerializer(Seq((from1, to1), (to1, to2)))
+        os.Path.pathSerializer.withValue(chainSerializer) {
+          assert(chainSrc.toString == to1.wrapped.resolve("x").toString)
+        }
+      }
+    }
   }
   // compare absolute paths
   def sameFile(a: java.nio.file.Path, b: java.nio.file.Path): Boolean = {
