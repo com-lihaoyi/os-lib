@@ -643,6 +643,26 @@ object PathTests extends TestSuite {
         }
       }
     }
+    test("pathRemapSerializerRelativeTarget") {
+      val workspaceAbs = os.pwd / "workspaceAbs"
+      val homeAbs = os.pwd / "homeAbs"
+      val serializer = os.Path.pathRemapSerializerNio(
+        Seq(
+          (workspaceAbs.wrapped, java.nio.file.Paths.get("out/mill-workspace")),
+          (homeAbs.wrapped, java.nio.file.Paths.get("out/mill-home"))
+        )
+      )
+      os.Path.pathSerializer.withValue(serializer) {
+        val inWorkspace = workspaceAbs / "foo"
+        val inHome = homeAbs / "bar"
+
+        assert(inWorkspace.toString == "out/mill-workspace/foo")
+        assert(inHome.toString == "out/mill-home/bar")
+
+        assert(os.Path("out/mill-workspace/foo") == inWorkspace)
+        assert(os.Path("out/mill-home/bar") == inHome)
+      }
+    }
   }
   // compare absolute paths
   def sameFile(a: java.nio.file.Path, b: java.nio.file.Path): Boolean = {

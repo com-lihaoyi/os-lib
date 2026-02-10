@@ -1,5 +1,6 @@
 //| mvnDeps:
 //| - com.github.lolgab::mill-mima_mill1:0.2.0
+//| mill-jvm-version: 17
 package build
 
 // imports

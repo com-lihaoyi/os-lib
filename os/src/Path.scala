@@ -456,11 +456,11 @@ object Path extends PathMacros {
         val mappings = tupleSpecs.map { tuple =>
           val parts = tuple.split(",", 2).map(_.trim)
           if (parts.length == 2 && parts(0).nonEmpty && parts(1).nonEmpty) {
-            (pathFromRawString(parts(0)), pathFromRawString(parts(1)))
+            (parseRawPath(parts(0)), parseRawPath(parts(1)))
           } else null
         }
         if (mappings.nonEmpty && mappings.forall(_ != null)) {
-          pathRemapSerializer(mappings)
+          pathRemapSerializerNio(mappings)
         } else rawPathSerializer
       case Some(base0) =>
         pathRelativizerSerializer(pathFromRawString(base0.trim))
@@ -474,9 +474,7 @@ object Path extends PathMacros {
    * initialization cycles when constructing `defaultPathSerializer`.
    */
   private def pathFromRawString(raw: String): Path = {
-    val parsed =
-      if (driveRelative(raw)) Paths.get(s"$driveRoot$raw")
-      else Paths.get(raw)
+    val parsed = parseRawPath(raw)
 
     if (parsed.iterator.asScala.count(_.startsWith("..")) > parsed.getNameCount / 2) {
       throw PathError.AbsolutePathOutsideRoot
@@ -485,13 +483,26 @@ object Path extends PathMacros {
     new Path(parsed.normalize())
   }
 
+  private def parseRawPath(raw: String): java.nio.file.Path = {
+    if (driveRelativeRaw(raw)) Paths.get(s"$driveRoot$raw")
+    else Paths.get(raw)
+  }
+
+  private def driveRelativeRaw(pathLike: String): Boolean = {
+    if (driveRoot.isEmpty) false
+    else pathLike.take(1) match {
+      case "\\" | "/" => true
+      case _ => false
+    }
+  }
+
   @experimental def pathRelativizerSerializer(base: os.Path): Serializer = new Serializer {
     private def serializeRelative(p: os.Path): Option[java.nio.file.Path] = {
       if (p.fileSystem == base.fileSystem && p.startsWith(base)) Some(p.relativeTo(base).toNIO)
       else None
     }
     private def deserializeRelative(p: java.nio.file.Path): java.nio.file.Path = {
-      if (p.isAbsolute || Path.driveRelative(p)) p
+      if (p.isAbsolute || driveRelativeRaw(p.toString)) p
       else base.wrapped.resolve(p.toString).normalize()
     }
     def serializeString(p: os.Path): String =
@@ -513,13 +524,33 @@ object Path extends PathMacros {
   }
 
   @experimental def pathRemapSerializer(from: os.Path, to: os.Path): Serializer =
-    pathRemapSerializer(Seq((from, to)))
+    pathRemapSerializer0(Seq((from.wrapped, to.wrapped)))
 
-  @experimental def pathRemapSerializer(mappings: Seq[(os.Path, os.Path)]): Serializer = new Serializer {
-    private def replacePrefix(p: java.nio.file.Path, src: os.Path, dest: os.Path): java.nio.file.Path = {
-      if (p.getFileSystem == src.fileSystem && p.startsWith(src.wrapped)) {
-        val rel = src.wrapped.relativize(p)
-        dest.wrapped.resolve(rel.toString).normalize()
+  @experimental def pathRemapSerializer(mappings: Seq[(os.Path, os.Path)]): Serializer =
+    pathRemapSerializer0(mappings.map { case (from, to) => (from.wrapped, to.wrapped) })
+
+  @experimental def pathRemapSerializer(
+      from: java.nio.file.Path,
+      to: java.nio.file.Path
+  ): Serializer =
+    pathRemapSerializer0(Seq((from, to)))
+
+  @experimental def pathRemapSerializerNio(
+      mappings: Seq[(java.nio.file.Path, java.nio.file.Path)]
+  ): Serializer =
+    pathRemapSerializer0(mappings)
+
+  private def pathRemapSerializer0(
+      mappings: Seq[(java.nio.file.Path, java.nio.file.Path)]
+  ): Serializer = new Serializer {
+    private def replacePrefix(
+        p: java.nio.file.Path,
+        src: java.nio.file.Path,
+        dest: java.nio.file.Path
+    ): java.nio.file.Path = {
+      if (p.getFileSystem == src.getFileSystem && p.startsWith(src)) {
+        val rel = src.relativize(p)
+        dest.resolve(rel.toString).normalize()
       } else p
     }
     private def serializeRemap(p: java.nio.file.Path): java.nio.file.Path = {
