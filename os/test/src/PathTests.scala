@@ -593,6 +593,30 @@ object PathTests extends TestSuite {
         assert(outside.toNIO == outside.wrapped)
       }
     }
+    test("pathRemapSerializer") {
+      val from = os.pwd / "from"
+      val to = os.pwd / "to"
+      val serializer = os.Path.pathRemapSerializer(from, to)
+      os.Path.pathSerializer.withValue(serializer) {
+        val inFrom = from / "foo" / "bar"
+        val inTo = to / "foo" / "bar"
+        val outside = os.pwd / "outside"
+
+        assert(inFrom.toString == (to / "foo" / "bar").wrapped.toString)
+        assert(inFrom.toNIO == (to / "foo" / "bar").wrapped)
+        assert(inFrom.toIO.getPath == (to / "foo" / "bar").wrapped.toString)
+
+        assert(os.Path((to / "foo" / "bar").wrapped.toString) == inFrom)
+        assert(os.Path((to / "foo" / "bar").wrapped) == inFrom)
+        assert(os.Path(new java.io.File((to / "foo" / "bar").wrapped.toString)) == inFrom)
+
+        assert(inTo.toString == inTo.wrapped.toString)
+        assert(os.Path(inTo.wrapped.toString) == inFrom)
+
+        assert(outside.toString == outside.wrapped.toString)
+        assert(outside.toNIO == outside.wrapped)
+      }
+    }
   }
   // compare absolute paths
   def sameFile(a: java.nio.file.Path, b: java.nio.file.Path): Boolean = {

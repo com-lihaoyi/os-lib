@@ -451,8 +451,13 @@ object Path extends PathMacros {
   @experimental lazy val defaultPathSerializer: Serializer = {
     val maybeBase = Option(System.getenv("OS_LIB_PATH_RELATIVIZER_BASE")).filter(_.nonEmpty)
     maybeBase match {
+      case Some(base0) if base0.contains(",") =>
+        val parts = base0.split(",", 2).map(_.trim)
+        if (parts.length == 2 && parts(0).nonEmpty && parts(1).nonEmpty) {
+          pathRemapSerializer(pathFromRawString(parts(0)), pathFromRawString(parts(1)))
+        } else rawPathSerializer
       case Some(base0) =>
-        pathRelativizerSerializer(pathFromRawString(base0))
+        pathRelativizerSerializer(pathFromRawString(base0.trim))
       case None =>
         rawPathSerializer
     }
@@ -494,6 +499,31 @@ object Path extends PathMacros {
     def deserialize(s: java.nio.file.Path): java.nio.file.Path = deserializeRelative(s)
     def deserialize(s: java.net.URI): java.nio.file.Path = s.getScheme() match {
       case "file" => deserializeRelative(Paths.get(s))
+      case uriType =>
+        throw new IllegalArgumentException(
+          s"""os.Path can only be created from a "file" URI scheme, but found "${uriType}""""
+        )
+    }
+  }
+
+  @experimental def pathRemapSerializer(from: os.Path, to: os.Path): Serializer = new Serializer {
+    private def replacePrefix(p: java.nio.file.Path, src: os.Path, dest: os.Path): java.nio.file.Path = {
+      if (p.getFileSystem == src.fileSystem && p.startsWith(src.wrapped)) {
+        val rel = src.wrapped.relativize(p)
+        dest.wrapped.resolve(rel.toString).normalize()
+      } else p
+    }
+    private def serializeRemap(p: java.nio.file.Path): java.nio.file.Path = replacePrefix(p, from, to)
+    private def deserializeRemap(p: java.nio.file.Path): java.nio.file.Path = replacePrefix(p, to, from)
+
+    def serializeString(p: os.Path): String = serializeRemap(p.wrapped).toString
+    def serializeFile(p: os.Path): java.io.File = new java.io.File(serializeString(p))
+    def serializePath(p: os.Path): java.nio.file.Path = serializeRemap(p.wrapped)
+    def deserialize(s: String): java.nio.file.Path = deserializeRemap(Paths.get(s))
+    def deserialize(s: java.io.File): java.nio.file.Path = deserializeRemap(Paths.get(s.getPath))
+    def deserialize(s: java.nio.file.Path): java.nio.file.Path = deserializeRemap(s)
+    def deserialize(s: java.net.URI): java.nio.file.Path = s.getScheme() match {
+      case "file" => deserializeRemap(Paths.get(s))
       case uriType =>
         throw new IllegalArgumentException(
           s"""os.Path can only be created from a "file" URI scheme, but found "${uriType}""""
