@@ -236,7 +236,15 @@ object os extends Module {
 
   object native extends Cross[OsNativeModule](scalaVersions)
   trait OsNativeModule extends OsModule with ScalaNativeModule {
-    def scalaNativeVersion = "0.5.9"
+
+    def repositoriesTask = Task.Anon { super.repositoriesTask() ++ Seq(
+        coursier.maven.MavenRepository(
+          "https://central.sonatype.com/repository/maven-snapshots/"
+        )
+       )
+     }
+
+    def scalaNativeVersion = "0.5.10-20260109-81a2fad-SNAPSHOT"
     
     // Configurable native mode for debugging/performance testing
     def nativeMode = sys.props.get("native.mode") match {
