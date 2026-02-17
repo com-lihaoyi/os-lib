@@ -24,7 +24,7 @@ object Deps {
   val ant = mvn"org.apache.ant:ant:1.10.15"
   val sourcecode = mvn"com.lihaoyi::sourcecode::0.4.2"
   val utest = mvn"com.lihaoyi::utest::0.8.4"
-  val expecty = mvn"com.eed3si9n.expecty::expecty::0.16.0"
+  val expecty = mvn"com.eed3si9n.expecty::expecty::0.17.1"
   def scalaReflect(scalaVersion: String) = mvn"org.scala-lang:scala-reflect:$scalaVersion"
   def scalaLibrary(version: String) = mvn"org.scala-lang:scala-library:${version}"
 }
