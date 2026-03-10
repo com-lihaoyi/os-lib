@@ -56,7 +56,11 @@ package object watch {
       throw new IllegalArgumentException(errors.mkString("\n"))
     }
 
-    val sentinelFiles = roots.iterator.map(_ / s".os-lib-watch-sentinel-${UUID.randomUUID()}").toSet
+    val sentinelFiles = 
+      roots
+        .iterator
+        .flatMap(os.followLink(_).map(_ / s".os-lib-watch-sentinel-${UUID.randomUUID()}"))
+        .toSet
 
     @volatile var customOnEvent: OnEvent = onEvent
     // Needed because the function passed to the watcher implementation is stable and we need to change it
