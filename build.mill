@@ -175,7 +175,7 @@ object os extends Module {
       object testJarWriter extends JavaModule
       object testJarReader extends JavaModule
       object testJarExit extends JavaModule
-      object testSpawnExitHook extends ScalaModule{
+      object testSpawnExitHook extends ScalaModule {
         def scalaVersion = OsJvmModule.this.scalaVersion()
         def moduleDeps = Seq(OsJvmModule.this)
       }
@@ -237,14 +237,14 @@ object os extends Module {
   object native extends Cross[OsNativeModule](scalaVersions)
   trait OsNativeModule extends OsModule with ScalaNativeModule {
     def scalaNativeVersion = "0.5.9"
-    
+
     // Configurable native mode for debugging/performance testing
     def nativeMode = sys.props.get("native.mode") match {
-      case Some("release-fast") => mill.scalanativelib.api.ReleaseMode.ReleaseFast  
+      case Some("release-fast") => mill.scalanativelib.api.ReleaseMode.ReleaseFast
       case Some("release-full") => mill.scalanativelib.api.ReleaseMode.ReleaseFull
       case _ => mill.scalanativelib.api.ReleaseMode.Debug
     }
-    
+
     object test extends ScalaNativeTests with OsLibTestModule {
       // Keep stubs linked to tolerate optional symbols across platforms
       def nativeLinkStubs = true

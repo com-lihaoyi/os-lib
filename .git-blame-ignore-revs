@@ -6,3 +6,6 @@ e437d63c40713e0645a4895bbe5a0fc565cd56db
 
 # Reformat sources
 37803ae1b29b688a092d7f84e81560c852af2b68
+
+# Scala Steward: Reformat with scalafmt 3.8.6
+1194240e2f6b07cd582a22568c52ba67690971ca
