@@ -480,8 +480,9 @@ object ProcessInput {
     def processInput(stdin: => SubProcess.InputStream): Option[Runnable] = Some {
       new Runnable {
         def run() = {
-          r.writeBytesTo(stdin)
-          stdin.close()
+          try r.writeBytesTo(stdin)
+          catch { case e: Throwable => /*ignore failures and assume the stream just closed early*/ }
+          finally stdin.close()
         }
       }
     }

@@ -574,6 +574,95 @@ object PathTests extends TestSuite {
 
       assert(x / "hello" == y)
     }
+    test("pathRelativizerSerializer") {
+      val base = os.pwd / "base"
+      val serializer = os.Path.pathRelativizerSerializer(base)
+      os.Path.pathSerializer.withValue(serializer) {
+        val inBase = base / "foo" / "bar"
+        val outside = os.pwd / "outside"
+
+        assert(inBase.toString == "foo/bar")
+        assert(inBase.toNIO == java.nio.file.Paths.get("foo/bar"))
+        assert(inBase.toIO.getPath == new java.io.File("foo/bar").getPath)
+
+        assert(os.Path("foo/bar") == inBase)
+        assert(os.Path(java.nio.file.Paths.get("foo/bar")) == inBase)
+        assert(os.Path(new java.io.File("foo/bar")) == inBase)
+
+        assert(outside.toString == outside.wrapped.toString)
+        assert(outside.toNIO == outside.wrapped)
+      }
+    }
+    test("pathRemapSerializer") {
+      val from = os.pwd / "from"
+      val to = os.pwd / "to"
+      val serializer = os.Path.pathRemapSerializer(from, to)
+      os.Path.pathSerializer.withValue(serializer) {
+        val inFrom = from / "foo" / "bar"
+        val inTo = to / "foo" / "bar"
+        val outside = os.pwd / "outside"
+
+        assert(inFrom.toString == (to / "foo" / "bar").wrapped.toString)
+        assert(inFrom.toNIO == (to / "foo" / "bar").wrapped)
+        assert(inFrom.toIO.getPath == (to / "foo" / "bar").wrapped.toString)
+
+        assert(os.Path((to / "foo" / "bar").wrapped.toString) == inFrom)
+        assert(os.Path((to / "foo" / "bar").wrapped) == inFrom)
+        assert(os.Path(new java.io.File((to / "foo" / "bar").wrapped.toString)) == inFrom)
+
+        assert(inTo.toString == inTo.wrapped.toString)
+        assert(os.Path(inTo.wrapped.toString) == inFrom)
+
+        assert(outside.toString == outside.wrapped.toString)
+        assert(outside.toNIO == outside.wrapped)
+      }
+    }
+    test("pathRemapSerializerMultipleMappings") {
+      val from1 = os.pwd / "from1"
+      val to1 = os.pwd / "to1"
+      val from2 = os.pwd / "from2"
+      val to2 = os.pwd / "to2"
+      val serializer = os.Path.pathRemapSerializer(Seq((from1, to1), (from2, to2)))
+      os.Path.pathSerializer.withValue(serializer) {
+        val inFrom1 = from1 / "a"
+        val inFrom2 = from2 / "b"
+        val inTo1 = to1 / "a"
+        val inTo2 = to2 / "b"
+
+        assert(inFrom1.toString == inTo1.wrapped.toString)
+        assert(inFrom2.toString == inTo2.wrapped.toString)
+        assert(os.Path(inTo1.wrapped.toString) == inFrom1)
+        assert(os.Path(inTo2.wrapped.toString) == inFrom2)
+
+        // First matching mapping is applied, without chaining remaps.
+        val chainSrc = from1 / "x"
+        val chainSerializer =
+          os.Path.pathRemapSerializer(Seq((from1, to1), (to1, to2)))
+        os.Path.pathSerializer.withValue(chainSerializer) {
+          assert(chainSrc.toString == to1.wrapped.resolve("x").toString)
+        }
+      }
+    }
+    test("pathRemapSerializerRelativeTarget") {
+      val workspaceAbs = os.pwd / "workspaceAbs"
+      val homeAbs = os.pwd / "homeAbs"
+      val serializer = os.Path.pathRemapSerializerNio(
+        Seq(
+          (workspaceAbs.wrapped, java.nio.file.Paths.get("out/mill-workspace")),
+          (homeAbs.wrapped, java.nio.file.Paths.get("out/mill-home"))
+        )
+      )
+      os.Path.pathSerializer.withValue(serializer) {
+        val inWorkspace = workspaceAbs / "foo"
+        val inHome = homeAbs / "bar"
+
+        assert(inWorkspace.toString == "out/mill-workspace/foo")
+        assert(inHome.toString == "out/mill-home/bar")
+
+        assert(os.Path("out/mill-workspace/foo") == inWorkspace)
+        assert(os.Path("out/mill-home/bar") == inHome)
+      }
+    }
   }
   // compare absolute paths
   def sameFile(a: java.nio.file.Path, b: java.nio.file.Path): Boolean = {
