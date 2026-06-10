@@ -339,11 +339,15 @@ object remove extends Function1[Path, Boolean] {
         if (Files.isDirectory(nioTarget, LinkOption.NOFOLLOW_LINKS)) {
           for (p <- walk.stream(target, preOrder = false)) {
             try remove(p)
-            catch { case e: Throwable if ignoreErrors => /*ignore*/ }
+            catch {
+              case e: Throwable if ignoreErrors => /*ignore*/
+            }
           }
         }
         try Files.delete(nioTarget)
-        catch { case e: Throwable if ignoreErrors => /*ignore*/ }
+        catch {
+          case e: Throwable if ignoreErrors => /*ignore*/
+        }
       }
     }
   }
