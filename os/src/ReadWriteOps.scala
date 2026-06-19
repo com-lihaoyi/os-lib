@@ -28,7 +28,7 @@ object write {
       openOptions: Seq[OpenOption] = Seq(CREATE, WRITE)
   ) = {
     checker.value.onWrite(target)
-    if (createFolders) makeDir.all(target / RelPath.up, perms)
+    if (createFolders) makeDir.all(target / RelPath.up)
     if (perms != null && !exists(target)) {
       val permArray: Array[FileAttribute[_]] =
         if (perms == null) Array.empty
@@ -76,7 +76,7 @@ object write {
       perms: PermSet = null,
       createFolders: Boolean = false
   ): Unit = {
-    if (createFolders) makeDir.all(target / RelPath.up, perms)
+    if (createFolders) makeDir.all(target / RelPath.up)
     write(target, data, Seq(StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE), perms, 0)
   }
 
@@ -91,7 +91,7 @@ object write {
         perms: PermSet = null,
         createFolders: Boolean = false
     ): Unit = {
-      if (createFolders) makeDir.all(target / RelPath.up, perms)
+      if (createFolders) makeDir.all(target / RelPath.up)
       write(
         target,
         data,
@@ -133,7 +133,7 @@ object write {
         createFolders: Boolean = false,
         truncate: Boolean = true
     ): Unit = {
-      if (createFolders) makeDir.all(target / RelPath.up, perms)
+      if (createFolders) makeDir.all(target / RelPath.up)
       write(
         target,
         data,
