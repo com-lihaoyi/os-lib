@@ -457,20 +457,21 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
     val chunks = new java.util.concurrent.ConcurrentLinkedQueue[Either[geny.Bytes, geny.Bytes]]
 
     val sub = spawn(
-      cwd,
-      env,
-      stdin,
-      if (stdout ne os.Pipe) stdout
+      cwd = cwd,
+      env = env,
+      stdin = stdin,
+      stdout = if (stdout ne os.Pipe) stdout
       else os.ProcessOutput.ReadBytes((buf, n) =>
         chunks.add(Left(new geny.Bytes(java.util.Arrays.copyOf(buf, n))))
       ),
-      if (stderr ne os.Pipe) stderr
+      stderr = if (stderr ne os.Pipe) stderr
       else os.ProcessOutput.ReadBytes((buf, n) =>
         chunks.add(Right(new geny.Bytes(java.util.Arrays.copyOf(buf, n))))
       ),
-      mergeErrIntoOut,
-      propagateEnv,
-      pipefail
+      mergeErrIntoOut = mergeErrIntoOut,
+      propagateEnv = propagateEnv,
+      pipefail = pipefail,
+      handleBrokenPipe = handleBrokenPipe
     )
 
     sub.join(timeout, shutdownGracePeriod)
