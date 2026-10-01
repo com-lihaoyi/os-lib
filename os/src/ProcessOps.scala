@@ -586,19 +586,36 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
   ) =
     new ProcessInput {
       override def redirectFrom: Redirect = wrapped.redirectFrom
-      override def processInput(stdin: => InputStream): Option[Runnable] =
-        wrapped.processInput(stdin).map { runnable =>
-          new Runnable {
-            def run() = {
-              try {
-                runnable.run()
-              } catch {
-                case e: IOException =>
-                  queue.put(index)
+      override def processInput(stdin: => InputStream): Option[Runnable] = wrapped match {
+        // `SourceInput` swallows write failures, so we need to do the transfer ourselves
+        // here in order to notice broken pipes
+        case ProcessInput.SourceInput(r) =>
+          Some {
+            new Runnable {
+              def run() = {
+                try {
+                  try r.writeBytesTo(stdin)
+                  finally stdin.close()
+                } catch {
+                  case e: IOException =>
+                    queue.put(index)
+                }
               }
             }
           }
-        }
+        case _ => wrapped.processInput(stdin).map { runnable =>
+            new Runnable {
+              def run() = {
+                try {
+                  runnable.run()
+                } catch {
+                  case e: IOException =>
+                    queue.put(index)
+                }
+              }
+            }
+          }
+      }
     }
 
   /**
