@@ -334,7 +334,7 @@ class RelPath private[os] (segments0: Array[String], val ups: Int)
 
   override def toString() = (Seq.fill(ups)("..") ++ segments0).mkString("/")
 
-  override def hashCode = segments.hashCode() + ups.hashCode()
+  override def hashCode() = segments.hashCode() + ups.hashCode()
   override def equals(o: Any): Boolean = o match {
     case p: RelPath => segments == p.segments && p.ups == ups
     case p: SubPath => segments == p.segments && ups == 0
@@ -733,7 +733,7 @@ class Path private[os] (val wrapped: java.nio.file.Path)
     case p: Path => wrapped.equals(p.wrapped)
     case _ => false
   }
-  override def hashCode = wrapped.hashCode()
+  override def hashCode() = wrapped.hashCode()
 
   def startsWith(target: Path) = wrapped.startsWith(target.wrapped)
 
