@@ -212,7 +212,7 @@ object BasePath {
     }
   }
   def chunkify(s: java.nio.file.Path) = {
-    import scala.jdk.CollectionConverters.*
+    import collection.JavaConverters._
     s.iterator().asScala.map(_.toString).filter(_ != ".").filter(_ != "").toArray
   }
 }
