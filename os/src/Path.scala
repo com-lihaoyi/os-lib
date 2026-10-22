@@ -212,7 +212,7 @@ object BasePath {
     }
   }
   def chunkify(s: java.nio.file.Path) = {
-    import collection.JavaConverters._
+    import scala.jdk.CollectionConverters.*
     s.iterator().asScala.map(_.toString).filter(_ != ".").filter(_ != "").toArray
   }
 }
@@ -233,6 +233,7 @@ trait SegmentedPath extends BasePath {
   def endsWith(target: RelPath): Boolean = {
     this == target || (target.ups == 0 && this.segments.endsWith(target.segments))
   }
+
 }
 
 trait BasePathImpl extends BasePath {
@@ -332,6 +333,7 @@ class RelPath private[os] (segments0: Array[String], val ups: Int)
   }
 
   override def toString = (Seq.fill(ups)("..") ++ segments0).mkString("/")
+
   override def hashCode = segments.hashCode() + ups.hashCode()
   override def equals(o: Any): Boolean = o match {
     case p: RelPath => segments == p.segments && p.ups == ups
@@ -582,7 +584,9 @@ object Path extends PathMacros {
   }
 
   private object rawPathSerializer extends Serializer {
-    def serializeString(p: os.Path): String = p.wrapped.toString
+    def serializeString(p: os.Path): String =
+      if (p.fileSystem.getSeparator() == "/") p.wrapped.toString
+      else p.wrapped.toString.replace(p.fileSystem.getSeparator(), "/")
     def serializeFile(p: os.Path): java.io.File = p.wrapped.toFile
     def serializePath(p: os.Path): java.nio.file.Path = p.wrapped
     def deserialize(s: String) = Paths.get(s)
@@ -699,12 +703,14 @@ trait ReadablePath {
  */
 class Path private[os] (val wrapped: java.nio.file.Path)
     extends FilePath with ReadablePath with BasePathImpl {
+
+  require(wrapped.isAbsolute || Path.driveRelative(wrapped), s"$wrapped is not an absolute path")
+
   def toSource: SeekableSource = new SeekableSource.ChannelLengthSource(
     java.nio.file.Files.newByteChannel(wrapped),
     java.nio.file.Files.size(wrapped)
   )
 
-  require(wrapped.isAbsolute || Path.driveRelative(wrapped), s"$wrapped is not an absolute path")
   def root = Option(wrapped.getRoot).map(_.toString).getOrElse("")
   def fileSystem = wrapped.getFileSystem()
 

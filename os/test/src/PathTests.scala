@@ -676,5 +676,5 @@ object PathTests extends TestSuite {
   }
   def posix(s: String): String = s.replace('\\', '/')
   def posix(p: java.nio.file.Path): String = posix(p.toString)
-  def posix(p: os.Path): String = posix(p.toNIO)
+  def posix(p: os.Path): String = p.toString // posix(p.toNIO)
 }
