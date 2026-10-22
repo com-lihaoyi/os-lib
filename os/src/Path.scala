@@ -726,6 +726,7 @@ class Path private[os] (val wrapped: java.nio.file.Path)
     val resolved = wrapped.resolve(chunk.toString).normalize()
     new Path(resolved)
   }
+  /** Posix-conform string representation of this path (using forward slashes). */
   override def toString = Path.pathSerializer.value.serializeString(this)
 
   override def equals(o: Any): Boolean = o match {
