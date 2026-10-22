@@ -332,7 +332,7 @@ class RelPath private[os] (segments0: Array[String], val ups: Int)
     this.segments0.startsWith(target.segments) && this.ups == target.ups
   }
 
-  override def toString = (Seq.fill(ups)("..") ++ segments0).mkString("/")
+  override def toString() = (Seq.fill(ups)("..") ++ segments0).mkString("/")
 
   override def hashCode = segments.hashCode() + ups.hashCode()
   override def equals(o: Any): Boolean = o match {
@@ -399,8 +399,8 @@ class SubPath private[os] (val segments0: Array[String])
 
   def startsWith(target: SubPath) = this.segments0.startsWith(target.segments)
 
-  override def toString = segments0.mkString("/")
-  override def hashCode = segments.hashCode()
+  override def toString() = segments0.mkString("/")
+  override def hashCode() = segments.hashCode()
   override def equals(o: Any): Boolean = o match {
     case p: SubPath => segments == p.segments
     case p: RelPath => segments == p.segments && p.ups == 0
@@ -727,7 +727,7 @@ class Path private[os] (val wrapped: java.nio.file.Path)
     new Path(resolved)
   }
   /** Posix-conform string representation of this path (using forward slashes). */
-  override def toString = Path.pathSerializer.value.serializeString(this)
+  override def toString() = Path.pathSerializer.value.serializeString(this)
 
   override def equals(o: Any): Boolean = o match {
     case p: Path => wrapped.equals(p.wrapped)
