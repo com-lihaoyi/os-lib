@@ -114,7 +114,7 @@ trait OsModule extends OsLibModule { outer =>
   val scalaDocExternalMappings = Seq(
     ".*scala.*::scaladoc3::https://scala-lang.org/api/3.x/",
     ".*java.*::javadoc::https://docs.oracle.com/javase/8/docs/api/",
-    s".*geny.*::scaladoc3::https://javadoc.io/doc/com.lihaoyi/geny_3/${Deps.geny.dep.version}/"
+    s".*geny.*::scaladoc3::https://javadoc.io/doc/com.lihaoyi/geny_3/${Deps.geny.version}/"
   ).mkString(",")
 
   def conditionalScalaDocOptions: T[Seq[String]] = Task {
@@ -160,6 +160,8 @@ object os extends Module {
   trait OsJvmModule extends OsModule with MiMaChecks {
     def moduleDeps = super.moduleDeps ++ Seq(os.zip)
 
+    def scalacOptions = super.scalacOptions() ++ Seq("-java-output-version", "11")
+
     object test extends ScalaTests with OsLibTestModule {
       override def mvnDeps = Task { super.mvnDeps() ++ Seq(Deps.expecty) }
 
@@ -175,7 +177,7 @@ object os extends Module {
       object testJarWriter extends JavaModule
       object testJarReader extends JavaModule
       object testJarExit extends JavaModule
-      object testSpawnExitHook extends ScalaModule{
+      object testSpawnExitHook extends ScalaModule {
         def scalaVersion = OsJvmModule.this.scalaVersion()
         def moduleDeps = Seq(OsJvmModule.this)
       }
@@ -232,19 +234,21 @@ object os extends Module {
 
       Seq(PathRef(Task.dest))
     }
+
+    def javacOptions = super.javacOptions() ++ Seq("-source", "11", "-target", "11", "-encoding", "UTF-8")
   }
 
   object native extends Cross[OsNativeModule](scalaVersions)
   trait OsNativeModule extends OsModule with ScalaNativeModule {
     def scalaNativeVersion = "0.5.9"
-    
+
     // Configurable native mode for debugging/performance testing
     def nativeMode = sys.props.get("native.mode") match {
-      case Some("release-fast") => mill.scalanativelib.api.ReleaseMode.ReleaseFast  
+      case Some("release-fast") => mill.scalanativelib.api.ReleaseMode.ReleaseFast
       case Some("release-full") => mill.scalanativelib.api.ReleaseMode.ReleaseFull
       case _ => mill.scalanativelib.api.ReleaseMode.Debug
     }
-    
+
     object test extends ScalaNativeTests with OsLibTestModule {
       // Keep stubs linked to tolerate optional symbols across platforms
       def nativeLinkStubs = true
