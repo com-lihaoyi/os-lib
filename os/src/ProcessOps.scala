@@ -613,7 +613,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
               }
             }
           }
-      }
+        }
     }
   }
 
