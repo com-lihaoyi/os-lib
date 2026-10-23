@@ -21,6 +21,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/mill
+            ~/.cache/coursier
+          key: ${{ runner.os }}-mill
+
       - uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
