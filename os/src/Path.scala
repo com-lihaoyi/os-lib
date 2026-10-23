@@ -442,33 +442,6 @@ object SubPath extends SubPathMacros {
 
 object Path extends PathMacros {
 
-  /**
-   * Parse a String path without depending on `pathSerializer` to avoid
-   * initialization cycles when constructing `defaultPathSerializer`.
-   */
-  private def pathFromRawString(raw: String): Path = {
-    val parsed = parseRawPath(raw)
-
-    if (parsed.iterator.asScala.count(_.startsWith("..")) > parsed.getNameCount / 2) {
-      throw PathError.AbsolutePathOutsideRoot
-    }
-
-    new Path(parsed.normalize())
-  }
-
-  private def parseRawPath(raw: String): java.nio.file.Path = {
-    if (driveRelativeRaw(raw)) Paths.get(s"$driveRoot$raw")
-    else Paths.get(raw)
-  }
-
-  private def driveRelativeRaw(pathLike: String): Boolean = {
-    if (driveRoot.isEmpty) false
-    else pathLike.take(1) match {
-      case "\\" | "/" => true
-      case _ => false
-    }
-  }
-
   def apply(p: FilePath, base: Path) = p match {
     case p: RelPath => base / p
     case p: SubPath => base / p
