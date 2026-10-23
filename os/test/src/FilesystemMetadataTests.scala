@@ -3,7 +3,7 @@ package test.os
 import test.os.TestUtil.prep
 import utest._
 
-object FilesystemMetadataTests extends TestSuite {
+class FilesystemMetadataTests extends TestSuite {
 
   // on unix it is 81 bytes, win adds 3 bytes (3 \r characters)
   private val multilineSizes = Set[Long](81, 84)

@@ -34,7 +34,7 @@ object SpawningSubprocessesTests extends TestSuite {
 
           res.out.bytes
 
-          val thrown = intercept[os.SubprocessException] {
+          val thrown = assertThrows[os.SubprocessException] {
             os.proc("ls", "doesnt-exist").call(cwd = wd)
           }
 
@@ -64,7 +64,7 @@ object SpawningSubprocessesTests extends TestSuite {
       }
       test - prep { wd =>
         if (Unix()) {
-          val ex = intercept[os.SubprocessException] {
+          val ex = assertThrows[os.SubprocessException] {
             os.proc("bash", "-c", "echo 123; sleep 10; echo 456")
               .call(timeout = 2000)
           }

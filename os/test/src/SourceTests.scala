@@ -1,7 +1,7 @@
 package test.os
 import utest.{assert => _, _}
 
-object SourceTests extends TestSuite {
+class SourceTests extends TestSuite {
 
   val tests = Tests {
     test("contentMetadata") - TestUtil.prep { wd =>

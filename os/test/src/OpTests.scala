@@ -7,7 +7,7 @@ import utest._
 import os.{GlobSyntax, /}
 import java.nio.charset.Charset
 
-object OpTests extends TestSuite {
+class OpTests extends TestSuite {
 
   val tests = Tests {
     val res = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "test"
@@ -32,13 +32,13 @@ object OpTests extends TestSuite {
       os.remove(os.pwd / "out/scratch/nonexistent") ==> false
 
       // should crash
-      intercept[NoSuchFileException] {
+      assertThrows[NoSuchFileException] {
         os.remove(os.pwd / "out/scratch/nonexistent", checkExists = true)
       }
     }
     test("lsR") {
       os.walk(res).foreach(println)
-      intercept[java.nio.file.NoSuchFileException](
+      assertThrows[java.nio.file.NoSuchFileException](
         os.walk(os.pwd / "out/scratch/nonexistent")
       )
       assert(
@@ -122,7 +122,7 @@ object OpTests extends TestSuite {
             os.list(d).map(os.move.matching { case p / g"$x.$y" => p / g"$y.$x" })
             assert(fileSet == Set("scala.A", "scala.B", "py.A", "py.B"))
             def die = os.list(d).map(os.move.matching { case p / g"A.$x" => p / g"C.$x" })
-            intercept[MatchError] { die }
+            assertThrows[MatchError] { die }
           }
         }
 
@@ -150,7 +150,7 @@ object OpTests extends TestSuite {
           }
           test("fullMoves") {
             def die = os.walk(d).map(os.move.matching { case d / "py" / x => d / x })
-            intercept[MatchError] { die }
+            assertThrows[MatchError] { die }
 
             os.walk(d).filter(os.isFile).map(os.move.matching {
               case d / "py" / x => d / "scala/py" / x
@@ -239,16 +239,16 @@ object OpTests extends TestSuite {
         os.makeDir.all(d)
         test("nonexistant") {
 
-          test - intercept[nio.NoSuchFileException](os.read(d / "nonexistent"))
-          test - intercept[nio.NoSuchFileException](os.copy(d / "nonexistent", d / "yolo"))
-          test - intercept[nio.NoSuchFileException](os.move(d / "nonexistent", d / "yolo"))
+          test - assertThrows[nio.NoSuchFileException](os.read(d / "nonexistent"))
+          test - assertThrows[nio.NoSuchFileException](os.copy(d / "nonexistent", d / "yolo"))
+          test - assertThrows[nio.NoSuchFileException](os.move(d / "nonexistent", d / "yolo"))
         }
         test("collisions") {
           os.makeDir.all(d / "folder")
           os.write(d / "file", "lolol")
-          test - intercept[nio.FileAlreadyExistsException](os.move(d / "file", d / "folder"))
-          test - intercept[nio.FileAlreadyExistsException](os.copy(d / "file", d / "folder"))
-          test - intercept[nio.FileAlreadyExistsException](os.write(d / "file", "lols"))
+          test - assertThrows[nio.FileAlreadyExistsException](os.move(d / "file", d / "folder"))
+          test - assertThrows[nio.FileAlreadyExistsException](os.copy(d / "file", d / "folder"))
+          test - assertThrows[nio.FileAlreadyExistsException](os.write(d / "file", "lols"))
         }
       }
     }

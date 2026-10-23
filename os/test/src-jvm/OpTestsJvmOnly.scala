@@ -38,19 +38,19 @@ object OpTestsJvmOnly extends TestSuite {
         }
       }
       test("negative") {
-        test - intercept[os.ResourceNotFoundException] {
+        test - assertThrows[os.ResourceNotFoundException] {
           os.read(os.resource / "folder/file.txt")
         }
 
-        test - intercept[os.ResourceNotFoundException] {
+        test - assertThrows[os.ResourceNotFoundException] {
           os.read(
             os.resource(classOf[_root_.test.os.Testing]) / "test/os/folder/file.txt"
           )
         }
-        test - intercept[os.ResourceNotFoundException] {
+        test - assertThrows[os.ResourceNotFoundException] {
           os.read(os.resource(getClass) / "test/os/folder/file.txt")
         }
-        test - intercept[os.ResourceNotFoundException] {
+        test - assertThrows[os.ResourceNotFoundException] {
           os.read(os.resource(getClass.getClassLoader) / "folder/file.txt")
         }
       }
@@ -68,7 +68,7 @@ object OpTestsJvmOnly extends TestSuite {
 
     test("listNonExistentFailure") - {
       val d = testFolder / "readWrite"
-      intercept[nio.NoSuchFileException](os.list(d / "nonexistent"))
+      assertThrows[nio.NoSuchFileException](os.list(d / "nonexistent"))
     }
 
     // Not sure why this doesn't work on native

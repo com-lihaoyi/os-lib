@@ -234,7 +234,7 @@ object ExampleTests extends TestSuite {
       val sub4 = rel3.asSubPath
 
       // `up`s are not allowed in sub paths
-      intercept[Exception](os.pwd subRelativeTo target)
+      assertThrows[Exception](os.pwd subRelativeTo target)
     }
     test("relSubPathEquality") {
       assert(
