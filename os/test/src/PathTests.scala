@@ -64,7 +64,10 @@ class PathTests extends TestSuite {
 
       test("Compile errors") {
 
-        assertCompileError("""root / "src/../foo"""").check("", nonCanonicalLiteral("src/../foo", "foo"))
+        assertCompileError("""root / "src/../foo"""").check(
+          "",
+          nonCanonicalLiteral("src/../foo", "foo")
+        )
         assertCompileError("""root / "hello/../world"""").check(
           "",
           nonCanonicalLiteral("hello/../world", "world")
@@ -91,9 +94,18 @@ class PathTests extends TestSuite {
         )
 
         assertCompileError("""root / "src/.."""").check("", removeLiteralErr("src/.."))
-        assertCompileError("""root / "src/../foo/.."""").check("", removeLiteralErr("src/../foo/.."))
-        assertCompileError("""root / "src/foo/../.."""").check("", removeLiteralErr("src/foo/../.."))
-        assertCompileError("""root / "src/foo/./../.."""").check("", removeLiteralErr("src/foo/./../.."))
+        assertCompileError("""root / "src/../foo/.."""").check(
+          "",
+          removeLiteralErr("src/../foo/..")
+        )
+        assertCompileError("""root / "src/foo/../.."""").check(
+          "",
+          removeLiteralErr("src/foo/../..")
+        )
+        assertCompileError("""root / "src/foo/./../.."""").check(
+          "",
+          removeLiteralErr("src/foo/./../..")
+        )
         assertCompileError("""root / "src/./foo/./../.."""").check(
           "",
           removeLiteralErr("src/./foo/./../..")
@@ -111,7 +123,10 @@ class PathTests extends TestSuite {
         assertCompileError("""root / "foo/" """).check("", nonCanonicalLiteral("foo/", "foo"))
         assertCompileError("""root / "foo//" """).check("", nonCanonicalLiteral("foo//", "foo"))
 
-        assertCompileError("""root / "foo/bar/" """).check("", nonCanonicalLiteral("foo/bar/", "foo/bar"))
+        assertCompileError("""root / "foo/bar/" """).check(
+          "",
+          nonCanonicalLiteral("foo/bar/", "foo/bar")
+        )
         assertCompileError("""root / "foo/bar//" """).check(
           "",
           nonCanonicalLiteral("foo/bar//", "foo/bar")
@@ -419,7 +434,8 @@ class PathTests extends TestSuite {
           )
         )
 
-        val ex2 = assertThrows[PathError.InvalidSegment](root / "hello" / nonLiteral("..") / "world")
+        val ex2 =
+          assertThrows[PathError.InvalidSegment](root / "hello" / nonLiteral("..") / "world")
 
         val PathError.InvalidSegment("..", msg2) = ex2
 
