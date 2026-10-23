@@ -455,7 +455,6 @@ object Path extends PathMacros {
     def deserialize(s: java.net.URI): java.nio.file.Path
   }
 
-
   @deprecated("Experimental pathSerializer variable is no longer used", "os-lib after 0.11.8")
   @experimental
   val pathSerializer = new DynamicVariable[Serializer](defaultPathSerializer)
