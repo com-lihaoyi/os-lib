@@ -1,6 +1,7 @@
 package os
 
 import acyclic.skipped
+
 import java.net.URI
 import java.nio.file.{FileSystem, Paths}
 import scala.collection.JavaConverters._
@@ -441,6 +442,41 @@ object SubPath extends SubPathMacros {
 }
 
 object Path extends PathMacros {
+
+  @deprecated("Experimental Serializer trait is no longer used", "os-lib after 0.11.8")
+  @experimental
+  trait Serializer {
+    def serializeString(p: os.Path): String
+    def serializeFile(p: os.Path): java.io.File
+    def serializePath(p: os.Path): java.nio.file.Path
+    def deserialize(s: String): java.nio.file.Path
+    def deserialize(s: java.io.File): java.nio.file.Path
+    def deserialize(s: java.nio.file.Path): java.nio.file.Path
+    def deserialize(s: java.net.URI): java.nio.file.Path
+  }
+
+
+  @deprecated("Experimental pathSerializer variable is no longer used", "os-lib after 0.11.8")
+  @experimental
+  val pathSerializer = new DynamicVariable[Serializer](defaultPathSerializer)
+
+  @deprecated("Experimental defaultPathSerializer object is no longer used", "os-lib after 0.11.8")
+  @experimental
+  object defaultPathSerializer extends Serializer {
+    def serializeString(p: os.Path): String = p.wrapped.toString
+    def serializeFile(p: os.Path): java.io.File = p.wrapped.toFile
+    def serializePath(p: os.Path): java.nio.file.Path = p.wrapped
+    def deserialize(s: String) = Paths.get(s)
+    def deserialize(s: java.io.File) = Paths.get(s.getPath)
+    def deserialize(s: java.nio.file.Path) = s
+    def deserialize(s: java.net.URI) = s.getScheme() match {
+      case "file" => Paths.get(s)
+      case uriType =>
+        throw new IllegalArgumentException(
+          s"""os.Path can only be created from a "file" URI scheme, but found "${uriType}""""
+        )
+    }
+  }
 
   def apply(p: FilePath, base: Path) = p match {
     case p: RelPath => base / p
