@@ -1,3 +1,4 @@
+//| mill-version: 1.3.1
 //| mvnDeps:
 //| - com.github.lolgab::mill-mima_mill1:0.2.0
 package build
@@ -100,6 +101,14 @@ trait OsLibModule
   }
 }
 
+trait JvmJavaSettings extends JavaModule {
+  def javacOptions = super.javacOptions() ++ Seq("-source", "11", "-target", "11", "-encoding", "UTF-8")
+}
+
+trait JvmScalaSettings extends ScalaModule with JvmJavaSettings {
+  def scalacOptions = super.scalacOptions() ++ Seq("-release", "11")
+}
+
 trait OsModule extends OsLibModule { outer =>
   def mvnDeps = Seq(Deps.geny)
   override def compileMvnDeps = Task {
@@ -157,10 +166,8 @@ trait OsModule extends OsLibModule { outer =>
 object os extends Module {
 
   object jvm extends Cross[OsJvmModule](scalaVersions)
-  trait OsJvmModule extends OsModule with MiMaChecks {
+  trait OsJvmModule extends OsModule with MiMaChecks with JvmScalaSettings {
     def moduleDeps = super.moduleDeps ++ Seq(os.zip)
-
-    def scalacOptions = super.scalacOptions() ++ Seq("-java-output-version", "11")
 
     object test extends ScalaTests with OsLibTestModule {
       override def mvnDeps = Task { super.mvnDeps() ++ Seq(Deps.expecty) }
@@ -174,20 +181,20 @@ object os extends Module {
         "TEST_SPAWN_EXIT_HOOK_ASSEMBLY2" -> testSpawnExitHook2.assembly().path.toString
       )
 
-      object testJarWriter extends JavaModule
-      object testJarReader extends JavaModule
-      object testJarExit extends JavaModule
-      object testSpawnExitHook extends ScalaModule {
+      object testJarWriter extends JavaModule with JvmJavaSettings
+      object testJarReader extends JavaModule with JvmJavaSettings
+      object testJarExit extends JavaModule with JvmJavaSettings
+      object testSpawnExitHook extends ScalaModule with JvmScalaSettings {
         def scalaVersion = OsJvmModule.this.scalaVersion()
         def moduleDeps = Seq(OsJvmModule.this)
       }
-      object testSpawnExitHook2 extends JavaModule
+      object testSpawnExitHook2 extends JavaModule with JvmJavaSettings
     }
 
     object nohometest extends ScalaTests with OsLibTestModule
   }
 
-  object zip extends JavaModule with OsLibPublishModule {
+  object zip extends JavaModule with OsLibPublishModule with JvmJavaSettings {
     def apacheAntZipOriginalSource: T[PathRef] = Task(persistent = true) {
       if (!_root_.os.exists(Task.dest / "unzipped")) {
         val antVersion = Deps.ant.version
@@ -234,8 +241,6 @@ object os extends Module {
 
       Seq(PathRef(Task.dest))
     }
-
-    def javacOptions = super.javacOptions() ++ Seq("-source", "11", "-target", "11", "-encoding", "UTF-8")
   }
 
   object native extends Cross[OsNativeModule](scalaVersions)
@@ -258,7 +263,7 @@ object os extends Module {
 
   object watch extends Module {
     object jvm extends Cross[WatchJvmModule](scalaVersions)
-    trait WatchJvmModule extends OsLibModule {
+    trait WatchJvmModule extends OsLibModule with JvmScalaSettings {
       def artifactName = "os-lib-watch"
       def moduleDeps = super.moduleDeps ++ Seq(os.jvm())
       def mvnDeps = Seq(Deps.jna)
