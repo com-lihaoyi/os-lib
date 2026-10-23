@@ -23,6 +23,13 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.cache/mill
+            ~/.cache/coursier
+          key: ${{ runner.os }}-mill
+
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
