@@ -441,6 +441,7 @@ object SubPath extends SubPathMacros {
 }
 
 object Path extends PathMacros {
+
   /**
    * Parse a String path without depending on `pathSerializer` to avoid
    * initialization cycles when constructing `defaultPathSerializer`.
