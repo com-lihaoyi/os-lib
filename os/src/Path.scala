@@ -213,7 +213,6 @@ object BasePath {
     }
   }
   def chunkify(s: java.nio.file.Path) = {
-    import collection.JavaConverters._
     s.iterator().asScala.map(_.toString).filter(_ != ".").filter(_ != "").toArray
   }
 }
@@ -240,7 +239,7 @@ trait SegmentedPath extends BasePath {
 trait BasePathImpl extends BasePath {
   def /(chunk: PathChunk): ThisType
 
-  def ext = {
+  def ext: String = {
     lastOpt match {
       case None => ""
       case Some(lastSegment) =>
@@ -295,6 +294,7 @@ sealed trait FilePath extends BasePath {
 }
 
 object FilePath {
+  // FIXME: Make return type explicitly a FilePath
   def apply[T: PathConvertible](f0: T) = {
     def f = implicitly[PathConvertible[T]].apply(f0)
     // if Windows root-relative path, convert it to an absolute path
@@ -315,7 +315,7 @@ object FilePath {
  */
 class RelPath private[os] (segments0: Array[String], val ups: Int)
     extends FilePath with BasePathImpl with SegmentedPath {
-  def lastOpt = segments.lastOption
+  def lastOpt: Option[String] = segments.lastOption
   val segments: IndexedSeq[String] = segments0.toIndexedSeq
   type ThisType = RelPath
   require(ups >= 0, s"ups must be non-negative, but it is $ups in ${this.toString}")
@@ -329,27 +329,27 @@ class RelPath private[os] (segments0: Array[String], val ups: Int)
     else throw PathError.NoRelativePath(this, base)
   }
 
-  def startsWith(target: RelPath) = {
+  def startsWith(target: RelPath): Boolean = {
     this.segments0.startsWith(target.segments) && this.ups == target.ups
   }
 
-  override def toString() = (Seq.fill(ups)("..") ++ segments0).mkString("/")
+  override def toString(): String = (Seq.fill(ups)("..") ++ segments0).mkString("/")
 
-  override def hashCode() = segments.hashCode() + ups.hashCode()
+  override def hashCode(): Int = segments.hashCode() + ups.hashCode()
   override def equals(o: Any): Boolean = o match {
     case p: RelPath => segments == p.segments && p.ups == ups
     case p: SubPath => segments == p.segments && ups == 0
     case _ => false
   }
 
-  def toNIO = java.nio.file.Paths.get(toString)
+  def toNIO: java.nio.file.Path = java.nio.file.Paths.get(toString)
 
-  def asSubPath = {
+  def asSubPath: SubPath = {
     require(ups == 0, s"ups must be zero, but it is $ups in ${this.toString}")
     new SubPath(segments0)
   }
 
-  def resolveFrom(base: os.Path) = base / this
+  def resolveFrom(base: os.Path): Path = base / this
 }
 
 object RelPath extends RelPathMacros {
@@ -364,7 +364,7 @@ object RelPath extends RelPathMacros {
     new RelPath(rest, ups.length)
   }
 
-  def apply(segments0: IndexedSeq[String], ups: Int) = {
+  def apply(segments0: IndexedSeq[String], ups: Int): RelPath = {
     segments0.foreach(BasePath.checkSegment)
     new RelPath(segments0.toArray, ups)
   }
@@ -387,7 +387,7 @@ object RelPath extends RelPathMacros {
  */
 class SubPath private[os] (val segments0: Array[String])
     extends FilePath with BasePathImpl with SegmentedPath {
-  def lastOpt = segments.lastOption
+  def lastOpt: Option[String] = segments.lastOption
   val segments: IndexedSeq[String] = segments0.toIndexedSeq
   override type ThisType = SubPath
   override protected[this] def make(p: Seq[String], ups: Int): SubPath = {
@@ -398,19 +398,19 @@ class SubPath private[os] (val segments0: Array[String])
   def relativeTo(base: SubPath): RelPath =
     SubPath.relativeTo0(segments0, base.segments0.toIndexedSeq)
 
-  def startsWith(target: SubPath) = this.segments0.startsWith(target.segments)
+  def startsWith(target: SubPath): Boolean = this.segments0.startsWith(target.segments)
 
-  override def toString() = segments0.mkString("/")
-  override def hashCode() = segments.hashCode()
+  override def toString(): String = segments0.mkString("/")
+  override def hashCode(): Int = segments.hashCode()
   override def equals(o: Any): Boolean = o match {
     case p: SubPath => segments == p.segments
     case p: RelPath => segments == p.segments && p.ups == 0
     case _ => false
   }
 
-  def toNIO = java.nio.file.Paths.get(toString)
+  def toNIO: java.nio.file.Path = java.nio.file.Paths.get(toString)
 
-  def resolveFrom(base: os.Path) = base / this
+  def resolveFrom(base: os.Path): Path = base / this
 }
 
 object SubPath extends SubPathMacros {
@@ -579,15 +579,15 @@ class Path private[os] (val wrapped: java.nio.file.Path)
     java.nio.file.Files.size(wrapped)
   )
 
-  def root = Option(wrapped.getRoot).map(_.toString).getOrElse("")
-  def fileSystem = wrapped.getFileSystem()
+  def root: String = Option(wrapped.getRoot).map(_.toString).getOrElse("")
+  def fileSystem: FileSystem = wrapped.getFileSystem()
 
   def segments: Iterator[String] = wrapped.iterator().asScala.map(_.toString)
   def getSegment(i: Int): String = wrapped.getName(i).toString
-  def segmentCount = wrapped.getNameCount
+  def segmentCount: Int = wrapped.getNameCount
   override type ThisType = Path
 
-  def lastOpt = Option(wrapped.getFileName).map(_.toString)
+  def lastOpt: Option[String] = Option(wrapped.getFileName).map(_.toString)
 
   override def /(chunk: PathChunk): Path = {
     if (chunk.ups > wrapped.getNameCount) throw PathError.AbsolutePathOutsideRoot
@@ -604,11 +604,11 @@ class Path private[os] (val wrapped: java.nio.file.Path)
     case p: Path => wrapped.equals(p.wrapped)
     case _ => false
   }
-  override def hashCode() = wrapped.hashCode()
+  override def hashCode(): Int = wrapped.hashCode()
 
-  def startsWith(target: Path) = wrapped.startsWith(target.wrapped)
+  def startsWith(target: Path): Boolean = wrapped.startsWith(target.wrapped)
 
-  def endsWith(target: RelPath) = wrapped.endsWith(target.toString)
+  def endsWith(target: RelPath): Boolean = wrapped.endsWith(target.toString)
 
   def relativeTo(base: Path): RelPath = {
     if (fileSystem != base.fileSystem) {
@@ -634,9 +634,9 @@ class Path private[os] (val wrapped: java.nio.file.Path)
   def toURI: java.net.URI = toNIO.toUri
   def toURL: java.net.URL = toURI.toURL
 
-  def resolveFrom(base: os.Path) = this
+  def resolveFrom(base: os.Path): Path = this
 
-  def getInputStream = java.nio.file.Files.newInputStream(wrapped)
+  def getInputStream: InputStream = java.nio.file.Files.newInputStream(wrapped)
 }
 
 sealed trait PathConvertible[T] {
