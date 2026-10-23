@@ -12,7 +12,7 @@ val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 val scala213Version = "2.13.16"
 
 val scalaVersions = Seq(
-  "3.3.5",
+  "3.3.8",
   "2.12.20",
   scala213Version
 ) ++ communityBuildDottyVersion
@@ -41,6 +41,20 @@ trait AcyclicModule extends ScalaModule {
   def scalacOptions = super.scalacOptions() ++ acyclicOptions()
 }
 
+/**
+ * Compiles Scala 3 lazy vals to VarHandles rather than `sun.misc.Unsafe`, whose memory-access
+ * methods JDK 24+ warns about on first use (and will remove). The option needs Scala 3.3.8+ and
+ * an explicit output version of at least 9; os-lib already needs Java 10+ at runtime
+ * (`ProcessHandle`, `Runtime.version.feature`), so 11, the oldest JDK CI runs on, costs nothing.
+ * JVM only: Scala Native has no `Unsafe` in the first place.
+ */
+trait FutureLazyValsModule extends ScalaModule {
+  def scalacOptions = super.scalacOptions() ++ {
+    if (scalaVersion().startsWith("3.")) Seq("-Yfuture-lazy-vals", "-java-output-version", "11")
+    else Nil
+  }
+}
+
 trait MiMaChecks extends Mima {
   def mimaPreviousVersions =
     Seq(
@@ -59,7 +73,11 @@ trait MiMaChecks extends Mima {
   override def mimaBinaryIssueFilters: T[Seq[ProblemFilter]] = Seq(
     ProblemFilter.exclude[ReversedMissingMethodProblem]("os.PathConvertible.isCustomFs"),
     // this is fine, because ProcessLike is sealed (and its subclasses should be final)
-    ProblemFilter.exclude[ReversedMissingMethodProblem]("os.ProcessLike.joinPumperThreadsHook")
+    ProblemFilter.exclude[ReversedMissingMethodProblem]("os.ProcessLike.joinPumperThreadsHook"),
+    // With -Yfuture-lazy-vals (see FutureLazyValsModule), object Path's static initializer is
+    // emitted private rather than public, which MiMa < 1.2.0 reads as a public method going
+    // missing. Only the JVM ever runs a <clinit>; MiMa 1.2.0 ignores them (lightbend-labs/mima#794)
+    ProblemFilter.exclude[DirectMissingMethodProblem]("os.Path.<clinit>")
   )
   override def mimaExcludeAnnotations: T[Seq[String]] = Seq(
     "os.experimental"
@@ -157,7 +175,7 @@ trait OsModule extends OsLibModule { outer =>
 object os extends Module {
 
   object jvm extends Cross[OsJvmModule](scalaVersions)
-  trait OsJvmModule extends OsModule with MiMaChecks {
+  trait OsJvmModule extends OsModule with MiMaChecks with FutureLazyValsModule {
     def moduleDeps = super.moduleDeps ++ Seq(os.zip)
 
     def scalacOptions = super.scalacOptions() ++ Seq("-java-output-version", "11")
@@ -258,7 +276,7 @@ object os extends Module {
 
   object watch extends Module {
     object jvm extends Cross[WatchJvmModule](scalaVersions)
-    trait WatchJvmModule extends OsLibModule {
+    trait WatchJvmModule extends OsLibModule with FutureLazyValsModule {
       def artifactName = "os-lib-watch"
       def moduleDeps = super.moduleDeps ++ Seq(os.jvm())
       def mvnDeps = Seq(Deps.jna)
