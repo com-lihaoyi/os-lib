@@ -3,7 +3,7 @@ package test.os
 import test.os.TestUtil.prep
 import utest._
 
-object ListingWalkingTests extends TestSuite {
+class ListingWalkingTests extends TestSuite {
   def tests = Tests {
     test("list") {
       test - prep { wd =>

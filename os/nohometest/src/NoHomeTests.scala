@@ -8,7 +8,7 @@ object NoHomeTests extends TestSuite {
   val tests = Tests {
     test("pwd when home is not available") {
       System.setProperty("user.home", "?")
-      val homeException = intercept[IllegalArgumentException] { os.home }
+      val homeException = assertThrows[IllegalArgumentException] { os.home }
         .getMessage()
 
       val expectedException =

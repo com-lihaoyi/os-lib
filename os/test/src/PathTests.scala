@@ -7,7 +7,8 @@ import os.Path.driveRoot
 import utest.{assert => _, _}
 
 import java.net.URI
-object PathTests extends TestSuite {
+
+class PathTests extends TestSuite {
   private def nonCanonicalLiteral(providedLiteral: String, sanitizedLiteral: String) =
     s"Literal path sequence [$providedLiteral] used in OS-Lib must be in a canonical form, please use [$sanitizedLiteral] instead"
   private def removeLiteralErr(literal: String) =
@@ -25,26 +26,26 @@ object PathTests extends TestSuite {
           assert(r == os.RelPath("../hello/world"))
         }
         test("invalidLiteral") {
-          val err1 = compileError("""val p: os.Path = "hello/world" """)
+          val err1 = assertCompileError("""val p: os.Path = "hello/world" """)
           assert(err1.msg.contains("Invalid absolute path literal: \"hello/world\""))
 
-          val err2 = compileError("""val s: os.SubPath = "../hello/world" """)
+          val err2 = assertCompileError("""val s: os.SubPath = "../hello/world" """)
           assert(err2.msg.contains("Invalid subpath literal: \"../hello/world\""))
 
-          val err3 = compileError("""val s: os.SubPath = "/hello/world" """)
+          val err3 = assertCompileError("""val s: os.SubPath = "/hello/world" """)
           assert(err3.msg.contains("Invalid subpath literal: \"/hello/world\""))
 
-          val err4 = compileError("""val r: os.RelPath = "/hello/world" """)
+          val err4 = assertCompileError("""val r: os.RelPath = "/hello/world" """)
           assert(err4.msg.contains("Invalid relative path literal: \"/hello/world\""))
         }
         test("nonLiteral") {
-          val err1 = compileError("""val str = "hello/world"; val p: os.Path = str """)
+          val err1 = assertCompileError("""val str = "hello/world"; val p: os.Path = str """)
           assert(err1.msg.contains("Invalid absolute path literal: str"))
 
-          val err2 = compileError("""val str = "/hello/world"; val s: os.SubPath = str """)
+          val err2 = assertCompileError("""val str = "/hello/world"; val s: os.SubPath = str """)
           assert(err2.msg.contains("Invalid subpath literal: str"))
 
-          val err3 = compileError("""val str = "/hello/world"; val r: os.RelPath = str""")
+          val err3 = assertCompileError("""val str = "/hello/world"; val r: os.RelPath = str""")
           assert(err3.msg.contains("Invalid relative path literal: str"))
         }
       }
@@ -63,72 +64,87 @@ object PathTests extends TestSuite {
 
       test("Compile errors") {
 
-        compileError("""root / "src/../foo"""").check("", nonCanonicalLiteral("src/../foo", "foo"))
-        compileError("""root / "hello/../world"""").check(
+        assertCompileError("""root / "src/../foo"""").check(
+          "",
+          nonCanonicalLiteral("src/../foo", "foo")
+        )
+        assertCompileError("""root / "hello/../world"""").check(
           "",
           nonCanonicalLiteral("hello/../world", "world")
         )
-        compileError("""root / "src/../foo/bar"""").check(
+        assertCompileError("""root / "src/../foo/bar"""").check(
           "",
           nonCanonicalLiteral("src/../foo/bar", "foo/bar")
         )
-        compileError("""root / "src/../foo/bar/.."""").check(
+        assertCompileError("""root / "src/../foo/bar/.."""").check(
           "",
           nonCanonicalLiteral("src/../foo/bar/..", "foo")
         )
-        compileError("""root / "src/../foo/../bar/."""").check(
+        assertCompileError("""root / "src/../foo/../bar/."""").check(
           "",
           nonCanonicalLiteral("src/../foo/../bar/.", "bar")
         )
-        compileError("""root / "src/foo/./.."""").check(
+        assertCompileError("""root / "src/foo/./.."""").check(
           "",
           nonCanonicalLiteral("src/foo/./..", "src")
         )
-        compileError("""root / "src/foo//./.."""").check(
+        assertCompileError("""root / "src/foo//./.."""").check(
           "",
           nonCanonicalLiteral("src/foo//./..", "src")
         )
 
-        compileError("""root / "src/.."""").check("", removeLiteralErr("src/.."))
-        compileError("""root / "src/../foo/.."""").check("", removeLiteralErr("src/../foo/.."))
-        compileError("""root / "src/foo/../.."""").check("", removeLiteralErr("src/foo/../.."))
-        compileError("""root / "src/foo/./../.."""").check("", removeLiteralErr("src/foo/./../.."))
-        compileError("""root / "src/./foo/./../.."""").check(
+        assertCompileError("""root / "src/.."""").check("", removeLiteralErr("src/.."))
+        assertCompileError("""root / "src/../foo/.."""").check(
+          "",
+          removeLiteralErr("src/../foo/..")
+        )
+        assertCompileError("""root / "src/foo/../.."""").check(
+          "",
+          removeLiteralErr("src/foo/../..")
+        )
+        assertCompileError("""root / "src/foo/./../.."""").check(
+          "",
+          removeLiteralErr("src/foo/./../..")
+        )
+        assertCompileError("""root / "src/./foo/./../.."""").check(
           "",
           removeLiteralErr("src/./foo/./../..")
         )
-        compileError("""root / "src///foo/./../.."""").check(
+        assertCompileError("""root / "src///foo/./../.."""").check(
           "",
           removeLiteralErr("src///foo/./../..")
         )
 
-        compileError("""root / "/" """).check("", removeLiteralErr("/"))
-        compileError("""root / "/ " """).check("", nonCanonicalLiteral("/ ", " "))
-        compileError("""root / " /" """).check("", nonCanonicalLiteral(" /", " "))
-        compileError("""root / "//" """).check("", removeLiteralErr("//"))
+        assertCompileError("""root / "/" """).check("", removeLiteralErr("/"))
+        assertCompileError("""root / "/ " """).check("", nonCanonicalLiteral("/ ", " "))
+        assertCompileError("""root / " /" """).check("", nonCanonicalLiteral(" /", " "))
+        assertCompileError("""root / "//" """).check("", removeLiteralErr("//"))
 
-        compileError("""root / "foo/" """).check("", nonCanonicalLiteral("foo/", "foo"))
-        compileError("""root / "foo//" """).check("", nonCanonicalLiteral("foo//", "foo"))
+        assertCompileError("""root / "foo/" """).check("", nonCanonicalLiteral("foo/", "foo"))
+        assertCompileError("""root / "foo//" """).check("", nonCanonicalLiteral("foo//", "foo"))
 
-        compileError("""root / "foo/bar/" """).check("", nonCanonicalLiteral("foo/bar/", "foo/bar"))
-        compileError("""root / "foo/bar//" """).check(
+        assertCompileError("""root / "foo/bar/" """).check(
+          "",
+          nonCanonicalLiteral("foo/bar/", "foo/bar")
+        )
+        assertCompileError("""root / "foo/bar//" """).check(
           "",
           nonCanonicalLiteral("foo/bar//", "foo/bar")
         )
 
-        compileError("""root / "/foo" """).check("", nonCanonicalLiteral("/foo", "foo"))
-        compileError("""root / "//foo" """).check("", nonCanonicalLiteral("//foo", "foo"))
+        assertCompileError("""root / "/foo" """).check("", nonCanonicalLiteral("/foo", "foo"))
+        assertCompileError("""root / "//foo" """).check("", nonCanonicalLiteral("//foo", "foo"))
 
-        compileError("""root / "//foo/" """).check("", nonCanonicalLiteral("//foo/", "foo"))
+        assertCompileError("""root / "//foo/" """).check("", nonCanonicalLiteral("//foo/", "foo"))
 
-        compileError(""" rel / "src" / "" """).check("", removeLiteralErr(""))
-        compileError(""" rel / "src" / "." """).check("", removeLiteralErr("."))
+        assertCompileError(""" rel / "src" / "" """).check("", removeLiteralErr(""))
+        assertCompileError(""" rel / "src" / "." """).check("", removeLiteralErr("."))
 
-        compileError(""" root / "src/"  """).check("", nonCanonicalLiteral("src/", "src"))
-        compileError(""" root / "src/." """).check("", nonCanonicalLiteral("src/.", "src"))
+        assertCompileError(""" root / "src/"  """).check("", nonCanonicalLiteral("src/", "src"))
+        assertCompileError(""" root / "src/." """).check("", nonCanonicalLiteral("src/.", "src"))
 
-        compileError(""" root / "" """).check("", removeLiteralErr(""))
-        compileError(""" root / "." """).check("", removeLiteralErr("."))
+        assertCompileError(""" root / "" """).check("", removeLiteralErr(""))
+        assertCompileError(""" root / "." """).check("", removeLiteralErr("."))
 
       }
     }
@@ -173,8 +189,8 @@ object PathTests extends TestSuite {
         val ldapUri = URI.create(
           "ldap://[2001:db8::7]/c=GB?objectClass?one"
         )
-        intercept[IllegalArgumentException](Path(httpUri))
-        intercept[IllegalArgumentException](Path(ldapUri))
+        assertThrows[IllegalArgumentException](Path(httpUri))
+        assertThrows[IllegalArgumentException](Path(ldapUri))
 
         // os.Path to String
         assert((rel / "omg").toString == "omg")
@@ -211,13 +227,13 @@ object PathTests extends TestSuite {
         }
 
         test("emptyLast") {
-          intercept[PathError.LastOnEmptyPath](os.root.last).getMessage ==>
+          assertThrows[PathError.LastOnEmptyPath](os.root.last).getMessage ==>
             "empty path has no last segment"
-          intercept[PathError.LastOnEmptyPath](os.rel.last).getMessage ==>
+          assertThrows[PathError.LastOnEmptyPath](os.rel.last).getMessage ==>
             "empty path has no last segment"
-          intercept[PathError.LastOnEmptyPath](os.sub.last).getMessage ==>
+          assertThrows[PathError.LastOnEmptyPath](os.sub.last).getMessage ==>
             "empty path has no last segment"
-          intercept[PathError.LastOnEmptyPath](os.up.last).getMessage ==>
+          assertThrows[PathError.LastOnEmptyPath](os.up.last).getMessage ==>
             "empty path has no last segment"
         }
       }
@@ -271,7 +287,7 @@ object PathTests extends TestSuite {
           test - eq(rel / "omg" / "bbq" / "wtf" relativeTo rel / "omg" / "bbq", rel / "wtf")
           test - eq(rel / "omg" / "bbq" relativeTo rel / "omg" / "bbq" / "wtf", up)
           test - eq(up / "omg" / "bbq" relativeTo rel / "omg" / "bbq", up / up / up / "omg" / "bbq")
-          test - intercept[PathError.NoRelativePath](
+          test - assertThrows[PathError.NoRelativePath](
             rel / "omg" / "bbq" relativeTo up / "omg" / "bbq"
           )
         }
@@ -342,7 +358,7 @@ object PathTests extends TestSuite {
           test - eq(root / "omg" / "bbq" relativeTo root / "omg" / "bbq" / "wtf", up)
           test - eq(root / "omg" / "bbq" / "wtf" relativeTo root / "omg" / "bbq", rel / "wtf")
           test - eq(root / "omg" / "bbq" relativeTo root / "omg" / "bbq" / "wtf", up)
-          test - intercept[PathError.NoRelativePath](
+          test - assertThrows[PathError.NoRelativePath](
             rel / "omg" / "bbq" relativeTo up / "omg" / "bbq"
           )
         }
@@ -367,13 +383,13 @@ object PathTests extends TestSuite {
             i -= 1
             assert(abs.segmentCount == i)
           }
-          intercept[PathError.AbsolutePathOutsideRoot.type] { abs / up }
+          assertThrows[PathError.AbsolutePathOutsideRoot.type] { abs / up }
         }
         test("RootUpBreak") {
-          intercept[PathError.AbsolutePathOutsideRoot.type] { root / up }
+          assertThrows[PathError.AbsolutePathOutsideRoot.type] { root / up }
           val x = root / "omg"
           val y = x / up
-          intercept[PathError.AbsolutePathOutsideRoot.type] { y / up }
+          assertThrows[PathError.AbsolutePathOutsideRoot.type] { y / up }
         }
       }
       test("Comparison") {
@@ -395,10 +411,10 @@ object PathTests extends TestSuite {
           assert(!(root / "omg" / "wtf" startsWith root / "omg" / "wtf" / "bbq"))
         }
         test("Invalid") {
-          compileError("""root/"omg"/"wtf" < "omg"/"wtf"""")
-          compileError("""root/"omg"/"wtf" > "omg"/"wtf"""")
-          compileError(""""omg"/"wtf" < root/"omg"/"wtf"""")
-          compileError(""""omg"/"wtf" > root/"omg"/"wtf"""")
+          assertCompileError("""root/"omg"/"wtf" < "omg"/"wtf"""")
+          assertCompileError("""root/"omg"/"wtf" > "omg"/"wtf"""")
+          assertCompileError(""""omg"/"wtf" < root/"omg"/"wtf"""")
+          assertCompileError(""""omg"/"wtf" > root/"omg"/"wtf"""")
         }
       }
     }
@@ -406,7 +422,7 @@ object PathTests extends TestSuite {
       def nonLiteral(s: String) = s
 
       test("InvalidChars") {
-        val ex = intercept[PathError.InvalidSegment](rel / "src" / nonLiteral("Main/.scala"))
+        val ex = assertThrows[PathError.InvalidSegment](rel / "src" / nonLiteral("Main/.scala"))
 
         val PathError.InvalidSegment("Main/.scala", msg1) = ex
 
@@ -418,41 +434,42 @@ object PathTests extends TestSuite {
           )
         )
 
-        val ex2 = intercept[PathError.InvalidSegment](root / "hello" / nonLiteral("..") / "world")
+        val ex2 =
+          assertThrows[PathError.InvalidSegment](root / "hello" / nonLiteral("..") / "world")
 
         val PathError.InvalidSegment("..", msg2) = ex2
 
         assert(msg2.contains("use the `up` segment from `os.up`"))
       }
       test("InvalidSegments") {
-        intercept[PathError.InvalidSegment] { root / nonLiteral("core/src/test") }
-        intercept[PathError.InvalidSegment] { root / nonLiteral("") }
-        intercept[PathError.InvalidSegment] { root / nonLiteral(".") }
-        intercept[PathError.InvalidSegment] { root / nonLiteral("..") }
+        assertThrows[PathError.InvalidSegment] { root / nonLiteral("core/src/test") }
+        assertThrows[PathError.InvalidSegment] { root / nonLiteral("") }
+        assertThrows[PathError.InvalidSegment] { root / nonLiteral(".") }
+        assertThrows[PathError.InvalidSegment] { root / nonLiteral("..") }
       }
       test("EmptySegment") {
-        intercept[PathError.InvalidSegment](rel / "src" / nonLiteral(""))
-        intercept[PathError.InvalidSegment](rel / "src" / nonLiteral("."))
-        intercept[PathError.InvalidSegment](rel / "src" / nonLiteral(".."))
+        assertThrows[PathError.InvalidSegment](rel / "src" / nonLiteral(""))
+        assertThrows[PathError.InvalidSegment](rel / "src" / nonLiteral("."))
+        assertThrows[PathError.InvalidSegment](rel / "src" / nonLiteral(".."))
       }
       test("CannotRelativizeAbsAndRel") {
         val abs = pwd
         val rel = os.rel / "omg" / "wtf"
-        compileError("""
+        assertCompileError("""
         abs.relativeTo(rel)
       """).msg.toLowerCase.contains("required: os.path") ==> true
-        compileError("""
+        assertCompileError("""
         rel.relativeTo(abs)
       """).msg.toLowerCase.contains("required: os.relpath") ==> true
       }
       test("InvalidCasts") {
-        intercept[IllegalArgumentException](Path("omg/cow"))
-        intercept[IllegalArgumentException](RelPath("/omg/cow"))
+        assertThrows[IllegalArgumentException](Path("omg/cow"))
+        assertThrows[IllegalArgumentException](RelPath("/omg/cow"))
       }
       test("Pollution") {
         // Make sure we"re" not polluting too much
-        compileError(""""omg".ext""")
-        compileError(""" "omg".ext """)
+        assertCompileError(""""omg".ext""")
+        assertCompileError(""" "omg".ext """)
       }
     }
     test("Extractors") {
@@ -531,17 +548,17 @@ object PathTests extends TestSuite {
       }
       test("failure") {
         val relStr = "hello/.."
-        intercept[java.lang.IllegalArgumentException] {
+        assertThrows[java.lang.IllegalArgumentException] {
           Path(relStr)
         }
 
         val absStr = "/hello"
-        intercept[java.lang.IllegalArgumentException] {
+        assertThrows[java.lang.IllegalArgumentException] {
           RelPath(absStr)
         }
 
         val tooManyUpsStr = "/hello/../.."
-        intercept[PathError.AbsolutePathOutsideRoot.type] {
+        assertThrows[PathError.AbsolutePathOutsideRoot.type] {
           Path(tooManyUpsStr)
         }
       }

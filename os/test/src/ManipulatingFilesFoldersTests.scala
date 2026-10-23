@@ -3,7 +3,7 @@ package test.os
 import test.os.TestUtil.prep
 import utest._
 
-object ManipulatingFilesFoldersTests extends TestSuite {
+class ManipulatingFilesFoldersTests extends TestSuite {
   def tests = Tests {
     test("exists") {
       test - prep { wd =>

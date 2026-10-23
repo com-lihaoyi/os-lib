@@ -3,7 +3,7 @@ package os
 import os.PathChunk.segmentsFromString
 import utest.{assert => _, _}
 
-object SegmentsFromStringTests extends TestSuite {
+class SegmentsFromStringTests extends TestSuite {
 
   val tests = Tests {
     test("segmentsFromString") {

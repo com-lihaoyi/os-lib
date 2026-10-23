@@ -1847,7 +1847,7 @@ res.out.bytes
 
 
 // Non-zero exit codes throw an exception by default
-val thrown = intercept[os.SubprocessException]{
+val thrown = assertThrows[os.SubprocessException]{
   os.call(cmd = ('ls, "doesnt-exist"), cwd = wd)
 }
 
@@ -2300,7 +2300,7 @@ exception being thrown:
 val target = os.pwd / "out/scratch" /
 
 // `up`s are not allowed in sub paths
-intercept[Exception](os.pwd subRelativeTo target)
+assertThrows[Exception](os.pwd subRelativeTo target)
 ----
 
 Like ``os.Path``s and `os.RelPath`, ``os.SubPath``s are always canonicalized
@@ -2360,17 +2360,17 @@ Trying to construct invalid paths fails with exceptions:
 [source,scala]
 ----
 val relStr = "hello/.."
-intercept[java.lang.IllegalArgumentException]{
+assertThrows[java.lang.IllegalArgumentException]{
   Path(relStr)
 }
 
 val absStr = "/hello"
-intercept[java.lang.IllegalArgumentException]{
+assertThrows[java.lang.IllegalArgumentException]{
   RelPath(absStr)
 }
 
 val tooManyUpsStr = "/hello/../.."
-intercept[PathError.AbsolutePathOutsideRoot.type]{
+assertThrows[PathError.AbsolutePathOutsideRoot.type]{
   Path(tooManyUpsStr)
 }
 ----

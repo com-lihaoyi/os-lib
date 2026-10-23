@@ -8,7 +8,7 @@ import utest._
 
 import scala.collection.mutable
 
-object SubprocessTests extends TestSuite {
+class SubprocessTests extends TestSuite {
   val scriptFolder = os.Path(sys.env("OS_TEST_RESOURCE_FOLDER")) / "test"
 
   val lsCmd = if (scala.util.Properties.isWin) "dir" else "ls"
@@ -71,7 +71,7 @@ object SubprocessTests extends TestSuite {
         assert(result.out.text().contains("Hello, " + stuff.mkString(" ") + " \"hear me roar\""))
     }
     test("failures") {
-      val ex = intercept[os.SubprocessException] {
+      val ex = assertThrows[os.SubprocessException] {
         TestUtil.proc(lsCmd, "does-not-exist").call(check = true, stderr = os.Pipe)
       }
       val res: CommandResult = ex.result

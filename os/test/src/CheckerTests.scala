@@ -3,7 +3,7 @@ package test.os
 import test.os.TestUtil._
 import utest._
 
-object CheckerTests extends TestSuite {
+class CheckerTests extends TestSuite {
 
   def tests: Tests = Tests {
     // restricted directory
@@ -11,29 +11,29 @@ object CheckerTests extends TestSuite {
 
     test("list") - prepChecker { wd =>
       os.list(wd) // ok
-      intercept[ReadDenied] {
+      assertThrows[ReadDenied] {
         os.list(rd)
       }
       os.list.stream(wd) // ok
-      intercept[ReadDenied] {
+      assertThrows[ReadDenied] {
         os.list.stream(rd).foreach(_ => ())
       }
     }
     test("walk") - prepChecker { wd =>
       os.walk(wd) // ok
-      intercept[ReadDenied] {
+      assertThrows[ReadDenied] {
         os.walk(rd)
       }
       os.walk.stream(wd) // ok
-      intercept[ReadDenied] {
+      assertThrows[ReadDenied] {
         os.walk.stream(rd)
       }
       os.walk.attrs(wd) // ok
-      intercept[ReadDenied] {
+      assertThrows[ReadDenied] {
         os.walk.attrs(rd)
       }
       os.walk.stream.attrs(wd) // ok
-      intercept[ReadDenied] {
+      assertThrows[ReadDenied] {
         os.walk.stream.attrs(rd)
       }
     }
@@ -41,7 +41,7 @@ object CheckerTests extends TestSuite {
     test("stat") {
       test("mtime") - prepChecker { wd =>
         val before = os.mtime(rd / "File.txt")
-        intercept[WriteDenied] {
+        assertThrows[WriteDenied] {
           os.mtime.set(rd / "File.txt", 0)
         }
         os.mtime(rd / "File.txt") ==> before
@@ -64,7 +64,7 @@ object CheckerTests extends TestSuite {
       test - prepChecker { wd =>
         if (Unix()) {
           val before = os.perms(rd / "File.txt")
-          intercept[WriteDenied] {
+          assertThrows[WriteDenied] {
             os.perms.set(rd / "File.txt", "rwxrwxrwx")
           }
           os.perms(rd / "File.txt") ==> before
@@ -84,7 +84,7 @@ object CheckerTests extends TestSuite {
         if (Unix()) {
           // Only works as root :(
           if (false) {
-            intercept[WriteDenied] {
+            assertThrows[WriteDenied] {
               os.owner.set(rd / "File.txt", "nobody")
             }
 
@@ -101,7 +101,7 @@ object CheckerTests extends TestSuite {
         if (Unix()) {
           // Only works as root :(
           if (false) {
-            intercept[WriteDenied] {
+            assertThrows[WriteDenied] {
               os.group.set(rd / "File.txt", "nobody")
             }
 
@@ -117,19 +117,19 @@ object CheckerTests extends TestSuite {
     }
 
     test("move") - prepChecker { wd =>
-      intercept[WriteDenied] {
+      assertThrows[WriteDenied] {
         os.move(rd / "folder1/one.txt", wd / "folder1/File.txt")
       }
       os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
 
-      intercept[WriteDenied] {
+      assertThrows[WriteDenied] {
         os.move(wd / "folder1/one.txt", rd / "folder1/File.txt")
       }
       os.checker.withValue(os.Checker.Nop) {
         os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
       }
 
-      intercept[WriteDenied] {
+      assertThrows[WriteDenied] {
         os.move(wd / "folder2/nestedA", rd / "folder2/nestedC")
       }
       os.checker.withValue(os.Checker.Nop) {
@@ -153,19 +153,19 @@ object CheckerTests extends TestSuite {
           |And I look good on the barbecue""".stripMargin
     }
     test("copy") - prepChecker { wd =>
-      intercept[ReadDenied] {
+      assertThrows[ReadDenied] {
         os.copy(rd / "folder1/one.txt", wd / "folder1/File.txt")
       }
       os.list(wd / "folder1") ==> Seq(wd / "folder1/one.txt")
 
-      intercept[WriteDenied] {
+      assertThrows[WriteDenied] {
         os.copy(wd / "folder1/one.txt", rd / "folder1/File.txt")
       }
       os.checker.withValue(os.Checker.Nop) {
         os.list(rd / "folder1") ==> Seq(rd / "folder1/one.txt")
       }
 
-      intercept[WriteDenied] {
+      assertThrows[WriteDenied] {
         os.copy(wd / "folder2/nestedA", rd / "folder2/nestedC")
       }
       os.checker.withValue(os.Checker.Nop) {
@@ -194,7 +194,7 @@ object CheckerTests extends TestSuite {
     }
     test("makeDir") {
       test - prepChecker { wd =>
-        intercept[WriteDenied] {
+        assertThrows[WriteDenied] {
           os.makeDir(rd / "new_folder")
         }
         os.exists(rd / "new_folder") ==> false
@@ -204,7 +204,7 @@ object CheckerTests extends TestSuite {
         os.exists(wd / "new_folder") ==> true
       }
       test("all") - prepChecker { wd =>
-        intercept[WriteDenied] {
+        assertThrows[WriteDenied] {
           os.makeDir.all(rd / "new_folder/inner/deep")
         }
         os.exists(rd / "new_folder") ==> false
@@ -216,12 +216,12 @@ object CheckerTests extends TestSuite {
     }
     test("remove") {
       test - prepChecker { wd =>
-        intercept[WriteDenied] {
+        assertThrows[WriteDenied] {
           os.remove(rd / "File.txt")
         }
         os.exists(rd / "File.txt") ==> true
 
-        intercept[WriteDenied] {
+        assertThrows[WriteDenied] {
           os.remove(rd / "folder1")
         }
         os.checker.withValue(os.Checker.Nop) {
@@ -229,7 +229,7 @@ object CheckerTests extends TestSuite {
         }
 
         Unchecked.scope(os.makeDir(rd / "folder"), os.remove(rd / "folder")) {
-          intercept[WriteDenied] {
+          assertThrows[WriteDenied] {
             os.remove(rd / "folder")
           }
           os.exists(rd / "folder") ==> true
@@ -247,21 +247,21 @@ object CheckerTests extends TestSuite {
         os.exists(wd / "folder1") ==> false
       }
       test("link") - prepChecker { wd =>
-        intercept[WriteDenied] {
+        assertThrows[WriteDenied] {
           os.remove(rd / "misc/file-symlink")
         }
         os.checker.withValue(os.Checker.Nop) {
           os.exists(rd / "misc/file-symlink", followLinks = false) ==> true
         }
 
-        intercept[WriteDenied] {
+        assertThrows[WriteDenied] {
           os.remove(rd / "misc/folder-symlink")
         }
         os.checker.withValue(os.Checker.Nop) {
           os.exists(rd / "misc/folder-symlink", followLinks = false) ==> true
         }
 
-        intercept[WriteDenied] {
+        assertThrows[WriteDenied] {
           os.remove(rd / "misc/broken-symlink")
         }
         os.checker.withValue(os.Checker.Nop) {
@@ -283,7 +283,7 @@ object CheckerTests extends TestSuite {
       }
       test("all") {
         test - prepChecker { wd =>
-          intercept[WriteDenied] {
+          assertThrows[WriteDenied] {
             os.remove.all(rd / "folder1")
           }
           os.checker.withValue(os.Checker.Nop) {
@@ -296,21 +296,21 @@ object CheckerTests extends TestSuite {
           os.exists(wd / "folder1") ==> false
         }
         test("link") - prepChecker { wd =>
-          intercept[WriteDenied] {
+          assertThrows[WriteDenied] {
             os.remove.all(rd / "misc/file-symlink")
           }
           os.checker.withValue(os.Checker.Nop) {
             os.exists(rd / "misc/file-symlink", followLinks = false) ==> true
           }
 
-          intercept[WriteDenied] {
+          assertThrows[WriteDenied] {
             os.remove.all(rd / "misc/folder-symlink")
           }
           os.checker.withValue(os.Checker.Nop) {
             os.exists(rd / "misc/folder-symlink", followLinks = false) ==> true
           }
 
-          intercept[WriteDenied] {
+          assertThrows[WriteDenied] {
             os.remove.all(rd / "misc/broken-symlink")
           }
           os.checker.withValue(os.Checker.Nop) {
@@ -331,12 +331,12 @@ object CheckerTests extends TestSuite {
       }
     }
     test("hardlink") - prepChecker { wd =>
-      intercept[ReadDenied] {
+      assertThrows[ReadDenied] {
         os.hardlink(wd / "Linked.txt", rd / "File.txt")
       }
       os.exists(wd / "Linked.txt") ==> false
 
-      intercept[WriteDenied] {
+      assertThrows[WriteDenied] {
         os.hardlink(rd / "Linked.txt", wd / "File.txt")
       }
       os.exists(rd / "Linked.txt") ==> false
@@ -347,22 +347,22 @@ object CheckerTests extends TestSuite {
       os.isLink(wd / "Linked.txt") ==> false
     }
     test("symlink") - prepChecker { wd =>
-      intercept[WriteDenied] {
+      assertThrows[WriteDenied] {
         os.symlink(rd / "Linked.txt", wd / "File.txt")
       }
       os.exists(rd / "Linked.txt") ==> false
 
-      intercept[WriteDenied] {
+      assertThrows[WriteDenied] {
         os.symlink(rd / "Linked.txt", os.rel / "File.txt")
       }
       os.exists(rd / "Linked.txt") ==> false
 
-      intercept[WriteDenied] {
+      assertThrows[WriteDenied] {
         os.symlink(rd / "LinkedFolder1", wd / "folder1")
       }
       os.exists(rd / "LinkedFolder1") ==> false
 
-      intercept[WriteDenied] {
+      assertThrows[WriteDenied] {
         os.symlink(rd / "LinkedFolder2", os.rel / "folder1")
       }
       os.exists(rd / "LinkedFolder2") ==> false
@@ -386,7 +386,7 @@ object CheckerTests extends TestSuite {
     test("temp") {
       test - prepChecker { wd =>
         val before = os.checker.withValue(os.Checker.Nop) { os.walk(rd) }
-        intercept[WriteDenied] {
+        assertThrows[WriteDenied] {
           os.temp("default content", dir = rd)
         }
         os.checker.withValue(os.Checker.Nop) {
@@ -400,7 +400,7 @@ object CheckerTests extends TestSuite {
       }
       test("dir") - prepChecker { wd =>
         val before = os.checker.withValue(os.Checker.Nop) { os.walk(rd) }
-        intercept[WriteDenied] {
+        assertThrows[WriteDenied] {
           os.temp.dir(dir = rd)
         }
         os.checker.withValue(os.Checker.Nop) {
@@ -417,7 +417,7 @@ object CheckerTests extends TestSuite {
     test("read") {
       test("inputStream") - prepChecker { wd =>
         os.exists(rd / "File.txt") ==> true
-        intercept[ReadDenied] {
+        assertThrows[ReadDenied] {
           os.read.inputStream(rd / "File.txt")
         }
 
@@ -436,7 +436,7 @@ object CheckerTests extends TestSuite {
     }
     test("write") {
       test - prepChecker { wd =>
-        intercept[WriteDenied] {
+        assertThrows[WriteDenied] {
           os.write(rd / "New File.txt", "New File Contents")
         }
         os.exists(rd / "New File.txt") ==> false
@@ -448,7 +448,7 @@ object CheckerTests extends TestSuite {
         os.read.bytes(wd / "NewBinary.bin") ==> Array[Byte](0, 1, 2, 3)
       }
       test("outputStream") - prepChecker { wd =>
-        intercept[WriteDenied] {
+        assertThrows[WriteDenied] {
           os.write.outputStream(rd / "New File.txt")
         }
         os.exists(rd / "New File.txt") ==> false
@@ -465,7 +465,7 @@ object CheckerTests extends TestSuite {
       }
     }
     test("truncate") - prepChecker { wd =>
-      intercept[WriteDenied] {
+      assertThrows[WriteDenied] {
         os.truncate(rd / "File.txt", 4)
       }
       Unchecked(os.read(rd / "File.txt")) ==> "I am a restricted cow"

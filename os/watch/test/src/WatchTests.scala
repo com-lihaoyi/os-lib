@@ -67,7 +67,7 @@ object WatchTests extends TestSuite with TestSuite.Retries {
   val tests = Tests {
     // Watching a non-existent folder throws
     test("nonExistentFolder") - _root_.test.os.TestUtil.prep { wd =>
-      intercept[IllegalArgumentException] {
+      assertThrows[IllegalArgumentException] {
         _root_.os.watch.watch(Seq(wd / "does-not-exist"), onEvent = _ => ())
       }
     }
