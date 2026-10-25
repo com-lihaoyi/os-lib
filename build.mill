@@ -59,8 +59,8 @@ trait MiMaChecks extends Mima {
   def mimaPreviousVersions =
     Seq("0.9.0", "0.9.1", "0.9.2", "0.9.3") ++
     Seq("0.10.0", "0.10.1", "0.10.2", "0.10.3", "0.10.4", "0.10.5", "0.10.6", "0.10.7") ++
-    Seq("0.11.0", "0.11.1", "0.11.2", "0.11.3", "0.11.4", "0.11.5") ++
-    Seq("0.11.6", "0.11.8")
+    Seq("0.11.0", "0.11.1", "0.11.2", "0.11.3", "0.11.4") ++
+    Seq("0.11.5", "0.11.6", "0.11.8")
   override def mimaBinaryIssueFilters: T[Seq[ProblemFilter]] = Seq(
     ProblemFilter.exclude[ReversedMissingMethodProblem]("os.PathConvertible.isCustomFs"),
     // this is fine, because ProcessLike is sealed (and its subclasses should be final)
@@ -69,8 +69,7 @@ trait MiMaChecks extends Mima {
     // emitted private rather than public, which MiMa < 1.2.0 reads as a public method going
     // missing. Only the JVM ever runs a <clinit>; MiMa 1.2.0 ignores them (lightbend-labs/mima#794)
     ProblemFilter.exclude[DirectMissingMethodProblem]("os.Path.<clinit>"),
-    // moved os.zip into separate module
-    ProblemFilter.exclude[DirectMissingMethodProblem]("os.zip.*")
+    ProblemFilter.exclude[DirectMissingMethodProblem]("os.zip.<clinit>")
   )
   override def mimaExcludeAnnotations: T[Seq[String]] = Seq(
     "os.experimental"
