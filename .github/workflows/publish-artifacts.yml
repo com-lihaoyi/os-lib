@@ -27,6 +27,8 @@ jobs:
           path: |
             ~/.cache/mill
             ~/.cache/coursier
+            ~/Library/Caches/Coursier
+            ~/AppData/Local/Coursier/Cache
           key: ${{ runner.os }}-mill
 
       - uses: actions/setup-java@v3
