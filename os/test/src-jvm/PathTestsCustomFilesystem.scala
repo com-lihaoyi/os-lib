@@ -65,7 +65,7 @@ object PathTestsCustomFilesystem extends TestSuite {
       test("failTemp") {
         withCustomFs { fileSystem =>
           val p = os.root("/", fileSystem) / "test/dir"
-          intercept[UnsupportedOperationException] {
+          assertThrows[UnsupportedOperationException] {
             os.temp.dir(dir = p)
           }
         }
@@ -73,7 +73,7 @@ object PathTestsCustomFilesystem extends TestSuite {
       test("failProcCall") {
         withCustomFs { fileSystem =>
           val p = os.root("/", fileSystem) / "test/dir"
-          intercept[UnsupportedOperationException] {
+          assertThrows[UnsupportedOperationException] {
             os.proc("echo", "hello").call(cwd = p)
           }
         }
@@ -116,7 +116,7 @@ object PathTestsCustomFilesystem extends TestSuite {
             { fs2 =>
               val p1 = os.root("/", fs1) / "test/dir"
               val p2 = os.root("/", fs2) / "test/dir"
-              intercept[IllegalArgumentException] {
+              assertThrows[IllegalArgumentException] {
                 p1.relativeTo(p2)
               }
             },
@@ -130,7 +130,7 @@ object PathTestsCustomFilesystem extends TestSuite {
             { fs2 =>
               val p1 = os.root("/", fs1) / "test/dir"
               val p2 = os.root("/", fs2) / "test/dir"
-              intercept[IllegalArgumentException] {
+              assertThrows[IllegalArgumentException] {
                 p1.subRelativeTo(p2)
               }
             },
@@ -190,7 +190,7 @@ object PathTestsCustomFilesystem extends TestSuite {
         withCustomFs { fileSystem =>
           val root = os.root("/", fileSystem)
           // This should fail. Just test that it doesn't throw PathError.AbsolutePathOutsideRoot.
-          intercept[FileAlreadyExistsException] {
+          assertThrows[FileAlreadyExistsException] {
             os.move(root / "test/dir", root, createFolders = true)
           }
         }
@@ -242,7 +242,7 @@ object PathTestsCustomFilesystem extends TestSuite {
         withCustomFs { fileSystem =>
           val p = os.root("/", fileSystem) / "test/dir"
           os.write(p / "file.txt", "Hello World")
-          intercept[UnsupportedOperationException] {
+          assertThrows[UnsupportedOperationException] {
             os.symlink(p / "link", p / "file.txt")
           }
         }

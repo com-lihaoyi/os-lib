@@ -8,7 +8,7 @@ import java.util.HashMap
 import java.nio.file.FileSystems
 import java.net.URI
 
-object PathTestsJvmOnly extends TestSuite {
+class PathTestsJvmOnly extends TestSuite {
   val tests = Tests {
     test("construction") {
       test("symlinks") {

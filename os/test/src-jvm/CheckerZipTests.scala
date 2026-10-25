@@ -10,7 +10,7 @@ object CheckerZipTests extends TestSuite {
     test("zip") - prepChecker { wd =>
       if (!scala.util.Properties.isWin && !TestUtil.isDotty) ()
 
-      intercept[WriteDenied] {
+      assertThrows[WriteDenied] {
         os.zip(
           dest = rd / "zipped.zip",
           sources = Seq(
@@ -21,7 +21,7 @@ object CheckerZipTests extends TestSuite {
       }
       os.exists(rd / "zipped.zip") ==> false
 
-      intercept[ReadDenied] {
+      assertThrows[ReadDenied] {
         os.zip(
           dest = wd / "zipped.zip",
           sources = Seq(
@@ -57,7 +57,7 @@ object CheckerZipTests extends TestSuite {
         )
       )
 
-      intercept[WriteDenied] {
+      assertThrows[WriteDenied] {
         os.unzip(
           source = zipFile,
           dest = rd / "unzipped"

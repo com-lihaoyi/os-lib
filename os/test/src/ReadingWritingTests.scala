@@ -1,7 +1,9 @@
 package test.os
+
 import utest._
 import TestUtil._
-object ReadingWritingTests extends TestSuite {
+
+class ReadingWritingTests extends TestSuite {
   def tests = Tests {
     test("read") {
       test - prep { wd =>
