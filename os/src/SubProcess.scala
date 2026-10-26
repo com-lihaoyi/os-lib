@@ -333,7 +333,7 @@ class ProcessPipeline(
   def commandString = processes.map(_.wrapped.toString).mkString(" | ")
 
   private[os] val brokenPipeHandler: Option[Thread] = brokenPipeQueue.map { queue =>
-    new Thread(
+    val brokenPipeHandlerThread = new Thread(
       new Runnable {
         override def run(): Unit = {
           var pipelineRunning = true
@@ -358,6 +358,8 @@ class ProcessPipeline(
       },
       commandString + " broken pipe handler"
     )
+    brokenPipeHandlerThread.setDaemon(true)
+    brokenPipeHandlerThread
   }
 
   /**
