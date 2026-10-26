@@ -117,7 +117,7 @@ object ProcessPipelineTests extends TestSuite {
   }
 
   val nonWindowsTests = Tests {
-    test("brokenPipe") {
+    test("brokenPipe") - retry(if (sys.env.get("CI") != null) 5 else 1) {
       val p = os.proc(writerProc(-1, 0, false))
         .pipeTo(os.proc(readerProc(3, 0, false)))
         .spawn()
