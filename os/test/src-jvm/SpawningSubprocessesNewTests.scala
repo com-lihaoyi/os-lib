@@ -245,8 +245,8 @@ object SpawningSubprocessesNewTests extends TestSuite {
     }
 
     test("spawnExitHook") {
-      test("destroyDefaultGrace") retry (if (sys.env.get("CI") == None) 1 else 5) {
-        if (Unix()) {
+      test("destroyDefaultGrace") {
+        if (Unix()) retry(if (sys.env.get("CI") == None) 1 else 5) {
           val temp = os.temp()
           val lock0 = tryLock(temp)
           // file starts off not locked so can be taken and released
