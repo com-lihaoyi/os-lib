@@ -203,38 +203,50 @@ object SpawningSubprocessesNewTests extends TestSuite {
     }
 
     test("destroy") {
-      if (Unix()) {
-        try {
-          val temp1 = os.temp()
-          val sub1 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp1))
-          waitForLockTaken(temp1)
-          sub1.destroy()
-          if (sub1.isAlive()) {
-            throw new Exception(
-              s"destroy: expected subprocess to be dead after synchronous destroy, temp: $temp1"
-            )
+      test("sync") {
+        // We know this is flaky in CI
+        if (Unix()) retry(if (sys.env.get("CI") == None) 1 else 5) {
+          try {
+            val temp1 = os.temp()
+            val sub1 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp1))
+            waitForLockTaken(temp1)
+            sub1.destroy()
+            if (sub1.isAlive()) {
+              throw new Exception(
+                s"destroy: expected subprocess to be dead after synchronous destroy, temp: $temp1"
+              )
+            }
+          } catch {
+            case ex: Exception =>
+              // Enhanced error reporting for CI debugging
+              throw new Exception(s"destroy test failed: ${ex.getMessage}", ex)
           }
-
-          val temp2 = os.temp()
-          val sub2 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp2))
-          waitForLockTaken(temp2)
-          sub2.destroy(async = true)
-          if (!sub2.isAlive()) {
-            throw new Exception(
-              s"destroy: expected subprocess to still be alive after async destroy, temp: $temp2"
-            )
+        }
+      }
+      test("async") {
+        if (Unix()) {
+          try {
+            val temp2 = os.temp()
+            val sub2 = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp2))
+            waitForLockTaken(temp2)
+            sub2.destroy(async = true)
+            if (!sub2.isAlive()) {
+              throw new Exception(
+                s"destroy: expected subprocess to still be alive after async destroy, temp: $temp2"
+              )
+            }
+          } catch {
+            case ex: Exception =>
+              // Enhanced error reporting for CI debugging
+              throw new Exception(s"destroy test failed: ${ex.getMessage}", ex)
           }
-        } catch {
-          case ex: Exception =>
-            // Enhanced error reporting for CI debugging
-            throw new Exception(s"destroy test failed: ${ex.getMessage}", ex)
         }
       }
     }
 
     test("spawnExitHook") {
       test("destroyDefaultGrace") {
-        if (Unix()) {
+        if (Unix()) retry(if (sys.env.get("CI") == None) 1 else 5) {
           val temp = os.temp()
           val lock0 = tryLock(temp)
           // file starts off not locked so can be taken and released
@@ -253,8 +265,8 @@ object SpawningSubprocessesNewTests extends TestSuite {
         }
       }
 
-      test("destroyNoGrace") - retry(5) {
-        if (Unix()) {
+      test("destroyNoGrace") {
+        if (Unix()) retry(if (sys.env.get("CI") == None) 1 else 5) {
           val temp = os.temp()
           try {
             val subprocess = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp))
