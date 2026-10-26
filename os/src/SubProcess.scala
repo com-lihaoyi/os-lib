@@ -332,7 +332,7 @@ class ProcessPipeline(
    */
   def commandString = processes.map(_.wrapped.toString).mkString(" | ")
 
-  private[os] val brokenPipeHandler: Option[Thread] = brokenPipeQueue.map { queue =>
+  private val brokenPipeHandler: Option[Thread] = brokenPipeQueue.map { queue =>
     val brokenPipeHandlerThread = new Thread(
       new Runnable {
         override def run(): Unit = {
@@ -342,10 +342,10 @@ class ProcessPipeline(
             if (brokenPipeIndex == processes.length) { // Special case signaling finished pipeline
               pipelineRunning = false
             } else {
-              processes(brokenPipeIndex).destroyForcibly()
+              processes(brokenPipeIndex).destroy(shutdownGracePeriod = 0)
             }
           }
-          new Thread(
+          val signalThread = new Thread(
             new Runnable {
               override def run(): Unit = {
                 while (!pipeline.waitFor()) {} // handle spurious wakes
@@ -353,13 +353,19 @@ class ProcessPipeline(
               }
             },
             commandString + " pipeline termination handler"
-          ).start()
+          )
+          signalThread.setDaemon(true)
+          signalThread.start()
         }
       },
       commandString + " broken pipe handler"
     )
     brokenPipeHandlerThread.setDaemon(true)
     brokenPipeHandlerThread
+  }
+
+  private[os] def startBrokenPipeHandler(): Unit = {
+    brokenPipeHandler.foreach(_.start())
   }
 
   /**
@@ -408,6 +414,7 @@ class ProcessPipeline(
    * Alias for [[destroy]], implemented for [[java.lang.AutoCloseable]].
    */
   override def close(): Unit = {
+    brokenPipeHandler.foreach(_.interrupt())
     processes.foreach(_.close())
   }
 

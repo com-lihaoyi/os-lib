@@ -576,7 +576,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
       }
     val pipeline =
       new ProcessPipeline(procs, pipefail, if (handleBrokenPipe) Some(brokenPipeQueue) else None)
-    pipeline.brokenPipeHandler.foreach(_.start())
+    pipeline.startBrokenPipeHandler()
     pipeline
   }
 
