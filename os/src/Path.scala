@@ -606,8 +606,11 @@ class Path private[os] (val wrapped: java.nio.file.Path)
 
   /** Posix-conform string representation of this path (using forward slashes). */
   override def toString(): String =
-    if (fileSystem.getSeparator() == "/") wrapped.toString
+    if (fileSystem.getSeparator() == "/") wrapped.toString()
     else wrapped.toString.replace(fileSystem.getSeparator(), "/")
+
+  /** A platform-specific string representation of this path. */
+  def toPlatformString: String = wrapped.toString()
 
   override def equals(o: Any): Boolean = o match {
     case p: Path => wrapped.equals(p.wrapped)
