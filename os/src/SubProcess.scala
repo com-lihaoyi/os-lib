@@ -414,8 +414,8 @@ class ProcessPipeline(
    * Alias for [[destroy]], implemented for [[java.lang.AutoCloseable]].
    */
   override def close(): Unit = {
-    brokenPipeHandler.foreach(_.interrupt())
     processes.foreach(_.close())
+    brokenPipeHandler.foreach(_.interrupt())
   }
 
   /**
