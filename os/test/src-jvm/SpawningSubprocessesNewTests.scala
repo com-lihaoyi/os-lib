@@ -245,7 +245,7 @@ object SpawningSubprocessesNewTests extends TestSuite {
     }
 
     test("spawnExitHook") {
-      test("destroyDefaultGrace") retry(if (sys.env.get("CI") == None) 1 else 5) {
+      test("destroyDefaultGrace") retry (if (sys.env.get("CI") == None) 1 else 5) {
         if (Unix()) {
           val temp = os.temp()
           val lock0 = tryLock(temp)
