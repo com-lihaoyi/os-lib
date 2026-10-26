@@ -56,7 +56,7 @@ package object watch {
       throw new IllegalArgumentException(errors.mkString("\n"))
     }
 
-    val sentinelFiles = 
+    val sentinelFiles =
       roots
         .iterator
         .flatMap(os.followLink(_).map(_ / s".os-lib-watch-sentinel-${UUID.randomUUID()}"))

@@ -583,11 +583,26 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
       wrapped: ProcessInput,
       index: Int,
       queue: LinkedBlockingQueue[Int]
-  ) =
-    new ProcessInput {
-      override def redirectFrom: Redirect = wrapped.redirectFrom
-      override def processInput(stdin: => InputStream): Option[Runnable] =
-        wrapped.processInput(stdin).map { runnable =>
+  ) = new ProcessInput {
+    override def redirectFrom: Redirect = wrapped.redirectFrom
+    override def processInput(stdin: => InputStream): Option[Runnable] = wrapped match {
+      // `SourceInput` swallows write failures, so we need to do the transfer ourselves
+      // here in order to notice broken pipes
+      case ProcessInput.SourceInput(r) =>
+        Some {
+          new Runnable {
+            def run() = {
+              try {
+                try r.writeBytesTo(stdin)
+                finally stdin.close()
+              } catch {
+                case e: IOException =>
+                  queue.put(index)
+              }
+            }
+          }
+        }
+      case _ => wrapped.processInput(stdin).map { runnable =>
           new Runnable {
             def run() = {
               try {
@@ -600,6 +615,7 @@ case class ProcGroup private[os] (commands: Seq[proc]) {
           }
         }
     }
+  }
 
   /**
    * Pipes the output of this pipeline into the input of the [[next]] process.
@@ -647,7 +663,8 @@ object ProcessOps {
     addToProcessEnv(env)
 
     val dir = Option(cwd).getOrElse(os.pwd)
-    builder.directory(dir.toIO)
+    // `.directory` doesn't work well with relative paths with `..` in them so force it absolute
+    builder.directory(dir.wrapped.toAbsolutePath.toFile)
     spawnHook.value.apply(dir)
 
     builder

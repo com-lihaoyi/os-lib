@@ -1,5 +1,5 @@
 //| mvnDeps:
-//| - com.github.lolgab::mill-mima_mill1:0.2.0
+//| - com.github.lolgab::mill-mima_mill1:0.2.2
 package build
 
 // imports
@@ -12,19 +12,19 @@ val communityBuildDottyVersion = sys.props.get("dottyVersion").toList
 val scala213Version = "2.13.16"
 
 val scalaVersions = Seq(
-  "3.3.5",
+  "3.3.8",
   "2.12.20",
   scala213Version
 ) ++ communityBuildDottyVersion
 
 object Deps {
-  val acyclic = mvn"com.lihaoyi:::acyclic:0.3.18"
-  val jna = mvn"net.java.dev.jna:jna:5.15.0"
+  val acyclic = mvn"com.lihaoyi:::acyclic:0.3.21"
+  val jna = mvn"net.java.dev.jna:jna:5.19.1"
   val geny = mvn"com.lihaoyi::geny::1.1.1"
   val ant = mvn"org.apache.ant:ant:1.10.15"
-  val sourcecode = mvn"com.lihaoyi::sourcecode::0.4.2"
-  val utest = mvn"com.lihaoyi::utest::0.8.4"
-  val expecty = mvn"com.eed3si9n.expecty::expecty::0.16.0"
+  val sourcecode = mvn"com.lihaoyi::sourcecode::0.4.4"
+  val utest = mvn"com.lihaoyi::utest::0.8.9"
+  val expecty = mvn"com.eed3si9n.expecty::expecty::0.17.1"
   def scalaReflect(scalaVersion: String) = mvn"org.scala-lang:scala-reflect:$scalaVersion"
   def scalaLibrary(version: String) = mvn"org.scala-lang:scala-library:${version}"
 }
@@ -41,25 +41,35 @@ trait AcyclicModule extends ScalaModule {
   def scalacOptions = super.scalacOptions() ++ acyclicOptions()
 }
 
+/**
+ * Compiles Scala 3 lazy vals to VarHandles rather than `sun.misc.Unsafe`, whose memory-access
+ * methods JDK 24+ warns about on first use (and will remove). The option needs Scala 3.3.8+ and
+ * an explicit output version of at least 9; os-lib already needs Java 10+ at runtime
+ * (`ProcessHandle`, `Runtime.version.feature`), so 11, the oldest JDK CI runs on, costs nothing.
+ * JVM only: Scala Native has no `Unsafe` in the first place.
+ */
+trait FutureLazyValsModule extends ScalaModule {
+  def scalacOptions = super.scalacOptions() ++ {
+    if (scalaVersion().startsWith("3.")) Seq("-Yfuture-lazy-vals", "-java-output-version", "11")
+    else Nil
+  }
+}
+
 trait MiMaChecks extends Mima {
   def mimaPreviousVersions =
-    Seq(
-      "0.9.0",
-      "0.9.1",
-      "0.9.2",
-      "0.9.3",
-      "0.10.0",
-      "0.10.1",
-      "0.10.2",
-      "0.10.3",
-      "0.10.4",
-      "0.10.5",
-      "0.10.6"
-    )
+    Seq("0.9.0", "0.9.1", "0.9.2", "0.9.3") ++
+    Seq("0.10.0", "0.10.1", "0.10.2", "0.10.3", "0.10.4", "0.10.5", "0.10.6", "0.10.7") ++
+    Seq("0.11.0", "0.11.1", "0.11.2", "0.11.3", "0.11.4") ++
+    Seq("0.11.5", "0.11.6", "0.11.8")
   override def mimaBinaryIssueFilters: T[Seq[ProblemFilter]] = Seq(
     ProblemFilter.exclude[ReversedMissingMethodProblem]("os.PathConvertible.isCustomFs"),
     // this is fine, because ProcessLike is sealed (and its subclasses should be final)
-    ProblemFilter.exclude[ReversedMissingMethodProblem]("os.ProcessLike.joinPumperThreadsHook")
+    ProblemFilter.exclude[ReversedMissingMethodProblem]("os.ProcessLike.joinPumperThreadsHook"),
+    // With -Yfuture-lazy-vals (see FutureLazyValsModule), object Path's static initializer is
+    // emitted private rather than public, which MiMa < 1.2.0 reads as a public method going
+    // missing. Only the JVM ever runs a <clinit>; MiMa 1.2.0 ignores them (lightbend-labs/mima#794)
+    ProblemFilter.exclude[DirectMissingMethodProblem]("os.Path.<clinit>"),
+    ProblemFilter.exclude[DirectMissingMethodProblem]("os.zip.<clinit>")
   )
   override def mimaExcludeAnnotations: T[Seq[String]] = Seq(
     "os.experimental"
@@ -114,7 +124,7 @@ trait OsModule extends OsLibModule { outer =>
   val scalaDocExternalMappings = Seq(
     ".*scala.*::scaladoc3::https://scala-lang.org/api/3.x/",
     ".*java.*::javadoc::https://docs.oracle.com/javase/8/docs/api/",
-    s".*geny.*::scaladoc3::https://javadoc.io/doc/com.lihaoyi/geny_3/${Deps.geny.dep.version}/"
+    s".*geny.*::scaladoc3::https://javadoc.io/doc/com.lihaoyi/geny_3/${Deps.geny.version}/"
   ).mkString(",")
 
   def conditionalScalaDocOptions: T[Seq[String]] = Task {
@@ -157,8 +167,10 @@ trait OsModule extends OsLibModule { outer =>
 object os extends Module {
 
   object jvm extends Cross[OsJvmModule](scalaVersions)
-  trait OsJvmModule extends OsModule with MiMaChecks {
+  trait OsJvmModule extends OsModule with MiMaChecks with FutureLazyValsModule {
     def moduleDeps = super.moduleDeps ++ Seq(os.zip)
+
+    def scalacOptions = super.scalacOptions() ++ Seq("-java-output-version", "11")
 
     object test extends ScalaTests with OsLibTestModule {
       override def mvnDeps = Task { super.mvnDeps() ++ Seq(Deps.expecty) }
@@ -175,7 +187,7 @@ object os extends Module {
       object testJarWriter extends JavaModule
       object testJarReader extends JavaModule
       object testJarExit extends JavaModule
-      object testSpawnExitHook extends ScalaModule{
+      object testSpawnExitHook extends ScalaModule {
         def scalaVersion = OsJvmModule.this.scalaVersion()
         def moduleDeps = Seq(OsJvmModule.this)
       }
@@ -232,19 +244,21 @@ object os extends Module {
 
       Seq(PathRef(Task.dest))
     }
+
+    def javacOptions = super.javacOptions() ++ Seq("-source", "11", "-target", "11", "-encoding", "UTF-8")
   }
 
   object native extends Cross[OsNativeModule](scalaVersions)
   trait OsNativeModule extends OsModule with ScalaNativeModule {
-    def scalaNativeVersion = "0.5.9"
-    
+    def scalaNativeVersion = "0.5.12"
+
     // Configurable native mode for debugging/performance testing
     def nativeMode = sys.props.get("native.mode") match {
-      case Some("release-fast") => mill.scalanativelib.api.ReleaseMode.ReleaseFast  
+      case Some("release-fast") => mill.scalanativelib.api.ReleaseMode.ReleaseFast
       case Some("release-full") => mill.scalanativelib.api.ReleaseMode.ReleaseFull
       case _ => mill.scalanativelib.api.ReleaseMode.Debug
     }
-    
+
     object test extends ScalaNativeTests with OsLibTestModule {
       // Keep stubs linked to tolerate optional symbols across platforms
       def nativeLinkStubs = true
@@ -254,7 +268,7 @@ object os extends Module {
 
   object watch extends Module {
     object jvm extends Cross[WatchJvmModule](scalaVersions)
-    trait WatchJvmModule extends OsLibModule {
+    trait WatchJvmModule extends OsLibModule with FutureLazyValsModule {
       def artifactName = "os-lib-watch"
       def moduleDeps = super.moduleDeps ++ Seq(os.jvm())
       def mvnDeps = Seq(Deps.jna)
