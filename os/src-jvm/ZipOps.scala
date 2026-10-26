@@ -116,6 +116,26 @@ object zip {
     dest
   }
 
+  @deprecated("Binary compat shim", "os-lib after 0.11.8")
+  def apply(
+      dest: os.Path,
+      sources: Seq[ZipSource],
+      excludePatterns: Seq[Regex],
+      includePatterns: Seq[Regex],
+      preserveMtimes: Boolean,
+      deletePatterns: Seq[Regex],
+      compressionLevel: Int
+  ): os.Path = apply(
+    dest,
+    sources,
+    excludePatterns,
+    includePatterns,
+    preserveMtimes,
+    deletePatterns,
+    compressionLevel,
+    followLinks = true
+  )
+
   private def createNewZip0(
       sources: Seq[ZipSource],
       excludePatterns: Seq[Regex],
@@ -276,6 +296,22 @@ object zip {
         )
       }
   }
+
+  @deprecated("Binary compat shim", "os-lib after 0.11.8")
+  def stream(
+      sources: Seq[ZipSource],
+      excludePatterns: Seq[Regex],
+      includePatterns: Seq[Regex],
+      preserveMtimes: Boolean,
+      compressionLevel: Int
+  ): geny.Writable = stream(
+    sources,
+    excludePatterns,
+    includePatterns,
+    preserveMtimes,
+    compressionLevel,
+    followLinks = false
+  )
 
   /**
    * A filesystem root representing a zip file
