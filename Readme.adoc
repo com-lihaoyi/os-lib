@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.11.7
+:version: 0.11.9
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -7,6 +7,7 @@
 :link-oslib: https://github.com/com-lihaoyi/os-lib
 :link-upickle-doc: https://com-lihaoyi.github.io/upickle
 :link-scalatags-doc: https://com-lihaoyi.github.io/scalatags/
+:link-pr: {link-oslib}/pull
 :idprefix:
 :idseparator: -
 
@@ -49,7 +50,7 @@ OS-Lib aims to be a complete replacement for the
 `scala.io` and `scala.sys` APIs. You should not need to drop down to underlying
 Java APIs, as OS-Lib exposes all relevant capabilities in an intuitive and
 performant way. OS-Lib has no dependencies and is unopinionated: it exposes the
-underlying APIs in a concise but straightforward way, without introducing it's
+underlying APIs in a concise but straightforward way, without introducing its
 own idiosyncrasies, quirks, or clever DSLs.
 
 If you use OS-Lib and like it, you will probably enjoy the following book by the Author:
@@ -2584,15 +2585,34 @@ string, int or set representations of the `os.PermSet` via:
 
 == Changelog
 
+[#0-11-9]
+=== 0.11.9 - 2026-10-26
+
+* Remove experimental path serializer ({link-pr}/437[437])
+* Always use forward slash as separator in `Path.toString` ({link-pr}/436[436])
+* Detect more write failures in pipes ({link-pr}/438[438])
+* Restore binary compatibility with previous versions ({link-pr}/442[442]) ({link-pr}/444[444])
+* Forward the `handleBrokenPipe` value of `call` to the inner `spawn` invocation ({link-pr}/430[430])
+* Don't apply perms to folders when `createFolders=true` ({link-pr}/420[420])
+* Interrupt the broken pipe handler thread on close ({link-pr}/447[447])
+* Update scala-native to 0.5.12 ({link-pr}/439[439])
+* Update to Scala 3.3.8 and use -Yfuture-lazy-vals ({link-pr}/432[432])
+* Update Scala 2.12 to 2.12.21 ({link-pr}/446[446])
+* Update Scala 2.13 to 2.13.18 ({link-pr}/445[445])
+* Various dependency updates
+
+[#0-11-8]
 === 0.11.8
 
 * Silence noisy exceptions in SubProcess input stream handling and WatchServiceWatcher
 
 
+[#0-11-6]
 === 0.11.6
 
 * Re-enabled Scala Native builds (tested with Scala Native 0.5.8). Zip APIs remain JVM-only.
 
+[#0-11-5]
 === 0.11.5
 
 * Dropped support for Scala-Native, until https://github.com/com-lihaoyi/os-lib/issues/395[Fix and re-enable Scala-Native build (500USD Bounty)]
@@ -2615,11 +2635,14 @@ string, int or set representations of the `os.PermSet` via:
 * Added `os.Path#toURI` and `os.Path#toURL` helpers
   https://github.com/com-lihaoyi/os-lib/issues/399[#399]
 
+
+[#0-11-4]
 === 0.11.4
 
 * Add ability to instrument path based operations using hooks  https://github.com/com-lihaoyi/os-lib/pull/325[#325]
 * Add compile-time validation of literal paths containing ".." https://github.com/com-lihaoyi/os-lib/pull/329[#329]
 * Add literal string syntax for `os.Path`, `os.SubPath`, and `os.RelPath` https://github.com/com-lihaoyi/os-lib/pull/353[#353]
+
 
 [#0-11-3]
 === 0.11.3
