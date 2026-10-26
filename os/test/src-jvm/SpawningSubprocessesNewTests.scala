@@ -265,8 +265,8 @@ object SpawningSubprocessesNewTests extends TestSuite {
         }
       }
 
-      test("destroyNoGrace") - retry(5) {
-        if (Unix()) {
+      test("destroyNoGrace") {
+        if (Unix()) retry(if (sys.env.get("CI") == None) 1 else 5) {
           val temp = os.temp()
           try {
             val subprocess = os.spawn((sys.env("TEST_SPAWN_EXIT_HOOK_ASSEMBLY"), temp))
