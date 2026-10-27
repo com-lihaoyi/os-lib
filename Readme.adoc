@@ -1,5 +1,5 @@
 = OS-Lib
-:version: 0.11.9
+:version: 0.11.10
 :toc-placement: preamble
 :toclevels: 3
 :toc:
@@ -80,7 +80,7 @@ To begin using OS-Lib, first add it as a dependency to your project's build:
 [source,scala,subs="attributes,verbatim"]
 ----
 // Mill
-ivy"com.lihaoyi::os-lib:{version}"
+mvn"com.lihaoyi::os-lib:{version}"
 // SBT
 "com.lihaoyi" %% "os-lib" % "{version}"
 ----
