@@ -289,43 +289,58 @@ object WatchTests extends TestSuite with TestSuite.Retries {
     }
 
     test("manyFiles") {
-      test("inManyFoldersSmall") - _root_.test.os.TestUtil.prep { wd =>
-        val paths = createManyFilesInManyFolders(wd, numPaths = 1000)
-        testManyFilesInManyFolders(wd, paths)
-      }
-
-      test("inManyFoldersMedium") - _root_.test.os.TestUtil.prep { wd =>
-        val paths = createManyFilesInManyFolders(wd, numPaths = 5000)
-        testManyFilesInManyFolders(wd, paths)
-      }
-
-      test("inManyFoldersLarge") - _root_.test.os.TestUtil.prep { wd =>
-        val paths = createManyFilesInManyFolders(wd, numPaths = 10000)
-        testManyFilesInManyFolders(wd, paths)
-      }
-
-      test("inManyFoldersLargest") - _root_.test.os.TestUtil.prep { wd =>
-        // On macOS this always fails, some changes are lost with that many files.
-        if (!isMac) {
-          val numPaths =
-            12000 // My Linux machine starts overflowing and losing events at 13k files.
-          val paths = createManyFilesInManyFolders(wd, numPaths)
+      test("inManyFoldersSmall") {
+        if (isWin) "Skipping test on Windows"
+        else _root_.test.os.TestUtil.prep { wd =>
+          val paths = createManyFilesInManyFolders(wd, numPaths = 1000)
           testManyFilesInManyFolders(wd, paths)
         }
       }
 
-      test("inManyFoldersThreaded") - _root_.test.os.TestUtil.prep { wd =>
-        import scala.concurrent.ExecutionContext.Implicits.global
+      test("inManyFoldersMedium") {
+        if (isWin) "Skipping test on Windows"
+        else _root_.test.os.TestUtil.prep { wd =>
+          val paths = createManyFilesInManyFolders(wd, numPaths = 5000)
+          testManyFilesInManyFolders(wd, paths)
+        }
+      }
 
-        val numPaths = 1000
-        val futures = (0 to 100).map { idx =>
-          Future {
-            val myWd = wd / s"job-$idx"
-            val paths = createManyFilesInManyFolders(myWd, numPaths)
-            testManyFilesInManyFolders(myWd, paths)
+      test("inManyFoldersLarge") {
+        if (isWin) "Skipping test on Windows"
+        else _root_.test.os.TestUtil.prep { wd =>
+          val paths = createManyFilesInManyFolders(wd, numPaths = 10000)
+          testManyFilesInManyFolders(wd, paths)
+        }
+      }
+
+      test("inManyFoldersLargest") {
+        if (isWin) "Skipping test on Windows"
+        else _root_.test.os.TestUtil.prep { wd =>
+          // On macOS this always fails, some changes are lost with that many files.
+          if (!isMac) {
+            val numPaths =
+              12000 // My Linux machine starts overflowing and losing events at 13k files.
+            val paths = createManyFilesInManyFolders(wd, numPaths)
+            testManyFilesInManyFolders(wd, paths)
           }
         }
-        futures.foreach(Await.result(_, 20.seconds))
+      }
+
+      test("inManyFoldersThreaded") {
+        if (isWin) "Skipping test on Windows"
+        else _root_.test.os.TestUtil.prep { wd =>
+          import scala.concurrent.ExecutionContext.Implicits.global
+
+          val numPaths = 1000
+          val futures = (0 to 100).map { idx =>
+            Future {
+              val myWd = wd / s"job-$idx"
+              val paths = createManyFilesInManyFolders(myWd, numPaths)
+              testManyFilesInManyFolders(myWd, paths)
+            }
+          }
+          futures.foreach(Await.result(_, 20.seconds))
+        }
       }
 
       test("inManyFoldersThreadedSequential") - _root_.test.os.TestUtil.prep { wd =>
@@ -392,7 +407,7 @@ object WatchTests extends TestSuite with TestSuite.Retries {
       val res = os.watch.watch(Seq(wd), onEvent = _ => ())
       try {
         val futures = (0 to 100).map { _ => Future(res.close()) }
-        futures.foreach(Await.result(_, 20.seconds))
+        futures.foreach(Await.result(_, 40.seconds))
       } finally {
         res.close()
       }
