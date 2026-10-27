@@ -271,9 +271,11 @@ object PathTestsCustomFilesystem extends TestSuite {
   val testWindows = Tests {
     test("cRootPath") {
       val p1 = os.root("C:\\") / "Users"
-      assert(p1.toString == "C:\\Users")
+      assert(p1.toString == "C:/Users")
+      assert(p1.toPlatformString == "C:\\Users")
       val p2 = os.root("C:/") / "Users"
-      assert(p2.toString == "C:\\Users")
+      assert(p2.toString == "C:/Users")
+      assert(p2.toPlatformString == "C:\\Users")
     }
   }
 

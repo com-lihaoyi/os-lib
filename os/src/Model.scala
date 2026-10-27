@@ -220,8 +220,8 @@ object Shellable extends os.GeneratedTupleConversions[Shellable] {
   implicit def CharSequenceShellable(cs: CharSequence): Shellable = Shellable(Seq(cs.toString))
 
   implicit def SymbolShellable(s: Symbol): Shellable = Shellable(Seq(s.name))
-  implicit def PathShellable(s: Path): Shellable = Shellable(Seq(s.toString))
-  implicit def RelPathShellable(s: RelPath): Shellable = Shellable(Seq(s.toString))
+  implicit def PathShellable(s: Path): Shellable = Shellable(Seq(s.toPlatformString))
+  implicit def RelPathShellable(s: RelPath): Shellable = Shellable(Seq(s.toString()))
   implicit def NumericShellable[T: Numeric](s: T): Shellable = Shellable(Seq(s.toString))
 
   implicit def OptionShellable[T](s: Option[T])(implicit f: T => Shellable): Shellable =
