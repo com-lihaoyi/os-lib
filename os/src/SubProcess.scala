@@ -490,8 +490,9 @@ object ProcessInput {
       new Runnable {
         def run() = {
           try r.writeBytesTo(stdin)
-          catch { case e: Throwable => /*ignore failures and assume the stream just closed early*/ }
-          finally stdin.close()
+          catch {
+            case e: Throwable => /*ignore failures and assume the stream just closed early*/
+          } finally stdin.close()
         }
       }
     }
