@@ -178,7 +178,8 @@ object os extends Module {
         "TEST_JAR_READER_ASSEMBLY" -> testJarReader.assembly().path.toString,
         "TEST_JAR_EXIT_ASSEMBLY" -> testJarExit.assembly().path.toString,
         "TEST_SPAWN_EXIT_HOOK_ASSEMBLY" -> testSpawnExitHook.assembly().path.toString,
-        "TEST_SPAWN_EXIT_HOOK_ASSEMBLY2" -> testSpawnExitHook2.assembly().path.toString
+        "TEST_SPAWN_EXIT_HOOK_ASSEMBLY2" -> testSpawnExitHook2.assembly().path.toString,
+        "TEST_SPAWN_DURING_SHUTDOWN_ASSEMBLY" -> testSpawnDuringShutdown.assembly().path.toString
       )
 
       object testJarWriter extends JavaModule with JvmJavaSettings
@@ -189,6 +190,10 @@ object os extends Module {
         def moduleDeps = Seq(OsJvmModule.this)
       }
       object testSpawnExitHook2 extends JavaModule with JvmJavaSettings
+      object testSpawnDuringShutdown extends ScalaModule with JvmScalaSettings {
+        def scalaVersion = OsJvmModule.this.scalaVersion()
+        def moduleDeps = Seq(OsJvmModule.this)
+      }
     }
 
     object nohometest extends ScalaTests with OsLibTestModule

@@ -339,7 +339,14 @@ case class proc(command: Shellable*) {
       }
     )
 
-    shutdownHookThread.foreach(Runtime.getRuntime().addShutdownHook)
+    shutdownHookThread.foreach { t =>
+      // The JVM refuses new shutdown hooks once it is shutting down, e.g. when this is
+      // called from another shutdown hook. The subprocess is still started, just without
+      // one: the JVM is already exiting. (The monitor thread's removeShutdownHook then
+      // finds nothing to remove, or throws the same, which it ignores.)
+      try Runtime.getRuntime().addShutdownHook(t)
+      catch { case _: IllegalStateException => }
+    }
 
     lazy val proc: SubProcess = new SubProcess(
       builder.start(),
