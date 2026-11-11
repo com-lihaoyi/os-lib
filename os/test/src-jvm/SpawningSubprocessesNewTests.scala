@@ -244,6 +244,22 @@ object SpawningSubprocessesNewTests extends TestSuite {
       }
     }
 
+    test("spawnDuringShutdown") {
+      // A subprocess started while the JVM is shutting down (from a shutdown hook) must
+      // run, even though its own `destroyOnExit` shutdown hook can't be registered then.
+      if (Unix()) {
+        val res = os.call(
+          cmd = sys.env("TEST_SPAWN_DURING_SHUTDOWN_ASSEMBLY"),
+          stderr = os.Pipe,
+          check = false
+        )
+        val err = res.err.text()
+        assert(!err.contains("IllegalStateException"))
+        res.out.text() ==> "spawned during shutdown\n"
+        res.exitCode ==> 0
+      }
+    }
+
     test("spawnExitHook") {
       test("destroyDefaultGrace") {
         if (Unix()) retry(if (sys.env.get("CI") == None) 1 else 5) {
